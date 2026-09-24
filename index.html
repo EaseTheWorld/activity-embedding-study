@@ -381,7 +381,8 @@
     .diagram-summary {
       font-size: 0.84rem;
       color: var(--text-muted);
-      margin-top: 0.75rem;
+      margin-top: auto;
+      padding-top: 0.75rem;
       line-height: 1.5;
     }
 
@@ -679,11 +680,7 @@
               </div>
             </div>
 
-            <div class="mock-connector mock-connector-success">
-              <span>🔒 Verified via android:knownActivityEmbeddingCerts</span>
-            </div>
-
-            <div class="mock-external-pkg">
+            <div class="mock-external-pkg" style="margin-top: 0.5rem;">
               <strong>Voice Recognition Package</strong><br>
               <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">Owns VoiceSettingsActivity & Service in VoiceService.apk</span>
             </div>
