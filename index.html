@@ -491,7 +491,6 @@
         <div class="meta-bar">
           <div class="meta-item"><span>Platform:</span> <strong>Android 12L (API 32) & Android 13+</strong></div>
           <div class="meta-item"><span>Library:</span> <strong>androidx.window:window:1.3+</strong></div>
-          <div class="meta-item"><span>Core Hook:</span> <strong>TaskFragmentOrganizer</strong></div>
         </div>
       </div>
 
@@ -595,18 +594,14 @@
       <!-- Section 3 -->
       <section id="hierarchy">
         <h2>3. Window Hierarchy Paradigm Shift</h2>
-        <div class="callout">
-          <div class="callout-title">
-            <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>
-            Key Source Insight: Task extends TaskFragment!
-          </div>
-          <p>Prior to Android 12L, a <code>Task</code> directly managed <code>ActivityRecord</code>s. In Android 12L+, the platform refactored the tree: <strong><code>class Task extends TaskFragment</code></strong>. A <code>Task</code> is now simply the top-level root <code>TaskFragment</code> that represents the user-visible entry in the Recents screen.</p>
-        </div>
+        <pre><code>// Android 11 and earlier:
+class Task extends WindowContainer&lt;ActivityRecord&gt; { ... }
 
-        <pre><code>// Prior to 12L:
-RootWindowContainer ➔ DisplayContent ➔ TaskDisplayArea ➔ Task ➔ ActivityRecord
+// Android 12L and beyond:
+class TaskFragment extends WindowContainer&lt;WindowContainer&gt; { ... }
+class Task extends TaskFragment { ... }</code></pre>
 
-// Android 12L+ (Activity Embedding Enabled):
+        <pre><code>// Hierarchy:
 RootWindowContainer
  └── DisplayContent
       └── TaskDisplayArea
@@ -620,29 +615,13 @@ RootWindowContainer
       <!-- Section 4 -->
       <section id="rules-architecture">
         <h2>4. The Rule-Based Architecture & Advantages</h2>
-        
-        <p>Activity Embedding is built around a <strong>centralized, rule-based architecture</strong>. Rather than coupling display layout directly to individual navigation call sites, apps define declarative or programmatic rules (<code>SplitPairRule</code>, <code>SplitPlaceholderRule</code>, <code>ActivityRule</code>) that the platform evaluates dynamically at runtime.</p>
+        <p>Activity Embedding centralizes layout decisions into declarative or programmatic <strong>rules</strong> (e.g. <code>SplitPairRule</code>), completely isolating navigation logic from display geometry.</p>
 
-        <div class="grid-2">
-          <div class="card">
-            <div class="card-title">
-              <span>Standard, Clean Call Sites</span>
-              <span class="pill pill-green">Separation of Concerns</span>
-            </div>
-            <p>Application navigation code remains completely standard and decoupled from display layout. Existing activity launch sites require zero modifications:</p>
-            <pre><code>// Standard startActivity call site:
-val intent = Intent(this, DetailActivity::class.java)
-startActivity(intent)</code></pre>
-            <p>Navigation business logic (<em>"which screen to open"</em>) remains completely isolated from layout presentation (<em>"how to render the screen"</em>).</p>
-          </div>
+        <pre><code>// 1. Navigation call site remains standard:
+startActivity(Intent(this, DetailActivity::class.java))
 
-          <div class="card">
-            <div class="card-title">
-              <span>Centralized Rule Registration</span>
-              <span class="pill pill-purple">RuleController</span>
-            </div>
-            <p>Rules are registered once at application startup (via Jetpack Startup or <code>Application.onCreate</code>), creating a single source of truth for window layout:</p>
-            <pre><code>val splitPairRule = SplitPairRule.Builder(
+// 2. Rules registered once at startup:
+val splitPairRule = SplitPairRule.Builder(
     filterSet = setOf(SplitPairFilter(
         ComponentName(this, ListActivity::class.java),
         ComponentName(this, DetailActivity::class.java),
@@ -651,131 +630,95 @@ startActivity(intent)</code></pre>
 )
 .setMinWidthDp(600)
 .setDefaultSplitAttributes(
-    SplitAttributes.Builder()
-        .setSplitType(SplitAttributes.SplitType.ratio(0.4f))
-        .build()
+    SplitAttributes.Builder().setSplitType(SplitAttributes.SplitType.ratio(0.4f)).build()
 )
 .build()
 
 RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
-          </div>
-        </div>
 
-        <h3 style="margin-top: 2rem;">Core Advantages of the Rule Approach</h3>
-
-        <div class="grid-2" style="margin-top: 1rem;">
+        <div class="grid-2" style="margin-top: 1.5rem;">
           <div class="card">
             <div class="card-title">
-              <span>1. Dynamic Fold & Metric Adaptation</span>
+              <span>Standard Call Sites</span>
+              <span class="pill pill-green">Separation of Concerns</span>
+            </div>
+            <p><code>startActivity(intent)</code> requires zero custom flags or window bounds checks. Navigation business logic is fully decoupled from presentation layout.</p>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span>Dynamic Screen Adaptation</span>
               <span class="pill pill-blue">Adaptive</span>
             </div>
-            <p>Rules are evaluated dynamically against active window dimensions and physical hinge posture:</p>
-            <ul style="margin-left: 1.2rem; line-height: 1.6;">
-              <li><strong>Folded / Compact Screen (&lt; 600dp):</strong> The rule conditions are not met; activities automatically stack full-screen without errors.</li>
-              <li><strong>Unfolded / Expanded Screen (&ge; 600dp):</strong> The rule triggers; activities display side-by-side in independent <code>TaskFragment</code>s.</li>
-              <li><strong>Mid-Session Transitions:</strong> When the user folds, unfolds, or resizes the app, WindowManager dynamically transitions between split and stacked layouts without restarting activities.</li>
-            </ul>
+            <p>Rules adapt dynamically at runtime. Folding, unfolding, or resizing seamlessly transitions between split and stacked layouts without restarting activities.</p>
           </div>
 
           <div class="card">
             <div class="card-title">
-              <span>2. Rapid Large-Screen Enablement</span>
-              <span class="pill pill-green">High Velocity</span>
+              <span>Zero UI Rewrites</span>
+              <span class="pill pill-purple">High Velocity</span>
             </div>
-            <p>Large multi-activity codebases can modernize for foldables and tablets with minimal engineering overhead:</p>
-            <ul style="margin-left: 1.2rem; line-height: 1.6;">
-              <li><strong>Zero UI Rewrites:</strong> No need to refactor existing activities into single-activity Fragments or rewrite entire flows into Jetpack Compose.</li>
-              <li><strong>Declarative XML Configuration:</strong> Rules can be defined entirely in static XML resources parsed automatically at app startup.</li>
-              <li><strong>Low Regression Risk:</strong> Existing activity lifecycles and business logic remain intact.</li>
-            </ul>
+            <p>Multi-activity codebases gain large-screen and foldable support with XML or programmatic rules, avoiding multi-month Fragment or Compose migrations.</p>
           </div>
 
           <div class="card">
             <div class="card-title">
-              <span>3. Fine-Grained Lifecycle & Back Coordination</span>
-              <span class="pill pill-purple">Control</span>
+              <span>Coordinated Lifecycles</span>
+              <span class="pill pill-orange">Control</span>
             </div>
-            <p>Rules provide fine-grained control over back-navigation and co-dependent activity lifecycles via <code>FinishBehavior</code>:</p>
-            <ul style="margin-left: 1.2rem; line-height: 1.6;">
-              <li><code>FINISH_NEVER</code>: Finishing one pane leaves the other intact.</li>
-              <li><code>FINISH_ALWAYS</code>: Finishing the primary list automatically closes the secondary detail pane (or vice-versa).</li>
-              <li><code>FINISH_ADJACENT</code>: Finishes the adjacent container only when displayed side-by-side.</li>
-            </ul>
+            <p>Declarative <code>FinishBehavior</code> (<code>FINISH_ALWAYS</code>, <code>FINISH_ADJACENT</code>, <code>FINISH_NEVER</code>) ensures predictable back-navigation across split containers.</p>
           </div>
-
-          <div class="card">
-            <div class="card-title">
-              <span>4. Native System Multi-Window Integration</span>
-              <span class="pill pill-orange">System Integration</span>
-            </div>
-            <p>Because rules operate through the platform's <code>TaskFragmentOrganizer</code>:</p>
-            <ul style="margin-left: 1.2rem; line-height: 1.6;">
-              <li><strong>Unified Recents:</strong> The entire split appears as a single unified Task in the Recents screen.</li>
-              <li><strong>Multi-Resume:</strong> Both panes are fully active and <code>RESUMED</code> simultaneously.</li>
-              <li><strong>Picture-in-Picture & Drag:</strong> Integrates seamlessly with system PiP, split-screen multi-window, and interactive dividers.</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="card" style="margin-top: 1.5rem;">
-          <div class="card-title">
-            <span>Runtime Dynamic Resolution</span>
-            <span class="pill pill-blue">Execution</span>
-          </div>
-          <p>When <code>startActivity()</code> is called, the OEM <code>SplitController</code> intercepts the launch via <code>Instrumentation.ActivityMonitor</code>, matches against registered rules, and injects the <code>TaskFragmentToken</code> only when active constraints are met. Navigation code stays simple, while presentation logic stays responsive and centralized.</p>
         </div>
       </section>
 
       <!-- Section 5 -->
       <section id="execution-flow">
         <h2>5. End-to-End Execution Sequence</h2>
-        <p>What happens when an app invokes standard <code>startActivity(intent)</code> with split rules defined? How does an unbundled user-space rule intercept an OS-level activity launch without requiring custom launch flags in the calling code?</p>
+        <p>The activity embedding lifecycle operates across three primary stages: setting the rules, intercepting activity launch, and coordinating finish.</p>
 
         <div class="flow-steps">
+          <!-- Flow 1 -->
           <div class="step-item">
             <div class="step-number">1</div>
             <div class="step-content">
-              <h4>The Hook: Instrumentation.ActivityMonitor</h4>
-              <p>During process initialization, the OEM <code>SplitController</code> hooks into the app process's <code>Instrumentation</code> instance:</p>
-              <pre><code>// In SplitController.java:
-Instrumentation instrumentation = activityThread.getInstrumentation();
-mActivityStartMonitor = new ActivityStartMonitor();
-instrumentation.addMonitor(mActivityStartMonitor);</code></pre>
-              <p>Whenever <em>any</em> activity or context in the app calls <code>startActivity()</code>, <code>Instrumentation.execStartActivity()</code> invokes <code>mActivityStartMonitor.onStartActivity(who, intent, options)</code> before making any IPC call to the system server.</p>
+              <h4>1. Setting Rule with RuleController</h4>
+              <p>At application startup (via Jetpack Startup or <code>Application.onCreate</code>), the app registers embedding rules:</p>
+              <pre><code>RuleController.getInstance(context).setRules(setOf(splitPairRule));</code></pre>
+              <p>AndroidX passes these rules via <code>EmbeddingAdapter</code> to the device's OEM <code>SplitController.setEmbeddingRules()</code>. <code>SplitController</code> installs an <code>ActivityStartMonitor</code> into the process's <code>Instrumentation</code> to monitor all subsequent activity launches.</p>
             </div>
           </div>
+
+          <!-- Flow 2 -->
           <div class="step-item">
             <div class="step-number">2</div>
             <div class="step-content">
-              <h4>Rule Evaluation & Geometry Calculation (SplitPresenter)</h4>
-              <p>Inside <code>onStartActivity()</code>, <code>SplitController.resolveStartActivityIntent()</code> matches <code>(who, intent)</code> against the rules set via Jetpack's <code>RuleController</code>. <code>SplitPresenter</code> evaluates device metrics (width/height vs <code>minDimensions</code>, folding posture) and calculates relative split bounds (e.g. 50/50 or 33/67).</p>
+              <h4>2. startActivity</h4>
+              <p>The app invokes standard <code>startActivity(intent)</code> without custom flags. The runtime sequence proceeds:</p>
+              <ol style="margin-left: 1.2rem; line-height: 1.8;">
+                <li><strong>Intercept:</strong> <code>Instrumentation.ActivityMonitor</code> intercepts <code>onStartActivity(who, intent, options)</code> in the app process before IPC.</li>
+                <li><strong>Rule Match & Metric Check:</strong> <code>SplitController</code> matches <code>(who, intent)</code> against registered rules and evaluates window metrics (e.g. width &ge; 600dp, fold posture).</li>
+                <li><strong>Token Injection:</strong> If matched, <code>SplitController</code> injects <code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code> into <code>ActivityOptions</code>.</li>
+                <li><strong>ATMS Placement:</strong> <code>ActivityTaskManagerService</code> reads the token and routes the new <code>ActivityRecord</code> directly into the designated <code>TaskFragment</code> container, displaying both activities side-by-side.</li>
+              </ol>
             </div>
           </div>
+
+          <!-- Flow 3 -->
           <div class="step-item">
             <div class="step-number">3</div>
             <div class="step-content">
-              <h4>The Token Injection: KEY_LAUNCH_TASK_FRAGMENT_TOKEN</h4>
-              <p><code>SplitController</code> prepares the target <code>TaskFragmentContainer</code> and injects its hidden token into the <code>ActivityOptions</code> bundle:</p>
-              <pre><code>// In SplitController.java (ActivityStartMonitor):
-options.putBinder(
-    ActivityOptions.KEY_LAUNCH_TASK_FRAGMENT_TOKEN,
-    launchedInTaskFragment.getTaskFragmentToken()
-);</code></pre>
-              <p>This allows the original <code>startActivity()</code> call to proceed normally, but now carries an internal instruction directed to WindowManager!</p>
-            </div>
-          </div>
-          <div class="step-item">
-            <div class="step-number">4</div>
-            <div class="step-content">
-              <h4>Atomic Transaction Assembly & Server Routing</h4>
-              <p><code>JetpackTaskFragmentOrganizer</code> dispatches a <code>TaskFragmentTransaction</code> to <code>ITaskFragmentOrganizerController</code> in <code>system_server</code> (ATMS). Simultaneously, ATMS's <code>ActivityStarter</code> inspects <code>options.getLaunchTaskFragmentToken()</code> and routes the new <code>ActivityRecord</code> directly into the designated <code>TaskFragment</code> container instead of creating a full-screen window.</p>
-            </div>
-          </div>
-          <div class="step-item">
-            <div class="step-number">5</div>
-            <div class="step-content">
-              <h4>Surface Synchronization & Shell Transitions</h4>
-              <p>The WindowManager Shell and SurfaceFlinger execute an atomic transition animation. Both activities appear smoothly side-by-side without screen flickering or intermediate full-screen layouts.</p>
+              <h4>3. finish</h4>
+              <p>When an activity finishes (via user back press or <code>finish()</code> call):</p>
+              <ol style="margin-left: 1.2rem; line-height: 1.8;">
+                <li><strong>Evaluate FinishBehavior:</strong> The rule's configured finish policy determines dependent container behavior:
+                  <ul style="margin-left: 1.2rem; margin-top: 0.25rem;">
+                    <li><code>FINISH_NEVER</code>: The adjacent activity remains open and expands to fill the parent Task.</li>
+                    <li><code>FINISH_ALWAYS</code>: Finishing one activity automatically finishes the associated activity in the other container.</li>
+                    <li><code>FINISH_ADJACENT</code>: Finishes the adjacent container only if both are currently displayed side-by-side.</li>
+                  </ul>
+                </li>
+                <li><strong>Atomic Cleanup:</strong> <code>TaskFragmentOrganizer</code> sends a <code>TaskFragmentTransaction</code> to ATMS to tear down the container and dynamically reconfigure remaining window bounds with zero visual flicker.</li>
+              </ol>
             </div>
           </div>
         </div>
