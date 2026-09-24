@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Android Activity Embedding: Architecture & Deep Dive</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --card-border: #30363d;
+      --accent: #58a6ff;
+      --accent-hover: #79c0ff;
+      --accent-green: #3fb950;
+      --accent-purple: #bc8cff;
+      --accent-orange: #d29922;
+      --text-main: #c9d1d9;
+      --text-heading: #f0f6fc;
+      --text-muted: #8b949e;
+      --code-bg: #1f242c;
+      --border-subtle: #21262d;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      line-height: 1.65;
+      font-size: 16px;
+      overflow-x: hidden;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(13, 17, 23, 0.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--card-border);
+      padding: 0.85rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: var(--text-heading);
+      text-decoration: none;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, #1f6feb, #388bfd);
+      color: white;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .nav-actions {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 0.9rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      border: 1px solid transparent;
+    }
+
+    .btn-primary {
+      background: #238636;
+      color: #fff;
+    }
+    .btn-primary:hover { background: #2ea043; }
+
+    .btn-outline {
+      background: var(--card-bg);
+      border-color: var(--card-border);
+      color: var(--text-heading);
+    }
+    .btn-outline:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Main Container & Layout */
+    .container {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 6rem;
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      gap: 3rem;
+    }
+
+    /* Sidebar Table of Contents */
+    aside {
+      position: sticky;
+      top: 5rem;
+      height: fit-content;
+      max-height: calc(100vh - 6rem);
+      overflow-y: auto;
+      padding-right: 0.5rem;
+    }
+
+    aside h3 {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+
+    aside ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    aside a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      display: block;
+      padding: 0.35rem 0.6rem;
+      border-radius: 5px;
+      border-left: 2px solid transparent;
+      transition: all 0.15s;
+    }
+
+    aside a:hover, aside a.active {
+      color: var(--accent);
+      background: rgba(88, 166, 255, 0.1);
+      border-left-color: var(--accent);
+    }
+
+    /* Content Area */
+    main {
+      min-width: 0;
+    }
+
+    .hero {
+      margin-bottom: 3rem;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 2.5rem;
+    }
+
+    .hero h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--text-heading);
+      line-height: 1.25;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #f0f6fc 30%, #58a6ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      max-width: 850px;
+      margin-bottom: 1.5rem;
+    }
+
+    .meta-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .meta-item strong {
+      color: var(--text-heading);
+    }
+
+    /* Section Styling */
+    section {
+      margin-bottom: 4rem;
+      scroll-margin-top: 5rem;
+    }
+
+    section h2 {
+      font-size: 1.8rem;
+      color: var(--text-heading);
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 0.6rem;
+    }
+
+    section h3 {
+      font-size: 1.25rem;
+      color: var(--text-heading);
+      margin: 1.75rem 0 0.75rem;
+    }
+
+    p { margin-bottom: 1rem; }
+
+    /* Cards & Grid */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.25rem;
+      margin: 1.25rem 0;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 1.35rem;
+      transition: border-color 0.2s;
+    }
+
+    .card:hover {
+      border-color: var(--accent);
+    }
+
+    .card-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--text-heading);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .pill {
+      font-size: 0.7rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .pill-blue { background: rgba(88, 166, 255, 0.15); color: var(--accent); }
+    .pill-green { background: rgba(63, 185, 80, 0.15); color: var(--accent-green); }
+    .pill-purple { background: rgba(188, 140, 255, 0.15); color: var(--accent-purple); }
+    .pill-orange { background: rgba(210, 153, 34, 0.15); color: var(--accent-orange); }
+
+    /* Interactive Architectural Flow Visualizer */
+    .arch-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin: 1.5rem 0;
+    }
+
+    .arch-layer {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 1.25rem 1.5rem;
+      position: relative;
+      transition: all 0.2s;
+    }
+
+    .arch-layer:hover {
+      border-color: var(--accent);
+      transform: translateX(4px);
+    }
+
+    .arch-layer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .arch-layer-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-heading);
+    }
+
+    .arch-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 0.6rem;
+    }
+
+    .chip {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      background: var(--code-bg);
+      border: 1px solid var(--border-subtle);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      color: var(--accent-hover);
+    }
+
+    .arch-arrow {
+      text-align: center;
+      color: var(--accent);
+      font-size: 1.2rem;
+      margin: -0.25rem 0;
+      font-weight: bold;
+    }
+
+    /* Sequence Flow Box */
+    .flow-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+
+    .step-item {
+      display: flex;
+      gap: 1.25rem;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 1.25rem;
+    }
+
+    .step-number {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      background: rgba(88, 166, 255, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(88, 166, 255, 0.3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .step-content h4 {
+      font-size: 1.05rem;
+      color: var(--text-heading);
+      margin-bottom: 0.35rem;
+    }
+
+    /* Code Blocks & Tables */
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      margin: 1rem 0;
+      line-height: 1.5;
+      color: #e6edf3;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      background: var(--code-bg);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.88em;
+      color: var(--accent-hover);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      font-size: 0.92rem;
+    }
+
+    th, td {
+      border: 1px solid var(--card-border);
+      padding: 0.75rem 1rem;
+      text-align: left;
+    }
+
+    th {
+      background: var(--card-bg);
+      color: var(--text-heading);
+      font-weight: 600;
+    }
+
+    tr:nth-child(even) {
+      background: rgba(22, 27, 34, 0.4);
+    }
+
+    /* Callouts */
+    .callout {
+      border-left: 4px solid var(--accent);
+      background: rgba(88, 166, 255, 0.08);
+      padding: 1rem 1.25rem;
+      border-radius: 0 6px 6px 0;
+      margin: 1.25rem 0;
+    }
+    .callout-warning {
+      border-left-color: var(--accent-orange);
+      background: rgba(210, 153, 34, 0.08);
+    }
+    .callout-success {
+      border-left-color: var(--accent-green);
+      background: rgba(63, 185, 80, 0.08);
+    }
+    .callout-title {
+      font-weight: 700;
+      color: var(--text-heading);
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    /* Presentation Slide Modal Mode */
+    #slideModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #0d1117;
+      z-index: 1000;
+      flex-direction: column;
+      padding: 2rem;
+    }
+
+    #slideModal.active {
+      display: flex;
+    }
+
+    .slide-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .slide-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      max-width: 960px;
+      margin: 0 auto;
+      width: 100%;
+      text-align: left;
+      padding: 2rem 0;
+    }
+
+    .slide-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 3rem;
+      width: 100%;
+      min-height: 480px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    }
+
+    .slide-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 1rem;
+      border-top: 1px solid var(--card-border);
+    }
+
+    .slide-counter {
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 900px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+      aside {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header>
+    <a href="#" class="brand">
+      <span>Android Activity Embedding</span>
+      <span class="brand-badge">Deep Dive</span>
+    </a>
+    <div class="nav-actions">
+      <button class="btn btn-outline" id="btnSlides" onclick="openSlideMode()">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2z"/><path d="M3.5 11h9a.5.5 0 0 0 0-1h-9a.5.5 0 0 0 0 1zm0-2.5h9a.5.5 0 0 0 0-1h-9a.5.5 0 0 0 0 1zm0-2.5h9a.5.5 0 0 0 0-1h-9a.5.5 0 0 0 0 1z"/></svg>
+        Presentation Slide Mode
+      </button>
+      <a href="https://github.com/EaseTheWorld/activity-embedding-study" target="_blank" class="btn btn-primary">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub Repo
+      </a>
+    </div>
+  </header>
+
+  <!-- Content Container -->
+  <div class="container">
+    <!-- Sidebar Navigation -->
+    <aside>
+      <h3>Navigation</h3>
+      <ul>
+        <li><a href="#overview">1. Overview & Motivation</a></li>
+        <li><a href="#architecture">2. 4-Layer Architecture</a></li>
+        <li><a href="#hierarchy">3. Window Hierarchy Shift</a></li>
+        <li><a href="#execution-flow">4. End-to-End Execution</a></li>
+        <li><a href="#security">5. Security & Trust Model</a></li>
+        <li><a href="#dividers">6. Interactive Dividers</a></li>
+        <li><a href="#source-map">7. Local Source Code Map</a></li>
+        <li><a href="#presentation">8. Team Presentation Plan</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main>
+      <!-- Hero -->
+      <div class="hero">
+        <h1>Android Activity Embedding Under the Hood</h1>
+        <p>A comprehensive architectural exploration of how Android (12L+) and Jetpack WindowManager coordinate to run multiple activities side-by-side inside a single task without UI refactoring.</p>
+        <div class="meta-bar">
+          <div class="meta-item"><span>Platform:</span> <strong>Android 12L (API 32) & Android 13+</strong></div>
+          <div class="meta-item"><span>Library:</span> <strong>androidx.window:window:1.3+</strong></div>
+          <div class="meta-item"><span>Core Hook:</span> <strong>TaskFragmentOrganizer</strong></div>
+        </div>
+      </div>
+
+      <!-- Section 1 -->
+      <section id="overview">
+        <h2>1. Overview & Motivation</h2>
+        <p>For over a decade, Android applications were designed around single-pane screens where each <code>Activity</code> occupied the full display. With the advent of foldables, tablets, and desktop modes, apps on large screens faced awkward letterboxing or stretched layouts.</p>
+        <p>Migrating multi-activity codebases into single-activity Fragment/Compose architectures requires immense time and risk. <strong>Activity Embedding</strong> solves this at the platform layer by allowing two or more activities from the same app (or explicitly permitted external apps) to be displayed simultaneously side-by-side or stacked.</p>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">
+              <span>Traditional Single-Activity</span>
+              <span class="pill pill-orange">Legacy</span>
+            </div>
+            <p>One activity fills the full task. Starting Activity B covers Activity A, sending A through <code>onPause()</code> / <code>onStop()</code>.</p>
+          </div>
+          <div class="card">
+            <div class="card-title">
+              <span>Embedded Multi-Activity</span>
+              <span class="pill pill-green">Modern</span>
+            </div>
+            <p>Task is divided into <code>TaskFragment</code>s. Activity A and Activity B remain visible simultaneously and both are <code>RESUMED</code> (Multi-Resume).</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2 -->
+      <section id="architecture">
+        <h2>2. The 4-Layer Architecture</h2>
+        <p>Activity Embedding is not just a Jetpack library; it is a full-stack coordination involving AndroidX, an OEM dynamic bridge, Framework client IPC, and the WindowManager System Server.</p>
+
+        <div class="arch-stack">
+          <!-- Layer 1 -->
+          <div class="arch-layer">
+            <div class="arch-layer-header">
+              <span class="arch-layer-title">Layer 1: Jetpack WindowManager (App Process)</span>
+              <span class="pill pill-blue">androidx.window.embedding</span>
+            </div>
+            <p>Public AndroidX developer API. Provides declarative XML rules, programmatic <code>RuleController</code>, and state observers. Translates high-level API into OEM extension interface calls.</p>
+            <div class="arch-chips">
+              <span class="chip">SplitController.kt</span>
+              <span class="chip">RuleController.kt</span>
+              <span class="chip">SplitPairRule.kt</span>
+              <span class="chip">ExtensionEmbeddingBackend.kt</span>
+              <span class="chip">EmbeddingAdapter.kt</span>
+            </div>
+          </div>
+
+          <div class="arch-arrow">▼ Dynamic Reflection / OEM Interface</div>
+
+          <!-- Layer 2 -->
+          <div class="arch-layer">
+            <div class="arch-layer-header">
+              <span class="arch-layer-title">Layer 2: WindowManager Extensions (OEM / AOSP)</span>
+              <span class="pill pill-purple">androidx.window.extensions.embedding</span>
+            </div>
+            <p>Shipped with the device OS or vendor image. Evaluates screen dimensions, folding state, aspect ratios, and builds atomic <code>TaskFragmentTransaction</code> operations.</p>
+            <div class="arch-chips">
+              <span class="chip">SplitController.java</span>
+              <span class="chip">SplitPresenter.java</span>
+              <span class="chip">JetpackTaskFragmentOrganizer.java</span>
+              <span class="chip">DividerPresenter.java</span>
+            </div>
+          </div>
+
+          <div class="arch-arrow">▼ IPC via ITaskFragmentOrganizerController.aidl</div>
+
+          <!-- Layer 3 -->
+          <div class="arch-layer">
+            <div class="arch-layer-header">
+              <span class="arch-layer-title">Layer 3: Framework Core Client</span>
+              <span class="pill pill-orange">android.window</span>
+            </div>
+            <p>Client-side binder bridge. Defines atomic operation codes and wraps communication with WindowManager Service.</p>
+            <div class="arch-chips">
+              <span class="chip">TaskFragmentOrganizer.java</span>
+              <span class="chip">TaskFragmentTransaction.java</span>
+              <span class="chip">TaskFragmentOperation.java</span>
+            </div>
+          </div>
+
+          <div class="arch-arrow">▼ Binder IPC to system_server (ATMS)</div>
+
+          <!-- Layer 4 -->
+          <div class="arch-layer">
+            <div class="arch-layer-header">
+              <span class="arch-layer-title">Layer 4: System Server & WindowManager Core</span>
+              <span class="pill pill-green">com.android.server.wm</span>
+            </div>
+            <p>ActivityTaskManagerService (ATMS) system server. Validates security policies, enforces parent container bounds, manages activity lifecycles, and executes atomic SurfaceControl transactions.</p>
+            <div class="arch-chips">
+              <span class="chip">TaskFragmentOrganizerController.java</span>
+              <span class="chip">TaskFragment.java</span>
+              <span class="chip">Task.java (extends TaskFragment)</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 3 -->
+      <section id="hierarchy">
+        <h2>3. Window Hierarchy Paradigm Shift</h2>
+        <div class="callout">
+          <div class="callout-title">
+            <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>
+            Key Source Insight: Task extends TaskFragment!
+          </div>
+          <p>Prior to Android 12L, a <code>Task</code> directly managed <code>ActivityRecord</code>s. In Android 12L+, the platform refactored the tree: <strong><code>class Task extends TaskFragment</code></strong>. A <code>Task</code> is now simply the top-level root <code>TaskFragment</code> that represents the user-visible entry in the Recents screen.</p>
+        </div>
+
+        <pre><code>// Prior to 12L:
+RootWindowContainer ➔ DisplayContent ➔ TaskDisplayArea ➔ Task ➔ ActivityRecord
+
+// Android 12L+ (Activity Embedding Enabled):
+RootWindowContainer
+ └── DisplayContent
+      └── TaskDisplayArea
+           └── Task (Top-level TaskFragment, represents Recents tile)
+                ├── TaskFragment 1 (Left / Primary Pane)
+                │    └── ActivityRecord (e.g. ListActivity)
+                └── TaskFragment 2 (Right / Secondary Pane)
+                     └── ActivityRecord (e.g. DetailActivity)</code></pre>
+      </section>
+
+      <!-- Section 4 -->
+      <section id="execution-flow">
+        <h2>4. End-to-End Execution Sequence</h2>
+        <p>What happens when an app invokes <code>startActivity(intent)</code> with split rules defined?</p>
+
+        <div class="flow-steps">
+          <div class="step-item">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h4>Rule Evaluation in Jetpack WindowManager</h4>
+              <p>The app calls <code>startActivity()</code>. Jetpack's <code>RuleController</code> checks if an active <code>SplitPairRule</code> or <code>SplitPlaceholderRule</code> matches the starting activity and the target Intent.</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h4>Geometry & Split Calculation in SplitPresenter</h4>
+              <p>The OEM extension's <code>SplitPresenter</code> calculates whether the device window metrics meet minimum width (<code>minWidthDp</code>) and aspect ratio conditions. If valid, relative split bounds (e.g. 50/50 or 33/67) are computed.</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h4>Atomic Transaction Assembly</h4>
+              <p><code>JetpackTaskFragmentOrganizer</code> bundles the operations into a single <code>TaskFragmentTransaction</code>:</p>
+              <pre><code>transaction.addTaskFragmentOperation(token1, OP_TYPE_CREATE_TASK_FRAGMENT);
+transaction.addTaskFragmentOperation(token1, OP_TYPE_SET_RELATIVE_BOUNDS);
+transaction.addTaskFragmentOperation(token2, OP_TYPE_START_ACTIVITY_IN_TASK_FRAGMENT);</code></pre>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">4</div>
+            <div class="step-content">
+              <h4>Server Verification in TaskFragmentOrganizerController</h4>
+              <p>The transaction travels via Binder IPC to <code>ITaskFragmentOrganizerController</code> in <code>system_server</code>. The controller verifies ownership, checks security boundaries, and modifies the <code>TaskFragment</code> tree.</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">5</div>
+            <div class="step-content">
+              <h4>Surface Synchronization & Shell Transitions</h4>
+              <p>The WindowManager Shell executes an atomic transition. Both activities appear seamlessly without screen flickering or intermediate full-screen layouts.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 5 -->
+      <section id="security">
+        <h2>5. Security & Trust Boundaries</h2>
+        <p>Why can't malicious apps embed arbitrary banking or payment activities to intercept taps? Android enforces strict <strong>trusted vs. untrusted embedding</strong> checks inside <code>TaskFragment.java</code>.</p>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">
+              <span>Trusted Embedding</span>
+              <span class="pill pill-green">Same UID</span>
+            </div>
+            <p>Activities belonging to the same application package / UID are automatically trusted and can be embedded freely.</p>
+          </div>
+          <div class="card">
+            <div class="card-title">
+              <span>Untrusted Embedding</span>
+              <span class="pill pill-orange">Cross-App</span>
+            </div>
+            <p>Target activity must explicitly opt in via its <code>AndroidManifest.xml</code>:</p>
+            <pre><code>&lt;activity
+    android:name=".ExternalActivity"
+    android:allowUntrustedActivityEmbedding="true" /&gt;</code></pre>
+            <p>Without this attribute, the system server rejects the embedding request, preventing tapjacking and overlay hijacking.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 6 -->
+      <section id="dividers">
+        <h2>6. Interactive Dividers & Decor Surfaces</h2>
+        <p>To let users drag the boundary between two split activities, the system does not redraw both activities on every frame. Instead, it utilizes a dedicated <strong>Decor Surface</strong>.</p>
+        <ul>
+          <li><strong>Operation:</strong> <code>OP_TYPE_CREATE_OR_MOVE_TASK_FRAGMENT_DECOR_SURFACE</code> creates a hardware SurfaceControl attached directly to the parent <code>Task</code>.</li>
+          <li><strong>Draggability:</strong> <code>DividerPresenter</code> handles drag gestures and posts updated relative bounds to the organizer.</li>
+          <li><strong>Performance:</strong> Resizing is performed at the compositor layer (SurfaceFlinger) before activities adapt their layout configurations.</li>
+        </ul>
+      </section>
+
+      <!-- Section 7 -->
+      <section id="source-map">
+        <h2>7. Local Source Code Map</h2>
+        <p>All core source files are checked out and available directly in this repository for local exploration:</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th>Local File Path</th>
+              <th>Key Responsibilities</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Jetpack API</strong></td>
+              <td><code>androidx-window/window/window/src/main/java/androidx/window/embedding/</code></td>
+              <td><code>SplitController.kt</code>, <code>RuleController.kt</code>, <code>EmbeddingAdapter.kt</code></td>
+            </tr>
+            <tr>
+              <td><strong>OEM Extension</strong></td>
+              <td><code>aosp-frameworks-base/libs/WindowManager/Jetpack/src/androidx/window/extensions/embedding/</code></td>
+              <td><code>SplitController.java</code>, <code>SplitPresenter.java</code>, <code>JetpackTaskFragmentOrganizer.java</code></td>
+            </tr>
+            <tr>
+              <td><strong>Framework Client</strong></td>
+              <td><code>aosp-frameworks-base/core/java/android/window/</code></td>
+              <td><code>TaskFragmentOrganizer.java</code>, <code>TaskFragmentTransaction.java</code>, <code>TaskFragmentOperation.java</code></td>
+            </tr>
+            <tr>
+              <td><strong>WM System Server</strong></td>
+              <td><code>aosp-frameworks-base/services/core/java/com/android/server/wm/</code></td>
+              <td><code>TaskFragmentOrganizerController.java</code>, <code>TaskFragment.java</code>, <code>Task.java</code></td>
+            </tr>
+            <tr>
+              <td><strong>Official Demos</strong></td>
+              <td><code>androidx-window/window/window-demos/demo/src/main/java/androidx/window/demo/embedding/</code></td>
+              <td><code>SplitActivityBase.java</code>, <code>ExampleWindowInitializer.kt</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Section 8 -->
+      <section id="presentation">
+        <h2>8. Presentation Plan for Colleagues</h2>
+        <p>A ready-to-present outline is prepared in <code>SLIDE_DECK_OUTLINE.md</code> and viewable in the presentation mode of this page.</p>
+        <button class="btn btn-primary" onclick="openSlideMode()">Launch Interactive Presentation Slides</button>
+      </section>
+    </main>
+  </div>
+
+  <!-- Fullscreen Slide Modal -->
+  <div id="slideModal">
+    <div class="slide-header">
+      <div class="brand">
+        <span>Android Activity Embedding: Team Presentation</span>
+      </div>
+      <div>
+        <button class="btn btn-outline" onclick="closeSlideMode()">Exit Presentation (Esc)</button>
+      </div>
+    </div>
+
+    <div class="slide-body">
+      <div class="slide-card" id="slideCard">
+        <!-- Injected via JavaScript -->
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <button class="btn btn-outline" onclick="prevSlide()">◀ Previous</button>
+      <span class="slide-counter" id="slideCounter">Slide 1 / 8</span>
+      <button class="btn btn-primary" onclick="nextSlide()">Next ▶</button>
+    </div>
+  </div>
+
+  <script>
+    const slides = [
+      {
+        title: "Deep Dive: How Android Activity Embedding Works",
+        subtitle: "Architecture, Internal Mechanics, and WM Hierarchy",
+        content: `
+          <ul style="font-size: 1.25rem; line-height: 2; margin-top: 1rem;">
+            <li>📱 <strong>The Problem:</strong> Large screens (Foldables, Tablets) make legacy multi-activity apps look stretched or letterboxed.</li>
+            <li>🔄 <strong>The Dilemma:</strong> Rewriting into single-activity Fragments or Jetpack Compose takes months of engineering effort.</li>
+            <li>⚡ <strong>The Solution:</strong> Activity Embedding enables multiple activities to share the display simultaneously with zero layout rewrites.</li>
+          </ul>
+        `
+      },
+      {
+        title: "The 4-Layer Architectural Stack",
+        subtitle: "Separation of Concerns across the OS",
+        content: `
+          <div style="font-size: 1.15rem; line-height: 1.8;">
+            <p><strong>1. App / Jetpack WindowManager:</strong> Developer rules (<code>SplitPairRule</code>, <code>RuleController</code>).</p>
+            <p><strong>2. WindowManager Extensions (OEM):</strong> <code>SplitController</code> & <code>SplitPresenter</code> calculate geometry and device posture.</p>
+            <p><strong>3. Framework Core:</strong> <code>TaskFragmentOrganizer</code> bundles atomic operations into <code>TaskFragmentTransaction</code>.</p>
+            <p><strong>4. System Server WM:</strong> <code>TaskFragmentOrganizerController</code> enforces security and coordinates with SurfaceFlinger.</p>
+          </div>
+        `
+      },
+      {
+        title: "WM Hierarchy Shift: Task extends TaskFragment",
+        subtitle: "The Core Architectural Evolution in Android 12L+",
+        content: `
+          <div style="font-size: 1.15rem; line-height: 1.8;">
+            <p>Previously, <code>Task</code> was a rigid container directly holding <code>ActivityRecord</code>s.</p>
+            <p>In Android 12L+, the class definition became: <code><strong>class Task extends TaskFragment</strong></code>!</p>
+            <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+              <li>A <code>Task</code> represents the Recents tile.</li>
+              <li>Within a single Task, multiple <code>TaskFragment</code> containers coexist side-by-side.</li>
+              <li>Each <code>TaskFragment</code> manages its own activity stack and visibility independently.</li>
+            </ul>
+          </div>
+        `
+      },
+      {
+        title: "Lifecycle: Multi-Resume & Visibility",
+        subtitle: "Independent Containers in a Unified Task",
+        content: `
+          <div style="font-size: 1.15rem; line-height: 1.8;">
+            <p>🚀 <strong>Multi-Resume:</strong> Since Android 10, all visible focused activities can be simultaneously <code>RESUMED</code>.</p>
+            <p>👁️ <strong>Visibility Tracking:</strong> Managed at the <code>TaskFragment</code> level:</p>
+            <ul style="margin-left: 1.5rem;">
+              <li><code>TASK_FRAGMENT_VISIBILITY_VISIBLE</code></li>
+              <li><code>TASK_FRAGMENT_VISIBILITY_VISIBLE_BEHIND_TRANSLUCENT</code></li>
+              <li><code>TASK_FRAGMENT_VISIBILITY_INVISIBLE</code></li>
+            </ul>
+            <p>Fold/Unfold transitions dynamically collapse or expand fragments without restarting activities.</p>
+          </div>
+        `
+      },
+      {
+        title: "How startActivity() Turns into a Split",
+        subtitle: "The 5-Step Execution Pipeline",
+        content: `
+          <ol style="font-size: 1.1rem; line-height: 1.8; margin-left: 1.5rem;">
+            <li>App calls <code>startActivity(Intent B)</code> from Activity A.</li>
+            <li>Jetpack <code>RuleController</code> matches Intent against registered <code>SplitPairRule</code>.</li>
+            <li>OEM <code>SplitPresenter</code> computes split bounds (e.g. 50/50).</li>
+            <li><code>JetpackTaskFragmentOrganizer</code> sends atomic <code>TaskFragmentTransaction</code> to ATMS.</li>
+            <li><code>TaskFragmentOrganizerController</code> updates WM hierarchy, and Shell Transition animates the split seamlessly.</li>
+          </ol>
+        `
+      },
+      {
+        title: "Security: Trusted vs. Untrusted Embedding",
+        subtitle: "Preventing Tapjacking & Clickjacking",
+        content: `
+          <div style="font-size: 1.15rem; line-height: 1.8;">
+            <p>🛡️ <strong>Threat Model:</strong> A rogue app cannot arbitrarily embed another app's login or payment activity.</p>
+            <p>✅ <strong>Trusted Mode:</strong> Activities with the same UID / package are trusted by default.</p>
+            <p>🔒 <strong>Untrusted Mode:</strong> External activities must explicitly opt-in in their manifest:</p>
+            <pre style="margin: 0.5rem 0;"><code>&lt;activity android:name=".CheckoutActivity"
+          android:allowUntrustedActivityEmbedding="true" /&gt;</code></pre>
+            <p>Otherwise, ATMS rejects the embedding operation.</p>
+          </div>
+        `
+      },
+      {
+        title: "Interactive Dividers & Decor Surfaces",
+        subtitle: "Fluid Resizing Without Layout Thrashing",
+        content: `
+          <div style="font-size: 1.15rem; line-height: 1.8;">
+            <p>🎨 <strong>Decor Surface:</strong> Created via <code>OP_TYPE_CREATE_OR_MOVE_TASK_FRAGMENT_DECOR_SURFACE</code> directly on the parent Task.</p>
+            <p>🖐️ <strong>User Dragging:</strong> <code>DividerPresenter</code> handles touch events on the decor surface.</p>
+            <p>⚡ <strong>Performance:</strong> Updates relative bounds dynamically while SurfaceFlinger handles compositor scaling.</p>
+          </div>
+        `
+      },
+      {
+        title: "Summary & Best Practices",
+        subtitle: "Key Takeaways for Android Teams",
+        content: `
+          <div style="font-size: 1.15rem; line-height: 1.8;">
+            <p>✨ <strong>Fast Time-to-Market:</strong> Large screen readiness without major rewrites.</p>
+            <p>🧩 <strong>Flexible Rules:</strong> Use XML for static splits; use <code>RuleController</code> for dynamic conditions.</p>
+            <p>🔙 <strong>Back Navigation:</strong> Configure <code>finishPrimaryWithSecondary</code> and <code>finishSecondaryWithPrimary</code> appropriately.</p>
+            <p>📂 <strong>Full Codebase:</strong> Explore the source files right in your local clone!</p>
+          </div>
+        `
+      }
+    ];
+
+    let currentSlide = 0;
+
+    function renderSlide() {
+      const slide = slides[currentSlide];
+      const card = document.getElementById("slideCard");
+      card.innerHTML = `
+        <div>
+          <div class="pill pill-blue" style="margin-bottom: 0.75rem;">Slide ${currentSlide + 1} of ${slides.length}</div>
+          <h2 style="font-size: 2rem; color: #f0f6fc; margin-bottom: 0.35rem;">${slide.title}</h2>
+          <h4 style="font-size: 1.15rem; color: #8b949e; font-weight: 500; margin-bottom: 1.5rem;">${slide.subtitle}</h4>
+          ${slide.content}
+        </div>
+      `;
+      document.getElementById("slideCounter").textContent = `Slide ${currentSlide + 1} / ${slides.length}`;
+    }
+
+    function openSlideMode() {
+      document.getElementById("slideModal").classList.add("active");
+      renderSlide();
+    }
+
+    function closeSlideMode() {
+      document.getElementById("slideModal").classList.remove("active");
+    }
+
+    function nextSlide() {
+      if (currentSlide < slides.length - 1) {
+        currentSlide++;
+        renderSlide();
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 0) {
+        currentSlide--;
+        renderSlide();
+      }
+    }
+
+    // Keyboard navigation
+    window.addEventListener("keydown", (e) => {
+      const modal = document.getElementById("slideModal");
+      if (!modal.classList.contains("active")) return;
+      if (e.key === "ArrowRight" || e.key === " ") {
+        nextSlide();
+      } else if (e.key === "ArrowLeft") {
+        prevSlide();
+      } else if (e.key === "Escape") {
+        closeSlideMode();
+      }
+    });
+
+    // Active TOC link highlighting
+    const sections = document.querySelectorAll("section");
+    const navLinks = document.querySelectorAll("aside a");
+    window.addEventListener("scroll", () => {
+      let current = "";
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop - 100;
+        if (pageYOffset >= sectionTop) {
+          current = section.getAttribute("id");
+        }
+      });
+      navLinks.forEach(link => {
+        link.classList.remove("active");
+        if (link.getAttribute("href") === "#" + current) {
+          link.classList.add("active");
+        }
+      });
+    });
+  </script>
+</body>
+</html>
