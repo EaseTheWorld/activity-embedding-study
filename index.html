@@ -269,6 +269,122 @@
     .pill-purple { background: rgba(188, 140, 255, 0.15); color: var(--accent-purple); }
     .pill-orange { background: rgba(210, 153, 34, 0.15); color: var(--accent-orange); }
 
+    /* Architecture Comparison Diagrams (As-Is vs To-Be) */
+    .compare-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+      gap: 1.5rem;
+      margin: 1.5rem 0;
+    }
+    .diagram-box {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      transition: border-color 0.2s;
+    }
+    .diagram-box:hover {
+      border-color: var(--accent);
+    }
+    .diagram-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.85rem;
+    }
+    .diagram-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--text-heading);
+    }
+    .mock-screen {
+      background: #090d13;
+      border: 2px solid #30363d;
+      border-radius: 6px;
+      padding: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .mock-screen-title {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .mock-screen-layout {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 0.5rem;
+      min-height: 110px;
+    }
+    .mock-pane {
+      border-radius: 4px;
+      padding: 0.6rem 0.5rem;
+      font-size: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      line-height: 1.4;
+    }
+    .mock-pane-primary {
+      background: rgba(88, 166, 255, 0.1);
+      border: 1px dashed var(--accent);
+      color: var(--text-heading);
+    }
+    .mock-pane-violation {
+      background: rgba(210, 153, 34, 0.12);
+      border: 1px dashed var(--accent-orange);
+      color: var(--text-heading);
+    }
+    .mock-pane-embedded {
+      background: rgba(63, 185, 80, 0.12);
+      border: 1px dashed var(--accent-green);
+      color: var(--text-heading);
+    }
+    .mock-connector {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 0.4rem 0.6rem;
+      margin: 0.5rem 0;
+      border-radius: 4px;
+    }
+    .mock-connector-warning {
+      background: rgba(210, 153, 34, 0.1);
+      color: var(--accent-orange);
+      border: 1px solid rgba(210, 153, 34, 0.3);
+    }
+    .mock-connector-success {
+      background: rgba(63, 185, 80, 0.1);
+      color: var(--accent-green);
+      border: 1px solid rgba(63, 185, 80, 0.3);
+    }
+    .mock-external-pkg {
+      background: #11151c;
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 0.65rem;
+      font-size: 0.8rem;
+      text-align: center;
+      color: var(--text-main);
+    }
+    .diagram-summary {
+      font-size: 0.84rem;
+      color: var(--text-muted);
+      margin-top: 0.75rem;
+      line-height: 1.5;
+    }
+
     /* Interactive Architectural Flow Visualizer */
     .arch-stack {
       display: flex;
@@ -499,32 +615,83 @@
 
         <p>Because headless system services lack their own launcher UI or top-level window, conventional architectures force the host settings app into a severe architectural anti-pattern that violates <strong>Separation of Concerns (SoC)</strong>:</p>
 
-        <div class="grid-2">
-          <div class="card">
-            <div class="card-title">
-              <span>The Monolithic Anti-Pattern</span>
+        <!-- As-Is vs To-Be Architectural Comparison -->
+        <div class="compare-container">
+          <!-- As-Is Box -->
+          <div class="diagram-box">
+            <div class="diagram-header">
+              <span class="diagram-title">As-Is: Monolithic Anti-Pattern</span>
               <span class="pill pill-orange">Violated SoC</span>
             </div>
-            <p><strong>Host App Implements External Subsystem UI:</strong> Because the headless voice recognition service has no standalone entry UI, the Vehicle Settings app is forced to build its configuration screens, maintain its settings keys, and synchronize values over <code>ContentProvider</code> or AIDL.</p>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.6rem;"><strong>Architectural Flaw:</strong> Domain boundaries collapse. Any feature update, UI tweak, or schema modification in the Voice Recognition service forces code churn, re-testing, and redeployment of the central Vehicle Settings app.</p>
+
+            <div class="mock-screen">
+              <div class="mock-screen-title">
+                <span>AAOS Display (Task: Vehicle Settings)</span>
+                <span class="pill pill-orange" style="font-size: 0.65rem;">Single APK Shell</span>
+              </div>
+              <div class="mock-screen-layout">
+                <div class="mock-pane mock-pane-primary">
+                  <strong>Category List</strong>
+                  <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">VehicleSettings.apk</span>
+                </div>
+                <div class="mock-pane mock-pane-violation">
+                  <strong style="color: var(--accent-orange);">Voice Settings UI & DB</strong>
+                  <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">❌ Implemented in VehicleSettings.apk</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="mock-connector mock-connector-warning">
+              <span>▲▼ Fragile IPC Sync: ContentProvider / AIDL</span>
+            </div>
+
+            <div class="mock-external-pkg">
+              <strong>Headless Voice Recognition Service</strong><br>
+              <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">com.example.voice (VoiceService.apk)</span>
+            </div>
+
+            <div class="diagram-summary">
+              <strong style="color: var(--accent-orange);">⚠️ Architectural Flaw:</strong> Domain boundaries collapse. Every feature update, UI change, or schema modification in Voice Recognition forces code churn, re-testing, and redeployment of the central Vehicle Settings app.
+            </div>
           </div>
 
-          <div class="card">
-            <div class="card-title">
-              <span>The Activity Embedding Solution</span>
+          <!-- To-Be Box -->
+          <div class="diagram-box">
+            <div class="diagram-header">
+              <span class="diagram-title">To-Be: Activity Embedding Host</span>
               <span class="pill pill-green">Clean Modular Host</span>
             </div>
-            <p><strong>Subsystems Own Their Own UI:</strong> The Voice Recognition package ships its own self-contained <code>VoiceSettingsActivity</code> inside its own APK. The Vehicle Settings app simply embeds it into the right detail pane.</p>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.6rem;"><strong>Architectural Gain:</strong> True Separation of Concerns. The voice team owns its UI, business logic, and storage. The driver experiences a single, seamless settings app, while the underlying codebases and release cycles remain 100% independent.</p>
-          </div>
-        </div>
 
-        <div class="callout callout-success">
-          <div class="callout-title">
-            <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>
-            Why In-App Fragments or Compose Cannot Solve This Across Packages
+            <div class="mock-screen">
+              <div class="mock-screen-title">
+                <span>AAOS Display (Unified Task Container)</span>
+                <span class="pill pill-green" style="font-size: 0.65rem;">Multi-APK Split</span>
+              </div>
+              <div class="mock-screen-layout">
+                <div class="mock-pane mock-pane-primary">
+                  <strong>Category List</strong>
+                  <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">TaskFragment 1<br>(VehicleSettings.apk)</span>
+                </div>
+                <div class="mock-pane mock-pane-embedded">
+                  <strong style="color: var(--accent-green);">VoiceSettingsActivity</strong>
+                  <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">TaskFragment 2<br>(✅ Embedded from VoiceService.apk)</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="mock-connector mock-connector-success">
+              <span>🔒 Verified via android:knownActivityEmbeddingCerts</span>
+            </div>
+
+            <div class="mock-external-pkg">
+              <strong>Voice Recognition Package</strong><br>
+              <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">Owns VoiceSettingsActivity & Service in VoiceService.apk</span>
+            </div>
+
+            <div class="diagram-summary">
+              <strong style="color: var(--accent-green);">✅ Architectural Gain:</strong> Pure Separation of Concerns. The voice team owns its UI, business logic, and storage completely. The driver sees one unified, seamless settings app with zero cross-package UI maintenance.
+            </div>
           </div>
-          <p>Within a single application package, Fragment transactions or Compose components handle list-detail navigation easily. However, <strong>Fragments and Views cannot cross APK or process boundaries</strong> without massive shared-library bloat or fragile remote views. Activity Embedding operates at the <strong>WindowManager container and compositor layer</strong>, allowing completely separate APKs—verified via OEM certificates (<code>android:knownActivityEmbeddingCerts</code>)—to securely render side-by-side inside a single unified window task.</p>
         </div>
       </section>
 
@@ -807,9 +974,8 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
         <table>
           <thead>
             <tr>
-              <th>Repository / Layer</th>
-              <th>Upstream Code Search Path</th>
-              <th>Key Components</th>
+              <th style="width: 30%;">Repository / Layer</th>
+              <th>Upstream Code & Key Components</th>
             </tr>
           </thead>
           <tbody>
@@ -819,11 +985,15 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
                 <span class="pill pill-blue" style="font-size: 0.7rem;">platform/frameworks/support</span>
               </td>
               <td>
-                <a href="https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:window/window/src/main/java/androidx/window/embedding/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
-                  window/window/.../embedding/
-                </a>
+                <div style="margin-bottom: 0.35rem;">
+                  <a href="https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:window/window/src/main/java/androidx/window/embedding/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
+                    window/window/.../embedding/
+                  </a>
+                </div>
+                <div style="font-size: 0.88rem; color: var(--text-main);">
+                  Public developer APIs: <code>SplitController.kt</code>, <code>RuleController.kt</code>, <code>SplitPairRule.kt</code>, <code>EmbeddingAdapter.kt</code>
+                </div>
               </td>
-              <td>Public developer APIs: <code>SplitController.kt</code>, <code>RuleController.kt</code>, <code>SplitPairRule.kt</code>, <code>EmbeddingAdapter.kt</code></td>
             </tr>
             <tr>
               <td>
@@ -831,11 +1001,15 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
                 <span class="pill pill-blue" style="font-size: 0.7rem;">platform/frameworks/support</span>
               </td>
               <td>
-                <a href="https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:window/extensions/extensions/src/main/java/androidx/window/extensions/embedding/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
-                  window/extensions/.../embedding/
-                </a>
+                <div style="margin-bottom: 0.35rem;">
+                  <a href="https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:window/extensions/extensions/src/main/java/androidx/window/extensions/embedding/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
+                    window/extensions/.../embedding/
+                  </a>
+                </div>
+                <div style="font-size: 0.88rem; color: var(--text-main);">
+                  Contract specification interfaces: <code>ActivityEmbeddingComponent.java</code>, <code>SplitInfo.java</code>, <code>SplitAttributes.java</code>
+                </div>
               </td>
-              <td>Contract specification interfaces: <code>ActivityEmbeddingComponent.java</code>, <code>SplitInfo.java</code>, <code>SplitAttributes.java</code></td>
             </tr>
             <tr>
               <td>
@@ -843,11 +1017,15 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
                 <span class="pill pill-blue" style="font-size: 0.7rem;">platform/frameworks/support</span>
               </td>
               <td>
-                <a href="https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:window/window-demos/demo/src/main/java/androidx/window/demo/embedding/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
-                  window-demos/.../embedding/
-                </a>
+                <div style="margin-bottom: 0.35rem;">
+                  <a href="https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:window/window-demos/demo/src/main/java/androidx/window/demo/embedding/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
+                    window-demos/.../embedding/
+                  </a>
+                </div>
+                <div style="font-size: 0.88rem; color: var(--text-main);">
+                  Official sample implementations: <code>SplitActivityBase.java</code>, <code>ExampleWindowInitializer.kt</code>
+                </div>
               </td>
-              <td>Official sample implementations: <code>SplitActivityBase.java</code>, <code>ExampleWindowInitializer.kt</code></td>
             </tr>
             <tr>
               <td>
@@ -855,11 +1033,15 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
                 <span class="pill pill-purple" style="font-size: 0.7rem;">platform/frameworks/base</span>
               </td>
               <td>
-                <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/libs/WindowManager/Jetpack/src/androidx/window/extensions/embedding/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
-                  libs/WindowManager/Jetpack/.../embedding/
-                </a>
+                <div style="margin-bottom: 0.35rem;">
+                  <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/libs/WindowManager/Jetpack/src/androidx/window/extensions/embedding/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
+                    libs/WindowManager/Jetpack/.../embedding/
+                  </a>
+                </div>
+                <div style="font-size: 0.88rem; color: var(--text-main);">
+                  AOSP/OEM runtime backend: <code>SplitController.java</code>, <code>SplitPresenter.java</code>, <code>JetpackTaskFragmentOrganizer.java</code>
+                </div>
               </td>
-              <td>AOSP/OEM runtime backend: <code>SplitController.java</code>, <code>SplitPresenter.java</code>, <code>JetpackTaskFragmentOrganizer.java</code></td>
             </tr>
             <tr>
               <td>
@@ -867,11 +1049,15 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
                 <span class="pill pill-orange" style="font-size: 0.7rem;">platform/frameworks/base</span>
               </td>
               <td>
-                <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/core/java/android/window/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
-                  core/java/android/window/
-                </a>
+                <div style="margin-bottom: 0.35rem;">
+                  <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/core/java/android/window/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
+                    core/java/android/window/
+                  </a>
+                </div>
+                <div style="font-size: 0.88rem; color: var(--text-main);">
+                  Client-side IPC contracts: <code>TaskFragmentOrganizer.java</code>, <code>TaskFragmentTransaction.java</code>, <code>TaskFragmentOperation.java</code>
+                </div>
               </td>
-              <td>Client-side IPC contracts: <code>TaskFragmentOrganizer.java</code>, <code>TaskFragmentTransaction.java</code>, <code>TaskFragmentOperation.java</code></td>
             </tr>
             <tr>
               <td>
@@ -879,11 +1065,15 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
                 <span class="pill pill-green" style="font-size: 0.7rem;">platform/frameworks/base</span>
               </td>
               <td>
-                <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/services/core/java/com/android/server/wm/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
-                  services/core/java/com/android/server/wm/
-                </a>
+                <div style="margin-bottom: 0.35rem;">
+                  <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/services/core/java/com/android/server/wm/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
+                    services/core/java/com/android/server/wm/
+                  </a>
+                </div>
+                <div style="font-size: 0.88rem; color: var(--text-main);">
+                  WindowManager Core: <code>TaskFragmentOrganizerController.java</code>, <code>TaskFragment.java</code>, <code>Task.java</code>
+                </div>
               </td>
-              <td>WindowManager Core: <code>TaskFragmentOrganizerController.java</code>, <code>TaskFragment.java</code>, <code>Task.java</code></td>
             </tr>
           </tbody>
         </table>
