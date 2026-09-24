@@ -437,69 +437,6 @@
       align-items: center;
       gap: 0.4rem;
     }
-
-    /* Presentation Slide Modal Mode */
-    #slideModal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: #0d1117;
-      z-index: 1000;
-      flex-direction: column;
-      padding: 2rem;
-    }
-
-    #slideModal.active {
-      display: flex;
-    }
-
-    .slide-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-bottom: 1rem;
-      border-bottom: 1px solid var(--card-border);
-    }
-
-    .slide-body {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      max-width: 960px;
-      margin: 0 auto;
-      width: 100%;
-      text-align: left;
-      padding: 2rem 0;
-    }
-
-    .slide-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 3rem;
-      width: 100%;
-      min-height: 480px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      box-shadow: 0 16px 48px rgba(0,0,0,0.5);
-    }
-
-    .slide-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-top: 1rem;
-      border-top: 1px solid var(--card-border);
-    }
-
-    .slide-counter {
-      font-weight: 600;
-      color: var(--text-muted);
-    }
-
     /* Responsive adjustments */
     @media (max-width: 900px) {
       .container {
@@ -520,10 +457,6 @@
       <span class="brand-badge">Deep Dive</span>
     </a>
     <div class="nav-actions">
-      <button class="btn btn-outline" id="btnSlides" onclick="openSlideMode()">
-        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2z"/><path d="M3.5 11h9a.5.5 0 0 0 0-1h-9a.5.5 0 0 0 0 1zm0-2.5h9a.5.5 0 0 0 0-1h-9a.5.5 0 0 0 0 1zm0-2.5h9a.5.5 0 0 0 0-1h-9a.5.5 0 0 0 0 1z"/></svg>
-        Presentation Slide Mode
-      </button>
       <a href="https://github.com/EaseTheWorld/activity-embedding-study" target="_blank" class="btn btn-primary">
         <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
         GitHub Repo
@@ -540,11 +473,11 @@
         <li><a href="#overview">1. Overview & Motivation</a></li>
         <li><a href="#architecture">2. 4-Layer Architecture</a></li>
         <li><a href="#hierarchy">3. Window Hierarchy Shift</a></li>
-        <li><a href="#execution-flow">4. End-to-End Execution</a></li>
-        <li><a href="#security">5. Security & Trust Model</a></li>
-        <li><a href="#dividers">6. Interactive Dividers</a></li>
-        <li><a href="#source-map">7. Local Source Code Map</a></li>
-        <li><a href="#presentation">8. Team Presentation Plan</a></li>
+        <li><a href="#mental-model">4. The Mental Model: Why Rules, Not Flags</a></li>
+        <li><a href="#execution-flow">5. End-to-End Execution</a></li>
+        <li><a href="#security">6. Security & Trust Model</a></li>
+        <li><a href="#dividers">7. Interactive Dividers</a></li>
+        <li><a href="#source-map">8. Local Source Code Map</a></li>
         <li><a href="#appendix-ioc">9. Appendix: IoC & Injection</a></li>
       </ul>
     </aside>
@@ -649,7 +582,7 @@
               <span class="arch-layer-title">Layer 4: System Server & WindowManager Core</span>
               <span class="pill pill-green">com.android.server.wm</span>
             </div>
-            <p>ActivityTaskManagerService (ATMS) system server. Validates security policies, enforces parent container bounds, manages activity lifecycles, and executes atomic SurfaceControl transactions.</p>
+            <p>ActivityTaskManagerService (ATMS) system server. Enforces security rules and container boundaries, manages activity lifecycles, and executes atomic SurfaceControl transactions.</p>
             <div class="arch-chips">
               <span class="chip">TaskFragmentOrganizerController.java</span>
               <span class="chip">TaskFragment.java</span>
@@ -685,8 +618,111 @@ RootWindowContainer
       </section>
 
       <!-- Section 4 -->
+      <section id="mental-model">
+        <h2>4. The Mental Model: Why Rules, Not Flags</h2>
+        
+        <p>When Android developers first consider how to launch an activity into an adjacent split pane, an intuitive question arises: <em>"Why can't we simply set an Intent flag?"</em></p>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">
+              <span>The Developer Intuition</span>
+              <span class="pill pill-blue">Existing Android Model</span>
+            </div>
+            <p>In standard Android development, the <code>Intent</code> object and its flags govern task and stack routing:</p>
+            <ul>
+              <li><code>FLAG_ACTIVITY_NEW_TASK</code>: Creates a new Task or brings an existing Task to the foreground.</li>
+              <li><code>FLAG_ACTIVITY_CLEAR_TOP</code>: Clears intermediate activities above the destination on the stack.</li>
+              <li><code>FLAG_ACTIVITY_SINGLE_TOP</code>: Delivers the Intent to <code>onNewIntent()</code> if already at the top of the stack.</li>
+            </ul>
+            <p>Naturally, developers envision extending this pattern with an Intent flag for secondary stacks:</p>
+            <pre><code>// What developers intuitively imagine:
+val intent = Intent(this, DetailActivity::class.java).apply {
+    flags = FLAG_ACTIVITY_SECONDARY_STACK // (Hypothetical flag!)
+}
+startActivity(intent)</code></pre>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span>Why Intent Flags Fail</span>
+              <span class="pill pill-orange">The Dynamic Reality</span>
+            </div>
+            <p>While intuitive, driving split layouts via Intent flags breaks down under the realities of modern multi-form-factor devices:</p>
+            <ul style="margin-left: 1.2rem; line-height: 1.6;">
+              <li><strong>Dynamic Screen Posture:</strong> Foldable devices transition between folded (single compact pane, ~400dp width) and unfolded (wide dual-pane, ~840dp width) mid-session.</li>
+              <li><strong>Static vs. Dynamic Decisions:</strong> An Intent flag is a <em>static command</em> issued at invocation time. But the decision to split must be <em>dynamically evaluated</em> at render time based on current window bounds.</li>
+              <li><strong>Conflating Concerns:</strong> Hardcoding split flags at launch sites tangles <em>navigation routing</em> (what to open) with <em>display presentation</em> (how to render).</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="callout callout-warning" style="margin-top: 1.5rem;">
+          <div class="callout-title">
+            <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>
+            The Backward Compatibility Dilemma
+          </div>
+          <p>Introducing new core flags to <code>android.content.Intent</code> requires updating the platform SDK and bumping the compile SDK. It offers no backwards compatibility for existing devices. Applications would be forced to guard every launch site with platform version checks and screen dimension checks before invoking <code>startActivity()</code>.</p>
+        </div>
+
+        <h3>The Architectural Solution: Centralized Embedding Rules</h3>
+        <p>Android solved this architectural challenge by completely decoupling navigation from layout presentation through <strong>declarative and programmatic Rules</strong> registered at application startup:</p>
+
+        <div class="grid-2" style="margin-top: 1rem;">
+          <div class="card">
+            <div class="card-title">
+              <span>1. Clean, Standard Navigation</span>
+              <span class="pill pill-green">Unchanged Call Sites</span>
+            </div>
+            <p>Application navigation code remains completely standard and agnostic to screen layout. Activities invoke standard Android APIs:</p>
+            <pre><code>// Normal startActivity call site:
+val intent = Intent(this, DetailActivity::class.java)
+startActivity(intent) // No custom flags or screen checks!</code></pre>
+            <p>No device posture checks, no layout calculations, and no version branching at the point of invocation.</p>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span>2. Centralized Rule Registration at Init</span>
+              <span class="pill pill-purple">RuleController</span>
+            </div>
+            <p>At application initialization (via Jetpack Startup or <code>Application.onCreate</code>), the app registers split rules:</p>
+            <pre><code>val splitPairRule = SplitPairRule.Builder(
+    filterSet = setOf(SplitPairFilter(
+        ComponentName(this, ListActivity::class.java),
+        ComponentName(this, DetailActivity::class.java),
+        null
+    ))
+)
+.setMinWidthDp(600)
+.setDefaultSplitAttributes(
+    SplitAttributes.Builder()
+        .setSplitType(SplitAttributes.SplitType.ratio(0.4f))
+        .build()
+)
+.build()
+
+RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 1.5rem;">
+          <div class="card-title">
+            <span>How Runtime Rules Bridge the Gap</span>
+            <span class="pill pill-blue">Dynamic Resolution</span>
+          </div>
+          <p>When <code>startActivity()</code> is called, the OEM <code>SplitController</code> intercepts the launch via <code>Instrumentation.ActivityMonitor</code> and performs runtime rule matching:</p>
+          <ul style="margin-left: 1.2rem; line-height: 1.8;">
+            <li><strong>Folded / Compact State (&lt; 600dp):</strong> The rule conditions are not met. <code>SplitController</code> allows the launch to proceed as a regular full-screen activity on top of the stack.</li>
+            <li><strong>Unfolded / Expanded State (&ge; 600dp):</strong> The rule matches! <code>SplitController</code> injects <code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code> into <code>ActivityOptions</code>, directing WindowManager to position the new activity side-by-side in its own <code>TaskFragment</code>.</li>
+            <li><strong>Fold / Unfold Mid-Session:</strong> When the user folds or unfolds the device while both activities are alive, the WindowManager hierarchy dynamically updates the layout between split and stacked without restarting or re-invoking the activities!</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Section 5 -->
       <section id="execution-flow">
-        <h2>4. End-to-End Execution Sequence</h2>
+        <h2>5. End-to-End Execution Sequence</h2>
         <p>What happens when an app invokes standard <code>startActivity(intent)</code> with split rules defined? How does an unbundled user-space rule intercept an OS-level activity launch without requiring custom launch flags in the calling code?</p>
 
         <div class="flow-steps">
@@ -739,9 +775,9 @@ options.putBinder(
         </div>
       </section>
 
-      <!-- Section 5 -->
+      <!-- Section 6 -->
       <section id="security">
-        <h2>5. Security & Trust Boundaries</h2>
+        <h2>6. Security & Trust Boundaries</h2>
         <p>Why can't malicious apps embed arbitrary banking or payment activities to intercept taps? Android enforces strict <strong>trusted vs. untrusted embedding</strong> checks inside <code>TaskFragment.java</code>.</p>
 
         <div class="grid-2">
@@ -766,9 +802,9 @@ options.putBinder(
         </div>
       </section>
 
-      <!-- Section 6 -->
+      <!-- Section 7 -->
       <section id="dividers">
-        <h2>6. Interactive Dividers & Decor Surfaces</h2>
+        <h2>7. Interactive Dividers & Decor Surfaces</h2>
         <p>To let users drag the boundary between two split activities, the system does not redraw both activities on every frame. Instead, it utilizes a dedicated <strong>Decor Surface</strong>.</p>
         <ul>
           <li><strong>Operation:</strong> <code>OP_TYPE_CREATE_OR_MOVE_TASK_FRAGMENT_DECOR_SURFACE</code> creates a hardware SurfaceControl attached directly to the parent <code>Task</code>.</li>
@@ -777,9 +813,9 @@ options.putBinder(
         </ul>
       </section>
 
-      <!-- Section 7 -->
+      <!-- Section 8 -->
       <section id="source-map">
-        <h2>7. Local Source Code Map</h2>
+        <h2>8. Local Source Code Map</h2>
         <p>All core source files are checked out and available directly in this repository for local exploration:</p>
 
         <table>
@@ -818,13 +854,6 @@ options.putBinder(
             </tr>
           </tbody>
         </table>
-      </section>
-
-      <!-- Section 8 -->
-      <section id="presentation">
-        <h2>8. Presentation Plan for Colleagues</h2>
-        <p>A ready-to-present outline is prepared in <code>SLIDE_DECK_OUTLINE.md</code> and viewable in the presentation mode of this page.</p>
-        <button class="btn btn-primary" onclick="openSlideMode()">Launch Interactive Presentation Slides</button>
       </section>
 
       <!-- Section 9 (Appendix) -->
@@ -926,212 +955,14 @@ options.putBinder(
               <span>androidx.window.extensions.* (OEM Plugin)</span>
               <span class="pill pill-green">Vendor Extension Contract</span>
             </div>
-            <p>Designed intentionally as a hardware-specific plugin interface. OEMs (Samsung, Pixel, OnePlus) have different physical hinges, folding angle thresholds, and multi-window UI policies. They are free to implement the internals of <code>SplitController</code> however their hardware requires, as long as it adheres to the contract and passes <code>CtsWindowManagerJetpackTestCases</code>.</p>
+            <p>Designed intentionally as a hardware-specific plugin interface. OEMs (Samsung, Pixel, OnePlus) have different physical hinges, folding angle thresholds, and multi-window UI rules. They are free to implement the internals of <code>SplitController</code> however their hardware requires, as long as it adheres to the contract and passes <code>CtsWindowManagerJetpackTestCases</code>.</p>
           </div>
         </div>
       </section>
     </main>
   </div>
 
-  <!-- Fullscreen Slide Modal -->
-  <div id="slideModal">
-    <div class="slide-header">
-      <div class="brand">
-        <span>Android Activity Embedding: Team Presentation</span>
-      </div>
-      <div>
-        <button class="btn btn-outline" onclick="closeSlideMode()">Exit Presentation (Esc)</button>
-      </div>
-    </div>
-
-    <div class="slide-body">
-      <div class="slide-card" id="slideCard">
-        <!-- Injected via JavaScript -->
-      </div>
-    </div>
-
-    <div class="slide-footer">
-      <button class="btn btn-outline" onclick="prevSlide()">◀ Previous</button>
-      <span class="slide-counter" id="slideCounter">Slide 1 / 8</span>
-      <button class="btn btn-primary" onclick="nextSlide()">Next ▶</button>
-    </div>
-  </div>
-
   <script>
-    const slides = [
-      {
-        title: "Deep Dive: How Android Activity Embedding Works",
-        subtitle: "Architecture, Internal Mechanics, and WM Hierarchy",
-        content: `
-          <ul style="font-size: 1.25rem; line-height: 2; margin-top: 1rem;">
-            <li>📱 <strong>The Problem:</strong> Large screens (Foldables, Tablets) make legacy multi-activity apps look stretched or letterboxed.</li>
-            <li>🔄 <strong>The Dilemma:</strong> Rewriting into single-activity Fragments or Jetpack Compose takes months of engineering effort.</li>
-            <li>⚡ <strong>The Solution:</strong> Activity Embedding enables multiple activities to share the display simultaneously with zero layout rewrites.</li>
-          </ul>
-        `
-      },
-      {
-        title: "The 4-Layer Architectural Stack",
-        subtitle: "Separation of Concerns across the OS",
-        content: `
-          <div style="font-size: 1.15rem; line-height: 1.8;">
-            <p><strong>1. App / Jetpack WindowManager:</strong> Developer rules (<code>SplitPairRule</code>, <code>RuleController</code>).</p>
-            <p><strong>2. WindowManager Extensions (OEM):</strong> <code>SplitController</code> & <code>SplitPresenter</code> calculate geometry and device posture.</p>
-            <p><strong>3. Framework Core:</strong> <code>TaskFragmentOrganizer</code> bundles atomic operations into <code>TaskFragmentTransaction</code>.</p>
-            <p><strong>4. System Server WM:</strong> <code>TaskFragmentOrganizerController</code> enforces security and coordinates with SurfaceFlinger.</p>
-          </div>
-        `
-      },
-      {
-        title: "WM Hierarchy Shift: Task extends TaskFragment",
-        subtitle: "The Core Architectural Evolution in Android 12L+",
-        content: `
-          <div style="font-size: 1.15rem; line-height: 1.8;">
-            <p>Previously, <code>Task</code> was a rigid container directly holding <code>ActivityRecord</code>s.</p>
-            <p>In Android 12L+, the class definition became: <code><strong>class Task extends TaskFragment</strong></code>!</p>
-            <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
-              <li>A <code>Task</code> represents the Recents tile.</li>
-              <li>Within a single Task, multiple <code>TaskFragment</code> containers coexist side-by-side.</li>
-              <li>Each <code>TaskFragment</code> manages its own activity stack and visibility independently.</li>
-            </ul>
-          </div>
-        `
-      },
-      {
-        title: "Lifecycle: Multi-Resume & Visibility",
-        subtitle: "Independent Containers in a Unified Task",
-        content: `
-          <div style="font-size: 1.15rem; line-height: 1.8;">
-            <p>🚀 <strong>Multi-Resume:</strong> Since Android 10, all visible focused activities can be simultaneously <code>RESUMED</code>.</p>
-            <p>👁️ <strong>Visibility Tracking:</strong> Managed at the <code>TaskFragment</code> level:</p>
-            <ul style="margin-left: 1.5rem;">
-              <li><code>TASK_FRAGMENT_VISIBILITY_VISIBLE</code></li>
-              <li><code>TASK_FRAGMENT_VISIBILITY_VISIBLE_BEHIND_TRANSLUCENT</code></li>
-              <li><code>TASK_FRAGMENT_VISIBILITY_INVISIBLE</code></li>
-            </ul>
-            <p>Fold/Unfold transitions dynamically collapse or expand fragments without restarting activities.</p>
-          </div>
-        `
-      },
-      {
-        title: "How startActivity() Turns into a Split",
-        subtitle: "The Instrumentation Hook & Token Injection",
-        content: `
-          <ol style="font-size: 1.05rem; line-height: 1.75; margin-left: 1.5rem;">
-            <li>App calls standard <code>startActivity(Intent B)</code> from Activity A.</li>
-            <li><strong>Hook:</strong> <code>Instrumentation.ActivityMonitor</code> in <code>SplitController</code> intercepts the call before Binder IPC.</li>
-            <li><strong>Match & Calc:</strong> Rules match <code>(Activity A, Intent B)</code>; <code>SplitPresenter</code> computes split geometry.</li>
-            <li><strong>Token Injection:</strong> Injects <code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code> into <code>ActivityOptions</code>.</li>
-            <li><strong>ATMS Execution:</strong> System server routes Activity B directly into the designated <code>TaskFragment</code> container.</li>
-          </ol>
-        `
-      },
-      {
-        title: "Security: Trusted vs. Untrusted Embedding",
-        subtitle: "Preventing Tapjacking & Clickjacking",
-        content: `
-          <div style="font-size: 1.15rem; line-height: 1.8;">
-            <p>🛡️ <strong>Threat Model:</strong> A rogue app cannot arbitrarily embed another app's login or payment activity.</p>
-            <p>✅ <strong>Trusted Mode:</strong> Activities with the same UID / package are trusted by default.</p>
-            <p>🔒 <strong>Untrusted Mode:</strong> External activities must explicitly opt-in in their manifest:</p>
-            <pre style="margin: 0.5rem 0;"><code>&lt;activity android:name=".CheckoutActivity"
-          android:allowUntrustedActivityEmbedding="true" /&gt;</code></pre>
-            <p>Otherwise, ATMS rejects the embedding operation.</p>
-          </div>
-        `
-      },
-      {
-        title: "Interactive Dividers & Decor Surfaces",
-        subtitle: "Fluid Resizing Without Layout Thrashing",
-        content: `
-          <div style="font-size: 1.15rem; line-height: 1.8;">
-            <p>🎨 <strong>Decor Surface:</strong> Created via <code>OP_TYPE_CREATE_OR_MOVE_TASK_FRAGMENT_DECOR_SURFACE</code> directly on the parent Task.</p>
-            <p>🖐️ <strong>User Dragging:</strong> <code>DividerPresenter</code> handles touch events on the decor surface.</p>
-            <p>⚡ <strong>Performance:</strong> Updates relative bounds dynamically while SurfaceFlinger handles compositor scaling.</p>
-          </div>
-        `
-      },
-      {
-        title: "The Architectural Secret: IoC via compileOnly & SharedLibrary",
-        subtitle: "How Unbundled Jetpack Communicates In-Process with OS",
-        content: `
-          <div style="font-size: 1.15rem; line-height: 1.8;">
-            <p>🧩 <strong>3-Tier Dependency:</strong></p>
-            <ul style="margin-left: 1.5rem; margin-bottom: 0.5rem;">
-              <li><strong>Specification:</strong> <code>WindowExtensions</code> in <code>androidx.window:window-extensions</code>.</li>
-              <li><strong>App APK:</strong> Consumes it via <code>compileOnly</code> (stripped from APK!) + <code>&lt;uses-library&gt;</code>.</li>
-              <li><strong>Device OS:</strong> Bundles interface + implementation (<code>SplitController</code>) in <code>/system_ext/framework/androidx.window.extensions.jar</code>.</li>
-            </ul>
-            <p>🛡️ <strong>ClassLoader Protection:</strong> Because of <code>compileOnly</code>, there is <strong>zero duplicate class collision</strong>. Only ONE copy of the interface exists at runtime, eliminating <code>ClassCastException</code>s!</p>
-          </div>
-        `
-      },
-      {
-        title: "Summary & Best Practices",
-        subtitle: "Key Takeaways for Android Teams",
-        content: `
-          <div style="font-size: 1.15rem; line-height: 1.8;">
-            <p>✨ <strong>Fast Time-to-Market:</strong> Large screen readiness without major rewrites.</p>
-            <p>🧩 <strong>Flexible Rules:</strong> Use XML for static splits; use <code>RuleController</code> for dynamic conditions.</p>
-            <p>🔙 <strong>Back Navigation:</strong> Configure <code>finishPrimaryWithSecondary</code> and <code>finishSecondaryWithPrimary</code> appropriately.</p>
-            <p>📂 <strong>Full Codebase:</strong> Explore the source files right in your local clone!</p>
-          </div>
-        `
-      }
-    ];
-
-    let currentSlide = 0;
-
-    function renderSlide() {
-      const slide = slides[currentSlide];
-      const card = document.getElementById("slideCard");
-      card.innerHTML = `
-        <div>
-          <div class="pill pill-blue" style="margin-bottom: 0.75rem;">Slide ${currentSlide + 1} of ${slides.length}</div>
-          <h2 style="font-size: 2rem; color: #f0f6fc; margin-bottom: 0.35rem;">${slide.title}</h2>
-          <h4 style="font-size: 1.15rem; color: #8b949e; font-weight: 500; margin-bottom: 1.5rem;">${slide.subtitle}</h4>
-          ${slide.content}
-        </div>
-      `;
-      document.getElementById("slideCounter").textContent = `Slide ${currentSlide + 1} / ${slides.length}`;
-    }
-
-    function openSlideMode() {
-      document.getElementById("slideModal").classList.add("active");
-      renderSlide();
-    }
-
-    function closeSlideMode() {
-      document.getElementById("slideModal").classList.remove("active");
-    }
-
-    function nextSlide() {
-      if (currentSlide < slides.length - 1) {
-        currentSlide++;
-        renderSlide();
-      }
-    }
-
-    function prevSlide() {
-      if (currentSlide > 0) {
-        currentSlide--;
-        renderSlide();
-      }
-    }
-
-    // Keyboard navigation
-    window.addEventListener("keydown", (e) => {
-      const modal = document.getElementById("slideModal");
-      if (!modal.classList.contains("active")) return;
-      if (e.key === "ArrowRight" || e.key === " ") {
-        nextSlide();
-      } else if (e.key === "ArrowLeft") {
-        prevSlide();
-      } else if (e.key === "Escape") {
-        closeSlideMode();
-      }
-    });
-
     // Active TOC link highlighting
     const sections = document.querySelectorAll("section");
     const navLinks = document.querySelectorAll("aside a");

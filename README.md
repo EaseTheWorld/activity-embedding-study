@@ -1,6 +1,6 @@
 # Android Activity Embedding Deep Dive
 
-[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live%20Presentation-brightgreen)](https://easetheworld.github.io/activity-embedding-study/)
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live%20Documentation-brightgreen)](https://easetheworld.github.io/activity-embedding-study/)
 [![Android](https://img.shields.io/badge/Android-12L%20%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/guide/topics/large-screens/activity-embedding)
 [![Jetpack WindowManager](https://img.shields.io/badge/Jetpack-WindowManager%201.3+-4285F4?logo=google&logoColor=white)](https://developer.android.com/jetpack/androidx/releases/window)
 
@@ -8,16 +8,18 @@ A comprehensive architectural deep-dive into how **Android Activity Embedding** 
 
 ---
 
-## 🌐 Live GitHub Pages Documentation & Presentation
+## 🌐 Live GitHub Pages Documentation
 
-👉 **[View the Interactive Web Guide & Slide Deck](https://easetheworld.github.io/activity-embedding-study/)**
+👉 **[View the Interactive Web Deep Dive](https://easetheworld.github.io/activity-embedding-study/)**
 
 Features included in the GitHub Pages site:
 * **Interactive 4-Layer Architecture Visualizer**
 * **WindowManager Hierarchy Comparison (`Task extends TaskFragment`)**
-* **End-to-End Execution Sequence Flow**
+* **The Mental Model: Why Centralized Rules, Not Intent Flags**
+* **End-to-End Execution Sequence Flow & Instrumentation Hook**
 * **Security Model (Trusted vs. Untrusted Embedding)**
-* **Built-in Presentation Slide Mode** (Press `Presentation Slide Mode` or use `←` / `→` arrow keys to present directly to colleagues)
+* **Interactive Dividers & Decor Surfaces**
+* **Appendix: Inversion of Control (IoC) via `compileOnly` & System Shared Library**
 
 ---
 
@@ -80,9 +82,9 @@ Extracted from `platform/frameworks/base` (AOSP):
 
 ---
 
-## 📑 Study & Presentation Guide (Single Source of Truth)
+## 📑 Single Source of Truth (SSOT)
 
-All comprehensive architectural walkthroughs, deep-dive explanations, diagrams, and the interactive slide deck are maintained in **[`index.html`](index.html)** as the Single Source of Truth (SSOT).
+All comprehensive architectural walkthroughs, deep-dive explanations, diagrams, and source code references are maintained in **[`index.html`](index.html)** as the Single Source of Truth (SSOT).
 
-👉 **[Launch Interactive Guide & Slide Deck on GitHub Pages](https://easetheworld.github.io/activity-embedding-study/)**
+👉 **[Open Deep Dive on GitHub Pages](https://easetheworld.github.io/activity-embedding-study/)**
 
