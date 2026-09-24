@@ -485,34 +485,46 @@
       <!-- Hero -->
       <div class="hero">
         <h1>Android Activity Embedding Under the Hood</h1>
-        <p>A comprehensive architectural exploration of how Android (12L+) and Jetpack WindowManager coordinate to run multiple activities side-by-side inside a single task without UI refactoring.</p>
+        <p>A comprehensive architectural exploration of how Android (12L+) and Jetpack WindowManager coordinate to host and embed multiple activities side-by-side inside a single task—enabling true modularity, cross-app separation of concerns, and clean multi-pane layouts.</p>
         <div class="meta-bar">
-          <div class="meta-item"><span>Platform:</span> <strong>Android 12L (API 32) & Android 13+</strong></div>
+          <div class="meta-item"><span>Platform:</span> <strong>Android 12L (API 32) & Android 13+ / AAOS</strong></div>
           <div class="meta-item"><span>Library:</span> <strong>androidx.window:window:1.3+</strong></div>
         </div>
       </div>
 
       <!-- Section 1 -->
       <section id="overview">
-        <h2>1. Overview & Motivation</h2>
-        <p>For over a decade, Android applications were designed around single-pane screens where each <code>Activity</code> occupied the full display. With the advent of foldables, tablets, and desktop modes, apps on large screens faced awkward letterboxing or stretched layouts.</p>
-        <p>Migrating multi-activity codebases into single-activity Fragment/Compose architectures requires immense time and risk. <strong>Activity Embedding</strong> solves this at the platform layer by allowing two or more activities from the same app (or explicitly permitted external apps) to be displayed simultaneously side-by-side or stacked.</p>
+        <h2>1. Overview & Motivation: Separation of Concerns on Wide Displays</h2>
+        <p>On large fixed screens such as <strong>Android Automotive OS (AAOS)</strong> center displays, applications commonly adopt a fixed wide two-pane (List-Detail) layout. A central <strong>Vehicle Settings</strong> application acts as the user-facing hub for diverse vehicle domains—from display and connectivity to headless background services like <strong>Voice Recognition</strong>.</p>
+
+        <p>Because headless system services lack their own launcher UI or top-level window, conventional architectures force the host settings app into a severe architectural anti-pattern that violates <strong>Separation of Concerns (SoC)</strong>:</p>
 
         <div class="grid-2">
           <div class="card">
             <div class="card-title">
-              <span>Traditional Single-Activity</span>
-              <span class="pill pill-orange">Legacy</span>
+              <span>The Monolithic Anti-Pattern</span>
+              <span class="pill pill-orange">Violated SoC</span>
             </div>
-            <p>One activity fills the full task. Starting Activity B covers Activity A, sending A through <code>onPause()</code> / <code>onStop()</code>.</p>
+            <p><strong>Host App Implements External Subsystem UI:</strong> Because the headless voice recognition service has no standalone entry UI, the Vehicle Settings app is forced to build its configuration screens, maintain its settings keys, and synchronize values over <code>ContentProvider</code> or AIDL.</p>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.6rem;"><strong>Architectural Flaw:</strong> Domain boundaries collapse. Any feature update, UI tweak, or schema modification in the Voice Recognition service forces code churn, re-testing, and redeployment of the central Vehicle Settings app.</p>
           </div>
+
           <div class="card">
             <div class="card-title">
-              <span>Embedded Multi-Activity</span>
-              <span class="pill pill-green">Modern</span>
+              <span>The Activity Embedding Solution</span>
+              <span class="pill pill-green">Clean Modular Host</span>
             </div>
-            <p>Task is divided into <code>TaskFragment</code>s. Activity A and Activity B remain visible simultaneously and both are <code>RESUMED</code> (Multi-Resume).</p>
+            <p><strong>Subsystems Own Their Own UI:</strong> The Voice Recognition package ships its own self-contained <code>VoiceSettingsActivity</code> inside its own APK. The Vehicle Settings app simply embeds it into the right detail pane.</p>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.6rem;"><strong>Architectural Gain:</strong> True Separation of Concerns. The voice team owns its UI, business logic, and storage. The driver experiences a single, seamless settings app, while the underlying codebases and release cycles remain 100% independent.</p>
           </div>
+        </div>
+
+        <div class="callout callout-success">
+          <div class="callout-title">
+            <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>
+            Why In-App Fragments or Compose Cannot Solve This Across Packages
+          </div>
+          <p>Within a single application package, Fragment transactions or Compose components handle list-detail navigation easily. However, <strong>Fragments and Views cannot cross APK or process boundaries</strong> without massive shared-library bloat or fragile remote views. Activity Embedding operates at the <strong>WindowManager container and compositor layer</strong>, allowing completely separate APKs—verified via OEM certificates (<code>android:knownActivityEmbeddingCerts</code>)—to securely render side-by-side inside a single unified window task.</p>
         </div>
       </section>
 
