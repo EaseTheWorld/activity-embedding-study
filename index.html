@@ -473,7 +473,7 @@
         <li><a href="#overview">1. Overview & Motivation</a></li>
         <li><a href="#architecture">2. 4-Layer Architecture</a></li>
         <li><a href="#hierarchy">3. Window Hierarchy Shift</a></li>
-        <li><a href="#mental-model">4. The Mental Model: Why Rules, Not Flags</a></li>
+        <li><a href="#rules-architecture">4. The Rule-Based Architecture</a></li>
         <li><a href="#execution-flow">5. End-to-End Execution</a></li>
         <li><a href="#security">6. Security & Trust Model</a></li>
         <li><a href="#dividers">7. Interactive Dividers</a></li>
@@ -618,75 +618,30 @@ RootWindowContainer
       </section>
 
       <!-- Section 4 -->
-      <section id="mental-model">
-        <h2>4. The Mental Model: Why Rules, Not Flags</h2>
+      <section id="rules-architecture">
+        <h2>4. The Rule-Based Architecture & Advantages</h2>
         
-        <p>When Android developers first consider how to launch an activity into an adjacent split pane, an intuitive question arises: <em>"Why can't we simply set an Intent flag?"</em></p>
+        <p>Activity Embedding is built around a <strong>centralized, rule-based architecture</strong>. Rather than coupling display layout directly to individual navigation call sites, apps define declarative or programmatic rules (<code>SplitPairRule</code>, <code>SplitPlaceholderRule</code>, <code>ActivityRule</code>) that the platform evaluates dynamically at runtime.</p>
 
         <div class="grid-2">
           <div class="card">
             <div class="card-title">
-              <span>The Developer Intuition</span>
-              <span class="pill pill-blue">Existing Android Model</span>
+              <span>Standard, Clean Call Sites</span>
+              <span class="pill pill-green">Separation of Concerns</span>
             </div>
-            <p>In standard Android development, the <code>Intent</code> object and its flags govern task and stack routing:</p>
-            <ul>
-              <li><code>FLAG_ACTIVITY_NEW_TASK</code>: Creates a new Task or brings an existing Task to the foreground.</li>
-              <li><code>FLAG_ACTIVITY_CLEAR_TOP</code>: Clears intermediate activities above the destination on the stack.</li>
-              <li><code>FLAG_ACTIVITY_SINGLE_TOP</code>: Delivers the Intent to <code>onNewIntent()</code> if already at the top of the stack.</li>
-            </ul>
-            <p>Naturally, developers envision extending this pattern with an Intent flag for secondary stacks:</p>
-            <pre><code>// What developers intuitively imagine:
-val intent = Intent(this, DetailActivity::class.java).apply {
-    flags = FLAG_ACTIVITY_SECONDARY_STACK // (Hypothetical flag!)
-}
-startActivity(intent)</code></pre>
-          </div>
-
-          <div class="card">
-            <div class="card-title">
-              <span>Why Intent Flags Fail</span>
-              <span class="pill pill-orange">The Dynamic Reality</span>
-            </div>
-            <p>While intuitive, driving split layouts via Intent flags breaks down under the realities of modern multi-form-factor devices:</p>
-            <ul style="margin-left: 1.2rem; line-height: 1.6;">
-              <li><strong>Dynamic Screen Posture:</strong> Foldable devices transition between folded (single compact pane, ~400dp width) and unfolded (wide dual-pane, ~840dp width) mid-session.</li>
-              <li><strong>Static vs. Dynamic Decisions:</strong> An Intent flag is a <em>static command</em> issued at invocation time. But the decision to split must be <em>dynamically evaluated</em> at render time based on current window bounds.</li>
-              <li><strong>Conflating Concerns:</strong> Hardcoding split flags at launch sites tangles <em>navigation routing</em> (what to open) with <em>display presentation</em> (how to render).</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="callout callout-warning" style="margin-top: 1.5rem;">
-          <div class="callout-title">
-            <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>
-            The Backward Compatibility Dilemma
-          </div>
-          <p>Introducing new core flags to <code>android.content.Intent</code> requires updating the platform SDK and bumping the compile SDK. It offers no backwards compatibility for existing devices. Applications would be forced to guard every launch site with platform version checks and screen dimension checks before invoking <code>startActivity()</code>.</p>
-        </div>
-
-        <h3>The Architectural Solution: Centralized Embedding Rules</h3>
-        <p>Android solved this architectural challenge by completely decoupling navigation from layout presentation through <strong>declarative and programmatic Rules</strong> registered at application startup:</p>
-
-        <div class="grid-2" style="margin-top: 1rem;">
-          <div class="card">
-            <div class="card-title">
-              <span>1. Clean, Standard Navigation</span>
-              <span class="pill pill-green">Unchanged Call Sites</span>
-            </div>
-            <p>Application navigation code remains completely standard and agnostic to screen layout. Activities invoke standard Android APIs:</p>
-            <pre><code>// Normal startActivity call site:
+            <p>Application navigation code remains completely standard and decoupled from display layout. Existing activity launch sites require zero modifications:</p>
+            <pre><code>// Standard startActivity call site:
 val intent = Intent(this, DetailActivity::class.java)
-startActivity(intent) // No custom flags or screen checks!</code></pre>
-            <p>No device posture checks, no layout calculations, and no version branching at the point of invocation.</p>
+startActivity(intent)</code></pre>
+            <p>Navigation business logic (<em>"which screen to open"</em>) remains completely isolated from layout presentation (<em>"how to render the screen"</em>).</p>
           </div>
 
           <div class="card">
             <div class="card-title">
-              <span>2. Centralized Rule Registration at Init</span>
+              <span>Centralized Rule Registration</span>
               <span class="pill pill-purple">RuleController</span>
             </div>
-            <p>At application initialization (via Jetpack Startup or <code>Application.onCreate</code>), the app registers split rules:</p>
+            <p>Rules are registered once at application startup (via Jetpack Startup or <code>Application.onCreate</code>), creating a single source of truth for window layout:</p>
             <pre><code>val splitPairRule = SplitPairRule.Builder(
     filterSet = setOf(SplitPairFilter(
         ComponentName(this, ListActivity::class.java),
@@ -706,17 +661,68 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
           </div>
         </div>
 
+        <h3 style="margin-top: 2rem;">Core Advantages of the Rule Approach</h3>
+
+        <div class="grid-2" style="margin-top: 1rem;">
+          <div class="card">
+            <div class="card-title">
+              <span>1. Dynamic Fold & Metric Adaptation</span>
+              <span class="pill pill-blue">Adaptive</span>
+            </div>
+            <p>Rules are evaluated dynamically against active window dimensions and physical hinge posture:</p>
+            <ul style="margin-left: 1.2rem; line-height: 1.6;">
+              <li><strong>Folded / Compact Screen (&lt; 600dp):</strong> The rule conditions are not met; activities automatically stack full-screen without errors.</li>
+              <li><strong>Unfolded / Expanded Screen (&ge; 600dp):</strong> The rule triggers; activities display side-by-side in independent <code>TaskFragment</code>s.</li>
+              <li><strong>Mid-Session Transitions:</strong> When the user folds, unfolds, or resizes the app, WindowManager dynamically transitions between split and stacked layouts without restarting activities.</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span>2. Rapid Large-Screen Enablement</span>
+              <span class="pill pill-green">High Velocity</span>
+            </div>
+            <p>Large multi-activity codebases can modernize for foldables and tablets with minimal engineering overhead:</p>
+            <ul style="margin-left: 1.2rem; line-height: 1.6;">
+              <li><strong>Zero UI Rewrites:</strong> No need to refactor existing activities into single-activity Fragments or rewrite entire flows into Jetpack Compose.</li>
+              <li><strong>Declarative XML Configuration:</strong> Rules can be defined entirely in static XML resources parsed automatically at app startup.</li>
+              <li><strong>Low Regression Risk:</strong> Existing activity lifecycles and business logic remain intact.</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span>3. Fine-Grained Lifecycle & Back Coordination</span>
+              <span class="pill pill-purple">Control</span>
+            </div>
+            <p>Rules provide fine-grained control over back-navigation and co-dependent activity lifecycles via <code>FinishBehavior</code>:</p>
+            <ul style="margin-left: 1.2rem; line-height: 1.6;">
+              <li><code>FINISH_NEVER</code>: Finishing one pane leaves the other intact.</li>
+              <li><code>FINISH_ALWAYS</code>: Finishing the primary list automatically closes the secondary detail pane (or vice-versa).</li>
+              <li><code>FINISH_ADJACENT</code>: Finishes the adjacent container only when displayed side-by-side.</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span>4. Native System Multi-Window Integration</span>
+              <span class="pill pill-orange">System Integration</span>
+            </div>
+            <p>Because rules operate through the platform's <code>TaskFragmentOrganizer</code>:</p>
+            <ul style="margin-left: 1.2rem; line-height: 1.6;">
+              <li><strong>Unified Recents:</strong> The entire split appears as a single unified Task in the Recents screen.</li>
+              <li><strong>Multi-Resume:</strong> Both panes are fully active and <code>RESUMED</code> simultaneously.</li>
+              <li><strong>Picture-in-Picture & Drag:</strong> Integrates seamlessly with system PiP, split-screen multi-window, and interactive dividers.</li>
+            </ul>
+          </div>
+        </div>
+
         <div class="card" style="margin-top: 1.5rem;">
           <div class="card-title">
-            <span>How Runtime Rules Bridge the Gap</span>
-            <span class="pill pill-blue">Dynamic Resolution</span>
+            <span>Runtime Dynamic Resolution</span>
+            <span class="pill pill-blue">Execution</span>
           </div>
-          <p>When <code>startActivity()</code> is called, the OEM <code>SplitController</code> intercepts the launch via <code>Instrumentation.ActivityMonitor</code> and performs runtime rule matching:</p>
-          <ul style="margin-left: 1.2rem; line-height: 1.8;">
-            <li><strong>Folded / Compact State (&lt; 600dp):</strong> The rule conditions are not met. <code>SplitController</code> allows the launch to proceed as a regular full-screen activity on top of the stack.</li>
-            <li><strong>Unfolded / Expanded State (&ge; 600dp):</strong> The rule matches! <code>SplitController</code> injects <code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code> into <code>ActivityOptions</code>, directing WindowManager to position the new activity side-by-side in its own <code>TaskFragment</code>.</li>
-            <li><strong>Fold / Unfold Mid-Session:</strong> When the user folds or unfolds the device while both activities are alive, the WindowManager hierarchy dynamically updates the layout between split and stacked without restarting or re-invoking the activities!</li>
-          </ul>
+          <p>When <code>startActivity()</code> is called, the OEM <code>SplitController</code> intercepts the launch via <code>Instrumentation.ActivityMonitor</code>, matches against registered rules, and injects the <code>TaskFragmentToken</code> only when active constraints are met. Navigation code stays simple, while presentation logic stays responsive and centralized.</p>
         </div>
       </section>
 
