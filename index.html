@@ -472,13 +472,12 @@
       <ul>
         <li><a href="#overview">1. Overview & Motivation</a></li>
         <li><a href="#architecture">2. 4-Layer Architecture</a></li>
-        <li><a href="#hierarchy">3. Window Hierarchy Shift</a></li>
-        <li><a href="#rules-architecture">4. The Rule-Based Architecture</a></li>
-        <li><a href="#execution-flow">5. End-to-End Execution</a></li>
-        <li><a href="#security">6. Security & Trust Model</a></li>
-        <li><a href="#dividers">7. Interactive Dividers</a></li>
-        <li><a href="#source-map">8. Local Source Code Map</a></li>
-        <li><a href="#appendix-ioc">9. Appendix: IoC & Injection</a></li>
+        <li><a href="#backward-compatibility">3. Backward Compatibility: Hierarchy & Rules</a></li>
+        <li><a href="#execution-flow">4. End-to-End Execution</a></li>
+        <li><a href="#security">5. Security & Trust Model</a></li>
+        <li><a href="#dividers">6. Interactive Dividers</a></li>
+        <li><a href="#source-map">7. Local Source Code Map</a></li>
+        <li><a href="#appendix-ioc">8. Appendix: IoC & Injection</a></li>
       </ul>
     </aside>
 
@@ -592,8 +591,13 @@
       </section>
 
       <!-- Section 3 -->
-      <section id="hierarchy">
-        <h2>3. Window Hierarchy Paradigm Shift</h2>
+      <section id="backward-compatibility">
+        <h2>3. Backward Compatibility by Design: Hierarchy Evolution & Rule-Based Model</h2>
+        <p>Both the WindowManager hierarchy redesign and the rule-based embedding system share one foundational architectural goal: <strong>absolute backward compatibility</strong>. Existing multi-activity applications run without code rewrites, and the Android OS continues to manage tasks through established lifecycle contracts.</p>
+
+        <h3>1. The Hierarchy Evolution: Task extends TaskFragment</h3>
+        <p>In legacy Android, the OS contract assumed <code>Task</code> directly contained <code>ActivityRecord</code>s and mapped 1:1 to a Recents entry. Rather than introducing a breaking new container type at the top level, Android 12L refactored the inheritance tree:</p>
+
         <pre><code>// Android 11 and earlier:
 class Task extends WindowContainer&lt;ActivityRecord&gt; { ... }
 
@@ -601,7 +605,7 @@ class Task extends WindowContainer&lt;ActivityRecord&gt; { ... }
 class TaskFragment extends WindowContainer&lt;WindowContainer&gt; { ... }
 class Task extends TaskFragment { ... }</code></pre>
 
-        <pre><code>// Hierarchy:
+        <pre><code>// Android 12L+ Hierarchy:
 RootWindowContainer
  └── DisplayContent
       └── TaskDisplayArea
@@ -610,12 +614,11 @@ RootWindowContainer
                 │    └── ActivityRecord (e.g. ListActivity)
                 └── TaskFragment 2 (Right / Secondary Pane)
                      └── ActivityRecord (e.g. DetailActivity)</code></pre>
-      </section>
 
-      <!-- Section 4 -->
-      <section id="rules-architecture">
-        <h2>4. The Rule-Based Architecture & Advantages</h2>
-        <p>Activity Embedding centralizes layout decisions into declarative or programmatic <strong>rules</strong> (e.g. <code>SplitPairRule</code>), completely isolating navigation logic from display geometry.</p>
+        <p>Because <code>Task</code> extends <code>TaskFragment</code>, external system services (Launcher, Recents, ATMS) continue to treat a Task as a single unit. Internally, <code>TaskFragment</code> takes over managing individual activity stacks and multi-pane bounds. Existing single-pane apps simply run inside a default <code>TaskFragment</code> with zero awareness or behavioral change.</p>
+
+        <h3 style="margin-top: 2rem;">2. The Rule-Based Architecture</h3>
+        <p>Similarly, the rule-based approach avoids breaking activity launch contracts. Instead of requiring new <code>startActivity</code> arguments or custom Intent flags, layout behavior is driven by centralized rules registered at startup:</p>
 
         <pre><code>// 1. Navigation call site remains standard:
 startActivity(Intent(this, DetailActivity::class.java))
@@ -671,10 +674,10 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
         </div>
       </section>
 
-      <!-- Section 5 -->
+      <!-- Section 4 -->
       <section id="execution-flow">
-        <h2>5. End-to-End Execution Sequence</h2>
-        <p>The activity embedding lifecycle operates across three primary stages: setting the rules, intercepting activity launch, and coordinating finish.</p>
+        <h2>4. End-to-End Execution Sequence</h2>
+        <p>The activity embedding lifecycle operates across three primary stages. Every operation coordinates across the 4 architectural layers introduced earlier:</p>
 
         <div class="flow-steps">
           <!-- Flow 1 -->
@@ -682,9 +685,12 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             <div class="step-number">1</div>
             <div class="step-content">
               <h4>1. Setting Rule with RuleController</h4>
-              <p>At application startup (via Jetpack Startup or <code>Application.onCreate</code>), the app registers embedding rules:</p>
+              <p>At application startup, rules are registered and bound to the process:</p>
               <pre><code>RuleController.getInstance(context).setRules(setOf(splitPairRule));</code></pre>
-              <p>AndroidX passes these rules via <code>EmbeddingAdapter</code> to the device's OEM <code>SplitController.setEmbeddingRules()</code>. <code>SplitController</code> installs an <code>ActivityStartMonitor</code> into the process's <code>Instrumentation</code> to monitor all subsequent activity launches.</p>
+              <ul style="margin-left: 1.2rem; line-height: 1.8;">
+                <li><strong class="pill pill-blue" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 1: App / AndroidX</strong> The app creates high-level rules (e.g. <code>SplitPairRule</code>) and calls <code>RuleController.setRules()</code>. <code>EmbeddingAdapter</code> converts them into OEM contract interfaces.</li>
+                <li><strong class="pill pill-purple" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 2: OEM Extension</strong> <code>SplitController.setEmbeddingRules()</code> receives the rules and attaches an <code>ActivityStartMonitor</code> to the app's <code>Instrumentation</code> instance (via <code>instrumentation.addMonitor(mActivityStartMonitor)</code>) to intercept subsequent activity launches.</li>
+              </ul>
             </div>
           </div>
 
@@ -693,13 +699,19 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             <div class="step-number">2</div>
             <div class="step-content">
               <h4>2. startActivity</h4>
-              <p>The app invokes standard <code>startActivity(intent)</code> without custom flags. The runtime sequence proceeds:</p>
-              <ol style="margin-left: 1.2rem; line-height: 1.8;">
-                <li><strong>Intercept:</strong> <code>Instrumentation.ActivityMonitor</code> intercepts <code>onStartActivity(who, intent, options)</code> in the app process before IPC.</li>
-                <li><strong>Rule Match & Metric Check:</strong> <code>SplitController</code> matches <code>(who, intent)</code> against registered rules and evaluates window metrics (e.g. width &ge; 600dp, fold posture).</li>
-                <li><strong>Token Injection:</strong> If matched, <code>SplitController</code> injects <code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code> into <code>ActivityOptions</code>.</li>
-                <li><strong>ATMS Placement:</strong> <code>ActivityTaskManagerService</code> reads the token and routes the new <code>ActivityRecord</code> directly into the designated <code>TaskFragment</code> container, displaying both activities side-by-side.</li>
-              </ol>
+              <p>When an activity initiates navigation, the launch is intercepted and routed into a split container:</p>
+              <ul style="margin-left: 1.2rem; line-height: 1.8;">
+                <li><strong class="pill pill-blue" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 1: App / AndroidX</strong> The app calls standard <code>startActivity(intent)</code> without custom flags or layout checks.</li>
+                <li><strong class="pill pill-purple" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 2: OEM Extension</strong> <code>Instrumentation.execStartActivity()</code> triggers <code>ActivityStartMonitor.onStartActivity()</code> inside the app process before IPC:
+                  <ol style="margin-left: 1.2rem; margin-top: 0.25rem;">
+                    <li><code>SplitController</code> matches <code>(who, intent)</code> against registered rules.</li>
+                    <li><code>SplitPresenter</code> evaluates current window bounds (e.g. width &ge; 600dp) and device fold posture.</li>
+                    <li>If satisfied, it retrieves/creates the target <code>TaskFragmentContainer</code> and injects <code>ActivityOptions.KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>.</li>
+                  </ol>
+                </li>
+                <li><strong class="pill pill-orange" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 3: Framework Client</strong> <code>TaskFragmentOrganizer</code> bundles container creation and bounds operations into an atomic <code>TaskFragmentTransaction</code>.</li>
+                <li><strong class="pill pill-green" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 4: System Server (ATMS)</strong> <code>ActivityStarter</code> inspects <code>options.getLaunchTaskFragmentToken()</code>, verifies UID embedding security, and routes the new <code>ActivityRecord</code> directly into the designated <code>TaskFragment</code>. SurfaceFlinger smoothly composites both activities side-by-side.</li>
+              </ul>
             </div>
           </div>
 
@@ -708,25 +720,27 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             <div class="step-number">3</div>
             <div class="step-content">
               <h4>3. finish</h4>
-              <p>When an activity finishes (via user back press or <code>finish()</code> call):</p>
-              <ol style="margin-left: 1.2rem; line-height: 1.8;">
-                <li><strong>Evaluate FinishBehavior:</strong> The rule's configured finish policy determines dependent container behavior:
+              <p>When an embedded activity finishes (user back press or <code>finish()</code> call):</p>
+              <ul style="margin-left: 1.2rem; line-height: 1.8;">
+                <li><strong class="pill pill-blue" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 1: App / AndroidX</strong> An activity invokes <code>finish()</code> or receives back navigation.</li>
+                <li><strong class="pill pill-purple" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 2: OEM Extension</strong> <code>SplitController</code> intercepts the container state change and evaluates the rule's <code>FinishBehavior</code>:
                   <ul style="margin-left: 1.2rem; margin-top: 0.25rem;">
                     <li><code>FINISH_NEVER</code>: The adjacent activity remains open and expands to fill the parent Task.</li>
-                    <li><code>FINISH_ALWAYS</code>: Finishing one activity automatically finishes the associated activity in the other container.</li>
-                    <li><code>FINISH_ADJACENT</code>: Finishes the adjacent container only if both are currently displayed side-by-side.</li>
+                    <li><code>FINISH_ALWAYS</code>: Finishing one activity automatically finishes the associated activity in the other pane.</li>
+                    <li><code>FINISH_ADJACENT</code>: Associated activity is finished only when the two containers are actively displayed side-by-side.</li>
                   </ul>
                 </li>
-                <li><strong>Atomic Cleanup:</strong> <code>TaskFragmentOrganizer</code> sends a <code>TaskFragmentTransaction</code> to ATMS to tear down the container and dynamically reconfigure remaining window bounds with zero visual flicker.</li>
-              </ol>
+                <li><strong class="pill pill-orange" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 3: Framework Client</strong> <code>TaskFragmentOrganizer</code> batches container removal and adjacent container bounds expansion into a <code>TaskFragmentTransaction</code>.</li>
+                <li><strong class="pill pill-green" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 4: System Server (ATMS)</strong> <code>TaskFragmentOrganizerController</code> executes the transaction, destroying the finished container and expanding the remaining <code>TaskFragment</code> to full-screen with zero visual flickering.</li>
+              </ul>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Section 6 -->
+      <!-- Section 5 -->
       <section id="security">
-        <h2>6. Security & Trust Boundaries</h2>
+        <h2>5. Security & Trust Boundaries</h2>
         <p>Why can't malicious apps embed arbitrary banking or payment activities to intercept taps? Android enforces strict <strong>trusted vs. untrusted embedding</strong> checks inside <code>TaskFragment.java</code>.</p>
 
         <div class="grid-2">
@@ -751,9 +765,9 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
         </div>
       </section>
 
-      <!-- Section 7 -->
+      <!-- Section 6 -->
       <section id="dividers">
-        <h2>7. Interactive Dividers & Decor Surfaces</h2>
+        <h2>6. Interactive Dividers & Decor Surfaces</h2>
         <p>To let users drag the boundary between two split activities, the system does not redraw both activities on every frame. Instead, it utilizes a dedicated <strong>Decor Surface</strong>.</p>
         <ul>
           <li><strong>Operation:</strong> <code>OP_TYPE_CREATE_OR_MOVE_TASK_FRAGMENT_DECOR_SURFACE</code> creates a hardware SurfaceControl attached directly to the parent <code>Task</code>.</li>
@@ -762,9 +776,9 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
         </ul>
       </section>
 
-      <!-- Section 8 -->
+      <!-- Section 7 -->
       <section id="source-map">
-        <h2>8. Local Source Code Map</h2>
+        <h2>7. Local Source Code Map</h2>
         <p>All core source files are checked out and available directly in this repository for local exploration:</p>
 
         <table>
@@ -805,9 +819,9 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
         </table>
       </section>
 
-      <!-- Section 9 (Appendix) -->
+      <!-- Section 8 (Appendix) -->
       <section id="appendix-ioc">
-        <h2>9. Appendix: The Architectural Secret — IoC via compileOnly & System Shared Library</h2>
+        <h2>8. Appendix: The Architectural Secret — IoC via compileOnly & System Shared Library</h2>
         <p>How does an unbundled Jetpack library (<code>androidx.window:window</code>) shipped inside an application's APK communicate directly in-process with a device-specific OEM implementation (<code>SplitController</code>) inside <code>frameworks/base</code>, without runtime crashes, class duplication, or annual OS release coupling?</p>
         
         <p>The secret lies in an elegant <strong>Inversion of Control (IoC)</strong> pattern orchestrated across three tiers using <code>compileOnly</code> dependencies, <code>&lt;uses-library&gt;</code>, and dynamic ClassLoader injection.</p>

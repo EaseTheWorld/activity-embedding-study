@@ -14,9 +14,8 @@ A comprehensive architectural deep-dive into how **Android Activity Embedding** 
 
 Features included in the GitHub Pages site:
 * **Interactive 4-Layer Architecture Visualizer**
-* **WindowManager Hierarchy Comparison (`Task extends TaskFragment`)**
-* **The Rule-Based Architecture & Core Advantages**
-* **End-to-End Execution Sequence Flow & Instrumentation Hook**
+* **Backward Compatibility by Design: Hierarchy Evolution & Rule-Based Model**
+* **End-to-End Execution Sequence Across All 4 Layers (Rules, startActivity, finish)**
 * **Security Model (Trusted vs. Untrusted Embedding)**
 * **Interactive Dividers & Decor Surfaces**
 * **Appendix: Inversion of Control (IoC) via `compileOnly` & System Shared Library**
