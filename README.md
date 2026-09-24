@@ -13,11 +13,11 @@ A comprehensive architectural deep-dive into how **Android Activity Embedding** 
 👉 **[View the Interactive Web Deep Dive](https://easetheworld.github.io/activity-embedding-study/)**
 
 Features included in the GitHub Pages site:
-* **Interactive 4-Layer Architecture Visualizer**
-* **Backward Compatibility by Design: Hierarchy Evolution & Rule-Based Model**
-* **End-to-End Execution Sequence Across All 4 Layers (Rules, startActivity, finish)**
-* **Security Model (Trusted vs. Untrusted Embedding)**
-* **Interactive Dividers & Decor Surfaces**
+* **Interactive 4-Layer Architecture Visualizer** (Jetpack, OEM Extension, Framework Client, ATMS)
+* **End-to-End Execution Sequence Across All 4 Layers** (Rule setup, `startActivity`, `finish`)
+* **Backward Compatibility by Design**: Hierarchy Evolution (`Task extends TaskFragment`) & Rule-Based Model
+* **Security & Trust Boundaries**: Same-UID trust, `allowUntrustedActivityEmbedding`, and `knownActivityEmbeddingCerts` (Android 14+)
+* **Upstream Source Repositories**: Direct links to official Google Code Search (`cs.android.com`)
 * **Appendix: Inversion of Control (IoC) via `compileOnly` & System Shared Library**
 
 ---
@@ -74,8 +74,8 @@ Extracted from `platform/frameworks/base` (AOSP):
    In Android 12L+, the WindowManager hierarchy was redesigned. `Task` is no longer a direct leaf container of `ActivityRecord`s; rather, it extends `TaskFragment`. A `Task` can contain multiple `TaskFragment`s, which can be placed side-by-side or stacked.
 2. **Atomic Batch Transactions (`TaskFragmentTransaction`)**:
    Container creation, bounds assignment, and activity reparenting are dispatched to ATMS in a single parcelable transaction, ensuring zero visual flickering during transitions.
-3. **Security (Trusted vs Untrusted)**:
-   Same-UID activities are trusted by default. Cross-app embedding requires target activities to declare `android:allowUntrustedActivityEmbedding="true"` in their `AndroidManifest.xml` to prevent tapjacking.
+3. **Security (Trusted vs Untrusted & Partner Certificates)**:
+   Same-UID activities are trusted by default. Cross-app embedding requires target activities to declare `android:allowUntrustedActivityEmbedding="true"` for public access, or `android:knownActivityEmbeddingCerts` (introduced in Android 14 / API 34) to restrict embedding exclusively to certificate-verified partner apps.
 4. **Inversion of Control (IoC) via `compileOnly` & System Shared Library**:
    The unbundled Jetpack library (`androidx.window:window`) links against the specification interface (`WindowExtensions`, `ActivityEmbeddingComponent`) as `compileOnly`, stripping the `.class` files from the final APK. The device's `/system_ext/framework/androidx.window.extensions.jar` provides both the interface and the concrete implementation (`SplitController`) at runtime via `<uses-library>`, eliminating duplicate class conflicts and preventing `ClassCastException`s.
 
