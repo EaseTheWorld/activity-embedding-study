@@ -687,45 +687,53 @@ RootWindowContainer
       <!-- Section 4 -->
       <section id="execution-flow">
         <h2>4. End-to-End Execution Sequence</h2>
-        <p>What happens when an app invokes <code>startActivity(intent)</code> with split rules defined?</p>
+        <p>What happens when an app invokes standard <code>startActivity(intent)</code> with split rules defined? How does an unbundled user-space rule intercept an OS-level activity launch without requiring custom launch flags in the calling code?</p>
 
         <div class="flow-steps">
           <div class="step-item">
             <div class="step-number">1</div>
             <div class="step-content">
-              <h4>Rule Evaluation in Jetpack WindowManager</h4>
-              <p>The app calls <code>startActivity()</code>. Jetpack's <code>RuleController</code> checks if an active <code>SplitPairRule</code> or <code>SplitPlaceholderRule</code> matches the starting activity and the target Intent.</p>
+              <h4>The Hook: Instrumentation.ActivityMonitor</h4>
+              <p>During process initialization, the OEM <code>SplitController</code> hooks into the app process's <code>Instrumentation</code> instance:</p>
+              <pre><code>// In SplitController.java:
+Instrumentation instrumentation = activityThread.getInstrumentation();
+mActivityStartMonitor = new ActivityStartMonitor();
+instrumentation.addMonitor(mActivityStartMonitor);</code></pre>
+              <p>Whenever <em>any</em> activity or context in the app calls <code>startActivity()</code>, <code>Instrumentation.execStartActivity()</code> invokes <code>mActivityStartMonitor.onStartActivity(who, intent, options)</code> before making any IPC call to the system server.</p>
             </div>
           </div>
           <div class="step-item">
             <div class="step-number">2</div>
             <div class="step-content">
-              <h4>Geometry & Split Calculation in SplitPresenter</h4>
-              <p>The OEM extension's <code>SplitPresenter</code> calculates whether the device window metrics meet minimum width (<code>minWidthDp</code>) and aspect ratio conditions. If valid, relative split bounds (e.g. 50/50 or 33/67) are computed.</p>
+              <h4>Rule Evaluation & Geometry Calculation (SplitPresenter)</h4>
+              <p>Inside <code>onStartActivity()</code>, <code>SplitController.resolveStartActivityIntent()</code> matches <code>(who, intent)</code> against the rules set via Jetpack's <code>RuleController</code>. <code>SplitPresenter</code> evaluates device metrics (width/height vs <code>minDimensions</code>, folding posture) and calculates relative split bounds (e.g. 50/50 or 33/67).</p>
             </div>
           </div>
           <div class="step-item">
             <div class="step-number">3</div>
             <div class="step-content">
-              <h4>Atomic Transaction Assembly</h4>
-              <p><code>JetpackTaskFragmentOrganizer</code> bundles the operations into a single <code>TaskFragmentTransaction</code>:</p>
-              <pre><code>transaction.addTaskFragmentOperation(token1, OP_TYPE_CREATE_TASK_FRAGMENT);
-transaction.addTaskFragmentOperation(token1, OP_TYPE_SET_RELATIVE_BOUNDS);
-transaction.addTaskFragmentOperation(token2, OP_TYPE_START_ACTIVITY_IN_TASK_FRAGMENT);</code></pre>
+              <h4>The Token Injection: KEY_LAUNCH_TASK_FRAGMENT_TOKEN</h4>
+              <p><code>SplitController</code> prepares the target <code>TaskFragmentContainer</code> and injects its hidden token into the <code>ActivityOptions</code> bundle:</p>
+              <pre><code>// In SplitController.java (ActivityStartMonitor):
+options.putBinder(
+    ActivityOptions.KEY_LAUNCH_TASK_FRAGMENT_TOKEN,
+    launchedInTaskFragment.getTaskFragmentToken()
+);</code></pre>
+              <p>This allows the original <code>startActivity()</code> call to proceed normally, but now carries an internal instruction directed to WindowManager!</p>
             </div>
           </div>
           <div class="step-item">
             <div class="step-number">4</div>
             <div class="step-content">
-              <h4>Server Verification in TaskFragmentOrganizerController</h4>
-              <p>The transaction travels via Binder IPC to <code>ITaskFragmentOrganizerController</code> in <code>system_server</code>. The controller verifies ownership, checks security boundaries, and modifies the <code>TaskFragment</code> tree.</p>
+              <h4>Atomic Transaction Assembly & Server Routing</h4>
+              <p><code>JetpackTaskFragmentOrganizer</code> dispatches a <code>TaskFragmentTransaction</code> to <code>ITaskFragmentOrganizerController</code> in <code>system_server</code> (ATMS). Simultaneously, ATMS's <code>ActivityStarter</code> inspects <code>options.getLaunchTaskFragmentToken()</code> and routes the new <code>ActivityRecord</code> directly into the designated <code>TaskFragment</code> container instead of creating a full-screen window.</p>
             </div>
           </div>
           <div class="step-item">
             <div class="step-number">5</div>
             <div class="step-content">
               <h4>Surface Synchronization & Shell Transitions</h4>
-              <p>The WindowManager Shell executes an atomic transition. Both activities appear seamlessly without screen flickering or intermediate full-screen layouts.</p>
+              <p>The WindowManager Shell and SurfaceFlinger execute an atomic transition animation. Both activities appear smoothly side-by-side without screen flickering or intermediate full-screen layouts.</p>
             </div>
           </div>
         </div>
@@ -901,6 +909,26 @@ transaction.addTaskFragmentOperation(token2, OP_TYPE_START_ACTIVITY_IN_TASK_FRAG
           <p>In Java/Android, class identity is strictly determined by <code>(Fully Qualified Name, ClassLoader)</code>. If <code>androidx.window:window</code> bundled <code>WindowExtensions.class</code> inside the APK's <code>classes.dex</code>, casting the object loaded from the system JAR would result in a fatal error: <code>ClassCastException: WindowExtensions cannot be cast to WindowExtensions</code>.</p>
           <p>By declaring <code>compileOnly</code> in Gradle, the interface bytecode is <strong>completely stripped from the final APK</strong>. Exactly <strong>one single copy</strong> of <code>WindowExtensions.class</code> exists in memory at runtime—loaded from the system shared library!</p>
         </div>
+
+        <h3>Why Can androidx.window.extensions Be Customized While android.* Cannot?</h3>
+        <p>The interface itself is declared in AndroidX at <code>androidx-window/window/extensions/extensions/src/main/java/androidx/window/extensions/WindowExtensions.java</code> and imported into AOSP as a prebuilt static library (<code>androidx.window.extensions_extensions-nodeps</code>).</p>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">
+              <span>android.* (Strictly Immutable)</span>
+              <span class="pill pill-orange">Public Android SDK</span>
+            </div>
+            <p>Protected by the <strong>Android Compatibility Definition Document (CDD)</strong> and <strong>CTS</strong>. OEMs are strictly forbidden from modifying or extending signatures in <code>android.*</code>. Violating this fails CTS certification and prevents shipping Google Mobile Services (Google Play Store).</p>
+          </div>
+          <div class="card">
+            <div class="card-title">
+              <span>androidx.window.extensions.* (OEM Plugin)</span>
+              <span class="pill pill-green">Vendor Extension Contract</span>
+            </div>
+            <p>Designed intentionally as a hardware-specific plugin interface. OEMs (Samsung, Pixel, OnePlus) have different physical hinges, folding angle thresholds, and multi-window UI policies. They are free to implement the internals of <code>SplitController</code> however their hardware requires, as long as it adheres to the contract and passes <code>CtsWindowManagerJetpackTestCases</code>.</p>
+          </div>
+        </div>
       </section>
     </main>
   </div>
@@ -987,14 +1015,14 @@ transaction.addTaskFragmentOperation(token2, OP_TYPE_START_ACTIVITY_IN_TASK_FRAG
       },
       {
         title: "How startActivity() Turns into a Split",
-        subtitle: "The 5-Step Execution Pipeline",
+        subtitle: "The Instrumentation Hook & Token Injection",
         content: `
-          <ol style="font-size: 1.1rem; line-height: 1.8; margin-left: 1.5rem;">
-            <li>App calls <code>startActivity(Intent B)</code> from Activity A.</li>
-            <li>Jetpack <code>RuleController</code> matches Intent against registered <code>SplitPairRule</code>.</li>
-            <li>OEM <code>SplitPresenter</code> computes split bounds (e.g. 50/50).</li>
-            <li><code>JetpackTaskFragmentOrganizer</code> sends atomic <code>TaskFragmentTransaction</code> to ATMS.</li>
-            <li><code>TaskFragmentOrganizerController</code> updates WM hierarchy, and Shell Transition animates the split seamlessly.</li>
+          <ol style="font-size: 1.05rem; line-height: 1.75; margin-left: 1.5rem;">
+            <li>App calls standard <code>startActivity(Intent B)</code> from Activity A.</li>
+            <li><strong>Hook:</strong> <code>Instrumentation.ActivityMonitor</code> in <code>SplitController</code> intercepts the call before Binder IPC.</li>
+            <li><strong>Match & Calc:</strong> Rules match <code>(Activity A, Intent B)</code>; <code>SplitPresenter</code> computes split geometry.</li>
+            <li><strong>Token Injection:</strong> Injects <code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code> into <code>ActivityOptions</code>.</li>
+            <li><strong>ATMS Execution:</strong> System server routes Activity B directly into the designated <code>TaskFragment</code> container.</li>
           </ol>
         `
       },

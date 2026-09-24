@@ -80,7 +80,9 @@ Extracted from `platform/frameworks/base` (AOSP):
 
 ---
 
-## 📑 Study & Presentation Guides
+## 📑 Study & Presentation Guide (Single Source of Truth)
 
-- [ACTIVITY_EMBEDDING_ARCHITECTURE.md](ACTIVITY_EMBEDDING_ARCHITECTURE.md): Full technical breakdown and sequence tracing.
-- [SLIDE_DECK_OUTLINE.md](SLIDE_DECK_OUTLINE.md): Structured slide outline for technical presentations.
+All comprehensive architectural walkthroughs, deep-dive explanations, diagrams, and the interactive slide deck are maintained in **[`index.html`](index.html)** as the Single Source of Truth (SSOT).
+
+👉 **[Launch Interactive Guide & Slide Deck on GitHub Pages](https://easetheworld.github.io/activity-embedding-study/)**
+
