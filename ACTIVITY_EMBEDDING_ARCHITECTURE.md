@@ -134,3 +134,91 @@ App Code: startActivity(Intent B from Activity A)
    - Cross-app embedding requires `android:allowUntrustedActivityEmbedding="true"` or `android.permission.EMBED_ANY_APP_IN_UNTRUSTED_MODE` to protect against tapjacking.
 5. **Interactive Dividers**:
    - The OS creates a dedicated decor surface (`OP_TYPE_CREATE_OR_MOVE_TASK_FRAGMENT_DECOR_SURFACE`) above the fragments so the app/organizer can draw draggable split handles.
+
+---
+
+## 5. Appendix: The Architectural Secret — Inversion of Control (IoC) via `compileOnly` & System Shared Library
+
+How does an unbundled Jetpack library (`androidx.window:window`) shipped inside an app's APK communicate directly in-process with a device-specific OEM implementation (`SplitController`) inside `frameworks/base`, without runtime crashes or annual Android OS release coupling?
+
+The secret lies in an elegant **Inversion of Control (IoC)** pattern orchestrated across three tiers using **`compileOnly`** dependencies, **`<uses-library>`**, and **dynamic ClassLoader injection**.
+
+### 1. The Three-Tier Contract Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Tier 1: Specification API (androidx.window:window-extensions)                │
+│ - Defines interface WindowExtensions                                        │
+│ - Defines interface ActivityEmbeddingComponent                             │
+│ - Defines entry point class WindowExtensionsProvider                        │
+└───────────────────────┬─────────────────────────────┬───────────────────────┘
+                        │ compileOnly                 │ static_libs
+                        ▼                             ▼
+┌──────────────────────────────────────┐   ┌──────────────────────────────────┐
+│ Tier 2: App Consumer                 │   │ Tier 3: Platform / OEM Provider  │
+│ (androidx.window:window in APK)      │   │ (/system_ext/framework/...)      │
+├──────────────────────────────────────┤   ├──────────────────────────────────┤
+│ - compileOnly(window-extensions)     │   │ - static_libs: [window-extensions]│
+│ - AndroidManifest.xml:               │   │ - WindowExtensionsImpl           │
+│   <uses-library                      │   │   implements WindowExtensions    │
+│     name="androidx.window.extensions"│   │ - SplitController                │
+│     required="false" />              │   │   implements                     │
+│ - ExtensionEmbeddingBackend.kt       │   │   ActivityEmbeddingComponent     │
+│ - EmbeddingCompat.kt                 │   │                                  │
+│ - SafeActivityEmbeddingComponent-    │   │                                  │
+│   Provider.kt                        │   │                                  │
+└──────────────────────────────────────┘   └──────────────────────────────────┘
+```
+
+### 2. Step-by-Step Injection Flow at Runtime
+
+```
+[ App Launch / Zygote Fork ]
+  │
+  ├─► 1. ClassLoader Mounting:
+  │      ApplicationLoaders detects <uses-library android:name="androidx.window.extensions">
+  │      in the APK's AndroidManifest.xml and appends
+  │      /system_ext/framework/androidx.window.extensions.jar
+  │      to the Application's PathClassLoader.
+  │
+[ Jetpack WindowManager Initialization ]
+  │
+  ├─► 2. Discovery Trigger:
+  │      ExtensionEmbeddingBackend.getInstance(context) calls
+  │      EmbeddingCompat.isEmbeddingAvailable()
+  │
+  ├─► 3. OEM Entry Point Invocation:
+  │      EmbeddingCompat calls WindowExtensionsProvider.getWindowExtensions()
+  │      -> Returns device's WindowExtensionsImpl instance.
+  │
+  ├─► 4. Component Instantiation:
+  │      WindowExtensionsImpl.getActivityEmbeddingComponent()
+  │      -> Instantiates mSplitController = new SplitController(...)
+  │      -> Returns SplitController typed as ActivityEmbeddingComponent!
+  │
+  ├─► 5. Defensive Verification (Reflection Guard):
+  │      SafeActivityEmbeddingComponentProvider inspects the returned object.
+  │      It verifies method signatures against the declared vendorApiLevel
+  │      (e.g., verifying setEmbeddingRules, isActivityEmbedded, etc.)
+  │      to guard against incomplete or bugged OEM ROM builds.
+  │
+  └─► 6. IoC Injection Complete:
+         EmbeddingCompat stores the validated ActivityEmbeddingComponent.
+         All high-level rule updates and split queries now dispatch directly
+         into the in-memory SplitController singleton!
+```
+
+### 3. Why `compileOnly` is Crucial: Avoiding the ClassLoader Hazard
+
+In Java and Android, a class identity at runtime is determined by the tuple:
+$$\text{Class Identity} = (\text{Fully Qualified Class Name},\, \text{ClassLoader})$$
+
+* If `androidx.window:window` included `WindowExtensions.class` inside the APK (`implementation` dependency):
+  The APK's `classes.dex` and the system's `androidx.window.extensions.jar` would **both** contain `WindowExtensions.class`.
+  Casting `(WindowExtensions) provider.getWindowExtensions()` would throw a catastrophic runtime error:
+  `java.lang.ClassCastException: androidx.window.extensions.WindowExtensions cannot be cast to androidx.window.extensions.WindowExtensions`
+* By declaring `compileOnly(project(":window:extensions:extensions"))`:
+  1. The compiler allows typing against `WindowExtensions` and `ActivityEmbeddingComponent` at build time.
+  2. The packager **completely omits** the interface classes from the final APK.
+  3. At runtime, exactly **one single copy** of the interface exists in memory—loaded cleanly from `/system_ext/framework/androidx.window.extensions.jar`.
+

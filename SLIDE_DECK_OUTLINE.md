@@ -79,10 +79,27 @@
 
 ---
 
-### Slide 8: Summary & Best Practices
+### Slide 8: The Architectural Secret: IoC via compileOnly & SharedLibrary
+- **The Dilemma:** How can an unbundled Jetpack library (`androidx.window:window`) talk in-process to device-specific OS implementations (`SplitController`)?
+- **The Solution:** Inversion of Control (IoC) with a 3-tier dependency model:
+  1. `androidx.window:window-extensions`: Public specification interface (`WindowExtensions`, `ActivityEmbeddingComponent`).
+  2. `androidx.window:window`: App consumes it as `compileOnly`, stripping `.class` files from the final APK. Declares `<uses-library android:name="androidx.window.extensions" android:required="false" />`.
+  3. `/system_ext/framework/androidx.window.extensions.jar`: OEM/AOSP bundles the interface + implementation into a system shared library.
+- **Runtime Injection:**
+  - Android's `ApplicationLoaders` appends the system JAR to the app's `PathClassLoader`.
+  - Jetpack invokes `WindowExtensionsProvider.getWindowExtensions()`.
+  - `WindowExtensionsImpl` instantiates `SplitController` and returns it as `ActivityEmbeddingComponent`.
+- **The ClassLoader Protection:**
+  - Because `compileOnly` was used, there is **zero class duplication**. Exactly ONE copy of `WindowExtensions.class` exists in memory, avoiding `ClassCastException`s.
+
+---
+
+### Slide 9: Summary & Best Practices
 - Takeaways:
+  - Large-screen readiness without major app rewrites.
   - Declarative XML rules vs. programmatic `RuleController`.
   - Back-navigation strategies (`finishPrimaryWithSecondary`, `finishSecondaryWithPrimary`).
   - Hinge and fold awareness (`FoldingFeature` support).
-  - Where to explore in code: Check `aosp-frameworks-base/` and `androidx-window/`.
+  - The architectural brilliance of Jetpack + OEM Shared Library IoC.
 - Q&A.
+

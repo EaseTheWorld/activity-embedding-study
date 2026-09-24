@@ -545,6 +545,7 @@
         <li><a href="#dividers">6. Interactive Dividers</a></li>
         <li><a href="#source-map">7. Local Source Code Map</a></li>
         <li><a href="#presentation">8. Team Presentation Plan</a></li>
+        <li><a href="#appendix-ioc">9. Appendix: IoC & Injection</a></li>
       </ul>
     </aside>
 
@@ -817,6 +818,90 @@ transaction.addTaskFragmentOperation(token2, OP_TYPE_START_ACTIVITY_IN_TASK_FRAG
         <p>A ready-to-present outline is prepared in <code>SLIDE_DECK_OUTLINE.md</code> and viewable in the presentation mode of this page.</p>
         <button class="btn btn-primary" onclick="openSlideMode()">Launch Interactive Presentation Slides</button>
       </section>
+
+      <!-- Section 9 (Appendix) -->
+      <section id="appendix-ioc">
+        <h2>9. Appendix: The Architectural Secret — IoC via compileOnly & System Shared Library</h2>
+        <p>How does an unbundled Jetpack library (<code>androidx.window:window</code>) shipped inside an application's APK communicate directly in-process with a device-specific OEM implementation (<code>SplitController</code>) inside <code>frameworks/base</code>, without runtime crashes, class duplication, or annual OS release coupling?</p>
+        
+        <p>The secret lies in an elegant <strong>Inversion of Control (IoC)</strong> pattern orchestrated across three tiers using <code>compileOnly</code> dependencies, <code>&lt;uses-library&gt;</code>, and dynamic ClassLoader injection.</p>
+
+        <div class="card" style="margin: 1.5rem 0;">
+          <div class="card-title">
+            <span>The 3-Tier Dependency & Loading Model</span>
+            <span class="pill pill-purple">Architecture</span>
+          </div>
+          <pre><code>┌─────────────────────────────────────────────────────────────────────────────┐
+│ Tier 1: Specification Contract (androidx.window:window-extensions)          │
+│ - Defines interface WindowExtensions                                        │
+│ - Defines interface ActivityEmbeddingComponent                             │
+│ - Defines entry point class WindowExtensionsProvider                        │
+└───────────────────────┬─────────────────────────────┬───────────────────────┘
+                        │ compileOnly                 │ static_libs
+                        ▼                             ▼
+┌──────────────────────────────────────┐   ┌──────────────────────────────────┐
+│ Tier 2: App Consumer                 │   │ Tier 3: Platform / OEM Provider  │
+│ (androidx.window:window in APK)      │   │ (/system_ext/framework/...)      │
+├──────────────────────────────────────┤   ├──────────────────────────────────┤
+│ - compileOnly(window-extensions)     │   │ - static_libs: [window-extensions]│
+│ - AndroidManifest.xml:               │   │ - WindowExtensionsImpl           │
+│   &lt;uses-library                      │   │   implements WindowExtensions    │
+│     name="androidx.window.extensions"│   │ - SplitController                │
+│     required="false" /&gt;              │   │   implements                     │
+│ - ExtensionEmbeddingBackend.kt       │   │   ActivityEmbeddingComponent     │
+│ - SafeActivityEmbeddingComponent-    │   │                                  │
+│   Provider.kt                        │   │                                  │
+└──────────────────────────────────────┘   └──────────────────────────────────┘</code></pre>
+        </div>
+
+        <h3>Runtime Injection Flow Step-by-Step</h3>
+        <div class="flow-steps">
+          <div class="step-item">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h4>Process Launch & ClassLoader Mounting</h4>
+              <p>When the app process forks from Zygote, <code>ApplicationLoaders</code> detects the <code>&lt;uses-library android:name="androidx.window.extensions" android:required="false" /&gt;</code> tag in the APK manifest and appends <code>/system_ext/framework/androidx.window.extensions.jar</code> to the app's <code>PathClassLoader</code>.</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h4>Entry Point Discovery</h4>
+              <p><code>ExtensionEmbeddingBackend</code> calls <code>EmbeddingCompat.isEmbeddingAvailable()</code>, which calls <code>WindowExtensionsProvider.getWindowExtensions()</code> on the device.</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h4>Component Instantiation in OEM Layer</h4>
+              <p><code>WindowExtensionsImpl.getActivityEmbeddingComponent()</code> instantiates the device's concrete <code>mSplitController = new SplitController(...)</code> and returns it typed as the <code>ActivityEmbeddingComponent</code> interface.</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">4</div>
+            <div class="step-content">
+              <h4>Defensive Reflection Guard</h4>
+              <p><code>SafeActivityEmbeddingComponentProvider</code> inspects the returned object at runtime, checking method signatures against the declared <code>vendorApiLevel</code> to prevent crashes on non-compliant OEM ROMs.</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">5</div>
+            <div class="step-content">
+              <h4>IoC Complete</h4>
+              <p><code>EmbeddingCompat</code> stores the validated <code>ActivityEmbeddingComponent</code>. High-level Jetpack rule changes now dispatch directly into the in-memory <code>SplitController</code> singleton!</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-title">
+            <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>
+            Why compileOnly is the Key to Avoiding ClassLoader Collisions
+          </div>
+          <p>In Java/Android, class identity is strictly determined by <code>(Fully Qualified Name, ClassLoader)</code>. If <code>androidx.window:window</code> bundled <code>WindowExtensions.class</code> inside the APK's <code>classes.dex</code>, casting the object loaded from the system JAR would result in a fatal error: <code>ClassCastException: WindowExtensions cannot be cast to WindowExtensions</code>.</p>
+          <p>By declaring <code>compileOnly</code> in Gradle, the interface bytecode is <strong>completely stripped from the final APK</strong>. Exactly <strong>one single copy</strong> of <code>WindowExtensions.class</code> exists in memory at runtime—loaded from the system shared library!</p>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -935,6 +1020,21 @@ transaction.addTaskFragmentOperation(token2, OP_TYPE_START_ACTIVITY_IN_TASK_FRAG
             <p>🎨 <strong>Decor Surface:</strong> Created via <code>OP_TYPE_CREATE_OR_MOVE_TASK_FRAGMENT_DECOR_SURFACE</code> directly on the parent Task.</p>
             <p>🖐️ <strong>User Dragging:</strong> <code>DividerPresenter</code> handles touch events on the decor surface.</p>
             <p>⚡ <strong>Performance:</strong> Updates relative bounds dynamically while SurfaceFlinger handles compositor scaling.</p>
+          </div>
+        `
+      },
+      {
+        title: "The Architectural Secret: IoC via compileOnly & SharedLibrary",
+        subtitle: "How Unbundled Jetpack Communicates In-Process with OS",
+        content: `
+          <div style="font-size: 1.15rem; line-height: 1.8;">
+            <p>🧩 <strong>3-Tier Dependency:</strong></p>
+            <ul style="margin-left: 1.5rem; margin-bottom: 0.5rem;">
+              <li><strong>Specification:</strong> <code>WindowExtensions</code> in <code>androidx.window:window-extensions</code>.</li>
+              <li><strong>App APK:</strong> Consumes it via <code>compileOnly</code> (stripped from APK!) + <code>&lt;uses-library&gt;</code>.</li>
+              <li><strong>Device OS:</strong> Bundles interface + implementation (<code>SplitController</code>) in <code>/system_ext/framework/androidx.window.extensions.jar</code>.</li>
+            </ul>
+            <p>🛡️ <strong>ClassLoader Protection:</strong> Because of <code>compileOnly</code>, there is <strong>zero duplicate class collision</strong>. Only ONE copy of the interface exists at runtime, eliminating <code>ClassCastException</code>s!</p>
           </div>
         `
       },

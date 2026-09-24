@@ -75,6 +75,8 @@ Extracted from `platform/frameworks/base` (AOSP):
    Container creation, bounds assignment, and activity reparenting are dispatched to ATMS in a single parcelable transaction, ensuring zero visual flickering during transitions.
 3. **Security (Trusted vs Untrusted)**:
    Same-UID activities are trusted by default. Cross-app embedding requires target activities to declare `android:allowUntrustedActivityEmbedding="true"` in their `AndroidManifest.xml` to prevent tapjacking.
+4. **Inversion of Control (IoC) via `compileOnly` & System Shared Library**:
+   The unbundled Jetpack library (`androidx.window:window`) links against the specification interface (`WindowExtensions`, `ActivityEmbeddingComponent`) as `compileOnly`, stripping the `.class` files from the final APK. The device's `/system_ext/framework/androidx.window.extensions.jar` provides both the interface and the concrete implementation (`SplitController`) at runtime via `<uses-library>`, eliminating duplicate class conflicts and preventing `ClassCastException`s.
 
 ---
 
