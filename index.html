@@ -612,9 +612,7 @@
       <!-- Section 1 -->
       <section id="overview">
         <h2>1. Overview & Motivation: Separation of Concerns on Wide Displays</h2>
-        <p>On large fixed screens such as <strong>Android Automotive OS (AAOS)</strong> center displays, applications commonly adopt a fixed wide two-pane (List-Detail) layout. A central <strong>Vehicle Settings</strong> application acts as the user-facing hub for diverse vehicle domains—from display and connectivity to headless background services like <strong>Voice Recognition</strong>.</p>
-
-        <p>Because headless system services lack their own launcher UI or top-level window, conventional architectures force the host settings app into a severe architectural anti-pattern that violates <strong>Separation of Concerns (SoC)</strong>:</p>
+        <p>On fixed wide screens such as <strong>Android Automotive OS (AAOS)</strong> center displays, a central <strong>Vehicle Settings</strong> application acts as the user-facing hub for diverse vehicle domains, including headless background services like <strong>Voice Recognition</strong> that lack their own launcher UI. Conventional monolithic architectures force an anti-pattern that violates <strong>Separation of Concerns (SoC)</strong>:</p>
 
         <!-- As-Is vs To-Be Architectural Comparison -->
         <div class="compare-container">
@@ -763,12 +761,51 @@
             </div>
           </div>
         </div>
+
+        <!-- Architectural Insights: Layer Responsibilities & Hierarchy -->
+        <div class="grid-2" style="margin-top: 2rem;">
+          <!-- Insight 1: Layer 2 is the Dynamic Brain -->
+          <div class="card">
+            <div class="card-title">
+              <span>Which Layer Decides Dynamic Split Changes?</span>
+              <span class="pill pill-purple">Layer 2 (OEM Extension)</span>
+            </div>
+            <p>When screen width changes (display resize, fold/unfold, multi-window drag), <strong>neither AndroidX (Layer 1) nor ATMS (Layer 4) evaluates the layout decision</strong>:</p>
+            <ul style="margin-left: 1.2rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted);">
+              <li><strong>Layer 1 (AndroidX)</strong> only registers rules once at app startup; it performs zero runtime layout geometry.</li>
+              <li><strong>Layer 4 (ATMS)</strong> has <em>zero knowledge of SplitRule or split ratios</em>. It only detects parent bounds changes and fires <code>TYPE_TASK_FRAGMENT_PARENT_INFO_CHANGED</code>.</li>
+              <li><strong>Layer 2 (OEM Extensions: <code>SplitController</code> & <code>SplitPresenter</code>)</strong> is the dynamic runtime brain inside the app process. It evaluates <code>minWidthDp</code> and <code>minDimensions</code>, decides whether to split or stack (<code>EXPAND_CONTAINERS_ATTRIBUTES</code>), and submits a <code>WindowContainerTransaction</code>.</li>
+            </ul>
+          </div>
+
+          <!-- Insight 2: Task extends TaskFragment -->
+          <div class="card">
+            <div class="card-title">
+              <span>Code Logic: Task is a Special TaskFragment</span>
+              <span class="pill pill-green">Layer 4 (ATMS)</span>
+            </div>
+            <p>In AOSP, <code>Task extends TaskFragment</code>. A <code>Task</code> represents the user-facing Recents entry, while its children are <strong>"pure TaskFragments"</strong> representing split panes:</p>
+            <pre style="margin: 0.5rem 0; font-size: 0.82rem;"><code>// Task.java: Overrides asTask() to identify itself
+@Override
+Task asTask() { return this; } // TaskFragment returns null
+
+// Task.java:1489: Explicit check for pure TaskFragment
+final TaskFragment childTaskFrag = child.asTaskFragment();
+if (childTaskFrag != null && childTaskFrag.asTask() == null) {
+    // Pure embedded TaskFragment, NOT a nested Task!
+    childTaskFrag.setMinDimensions(mMinWidth, mMinHeight);
+}
+
+// WindowOrganizerController.java:2594
+ownerTask.addChild(taskFragment, position); // Parent Task holds child TaskFragment</code></pre>
+          </div>
+        </div>
       </section>
 
       <!-- Section 3 -->
       <section id="execution-flow">
         <h2>3. End-to-End Execution Sequence</h2>
-        <p>The activity embedding lifecycle operates across three primary stages. Every operation coordinates across the 4 architectural layers introduced earlier:</p>
+        <p>The activity embedding lifecycle operates across four core operational flows. Every operation coordinates across the 4 architectural layers introduced earlier:</p>
 
         <div class="flow-steps">
           <!-- Flow 1 -->
@@ -823,6 +860,32 @@
                 </li>
                 <li><strong class="pill pill-orange" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 3: Framework Client</strong> <code>TaskFragmentOrganizer</code> batches container removal and adjacent container bounds expansion into a <code>TaskFragmentTransaction</code>.</li>
                 <li><strong class="pill pill-green" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 4: System Server (ATMS)</strong> <code>TaskFragmentOrganizerController</code> executes the transaction, destroying the finished container and expanding the remaining <code>TaskFragment</code> to full-screen with zero visual flickering.</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Flow 4 -->
+          <div class="step-item">
+            <div class="step-number">4</div>
+            <div class="step-content">
+              <h4>4. Dynamic Screen Width & Configuration Change (Split ↔ Stacked)</h4>
+              <p>When the screen width dynamically changes (device rotation, folding/unfolding a foldable, or multi-window resizing), the layout adapts in real-time between side-by-side split and stacked:</p>
+              <ul style="margin-left: 1.2rem; line-height: 1.8;">
+                <li><strong class="pill pill-green" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 4: System Server (ATMS)</strong> Detects that parent leaf <code>Task</code> bounds have changed. Because ATMS has <em>zero knowledge of SplitRule or split ratios</em>, it dispatches a <code>TaskFragmentTransaction</code> with <code>TYPE_TASK_FRAGMENT_PARENT_INFO_CHANGED</code> carrying the new <code>TaskFragmentParentInfo</code>.</li>
+                <li><strong class="pill pill-purple" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 2: OEM Extension (The Brain)</strong> <code>JetpackTaskFragmentOrganizer</code> catches the transaction and invokes <code>SplitController.onTaskFragmentParentInfoChanged()</code> inside the app process:
+                  <ol style="margin-left: 1.2rem; margin-top: 0.25rem;">
+                    <li><code>taskContainer.updateTaskFragmentParentInfo(parentInfo)</code> refreshes cached parent task dimensions.</li>
+                    <li><code>SplitPresenter.computeSplitAttributes()</code> evaluates the new parent bounds against the rule's <code>minWidthDp</code> and the activities' <code>minDimensions</code>.</li>
+                    <li><strong>Layout Decision:</strong>
+                      <ul style="margin-left: 1.2rem;">
+                        <li><strong>Width &lt; minWidthDp (Too Narrow):</strong> Returns <code>EXPAND_CONTAINERS_ATTRIBUTES</code>. <code>SplitPresenter.expandTaskFragment(wct, container)</code> stacks containers full-screen.</li>
+                        <li><strong>Width &ge; minWidthDp (Wide Enough):</strong> Calculates proportional relative split bounds and updates <code>SplitContainer</code>.</li>
+                      </ul>
+                    </li>
+                  </ol>
+                </li>
+                <li><strong class="pill pill-orange" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 3: Framework Client</strong> Packages the calculated bounds / expand operations into a <code>WindowContainerTransaction</code> (WCT).</li>
+                <li><strong class="pill pill-green" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 4: System Server (ATMS)</strong> <code>WindowOrganizerController.applyTransaction(wct)</code> executes the atomic layout update, smoothly reparenting and scaling SurfaceControl surfaces with zero activity restarts.</li>
               </ul>
             </div>
           </div>
