@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Android Activity Embedding: Architecture & Deep Dive</title>
+  <title>Android Activity Embedding: 아키텍처 심층 분석</title>
   <style>
     :root {
       --bg: #0d1117;
@@ -571,7 +571,7 @@
   <header>
     <a href="#" class="brand">
       <span>Android Activity Embedding</span>
-      <span class="brand-badge">Deep Dive</span>
+      <span class="brand-badge">아키텍처 심층 분석</span>
     </a>
     <div class="nav-actions">
       <a href="https://github.com/EaseTheWorld/activity-embedding-study" target="_blank" class="btn btn-primary">
@@ -585,15 +585,15 @@
   <div class="container">
     <!-- Sidebar Navigation -->
     <aside>
-      <h3>Navigation</h3>
+      <h3>목차</h3>
       <ul>
-        <li><a href="#overview">1. Overview & Motivation</a></li>
-        <li><a href="#architecture">2. 4-Layer Architecture</a></li>
-        <li><a href="#execution-flow">3. End-to-End Execution</a></li>
-        <li><a href="#backward-compatibility">4. Backward Compatibility</a></li>
-        <li><a href="#security">5. Security & Trust Model</a></li>
-        <li><a href="#upstream-sources">6. Upstream Repositories</a></li>
-        <li><a href="#appendix-ioc">7. Appendix: IoC & Injection</a></li>
+        <li><a href="#overview">1. 개요 및 도입 배경</a></li>
+        <li><a href="#architecture">2. 4계층 아키텍처</a></li>
+        <li><a href="#execution-flow">3. 엔드투엔드 실행 흐름</a></li>
+        <li><a href="#backward-compatibility">4. 하위 호환성 설계</a></li>
+        <li><a href="#security">5. 보안 및 신뢰 모델</a></li>
+        <li><a href="#upstream-sources">6. 업스트림 소스 저장소</a></li>
+        <li><a href="#appendix-ioc">7. 부록: IoC 및 동적 주입</a></li>
       </ul>
     </aside>
 
@@ -601,90 +601,90 @@
     <main>
       <!-- Hero -->
       <div class="hero">
-        <h1>Android Activity Embedding Under the Hood</h1>
-        <p>A comprehensive architectural exploration of how Android (12L+) and Jetpack WindowManager coordinate to host and embed multiple activities side-by-side inside a single task—enabling true modularity, cross-app separation of concerns, and clean multi-pane layouts.</p>
+        <h1>Android Activity Embedding 내부 아키텍처 심층 분석</h1>
+        <p>Android 12L(API 32) 및 Android 13+와 Jetpack WindowManager가 단일 태스크(Task) 내에서 여러 Activity를 분할 배치(Split)하여 호스팅하는 내부 동작 원리를 탐구합니다. 진정한 모듈화, 패키지 간 관심사 분리(SoC, Separation of Concerns), 그리고 완성도 높은 대화면 멀티페인 레이아웃 구현 메커니즘을 상세히 다룹니다.</p>
         <div class="meta-bar">
-          <div class="meta-item"><span>Platform:</span> <strong>Android 12L (API 32) & Android 13+ / AAOS</strong></div>
-          <div class="meta-item"><span>Library:</span> <strong>androidx.window:window:1.3+</strong></div>
+          <div class="meta-item"><span>플랫폼:</span> <strong>Android 12L (API 32) & Android 13+ / AAOS</strong></div>
+          <div class="meta-item"><span>라이브러리:</span> <strong>androidx.window:window:1.3+</strong></div>
         </div>
       </div>
 
       <!-- Section 1 -->
       <section id="overview">
-        <h2>1. Overview & Motivation: Separation of Concerns on Wide Displays</h2>
-        <p>On fixed wide screens such as <strong>Android Automotive OS (AAOS)</strong> center displays, a central <strong>Vehicle Settings</strong> application acts as the user-facing hub for diverse vehicle domains, including headless background services like <strong>Voice Recognition</strong> that lack their own launcher UI. Conventional monolithic architectures force an anti-pattern that violates <strong>Separation of Concerns (SoC)</strong>:</p>
+        <h2>1. 개요 및 도입 배경: 와이드 디스플레이 환경에서의 관심사 분리(SoC)</h2>
+        <p><strong>Android Automotive OS (AAOS)</strong> 중앙 센터페시아와 같은 고정형 대화면 와이드 디스플레이 환경에서는, 메인 <strong>차량 설정(Vehicle Settings)</strong> 앱이 런처 UI가 없는 <strong>음성 인식(Voice Recognition)</strong> 등 다양한 헤드리스(Headless) 백그라운드 서비스들의 통합 진입점 역할을 담당합니다. 기존의 모놀리식 단일 액티비티 구조는 <strong>관심사 분리(Separation of Concerns, SoC)</strong>를 심각하게 저해하는 안티패턴을 초래합니다:</p>
 
         <!-- As-Is vs To-Be Architectural Comparison -->
         <div class="compare-container">
           <!-- As-Is Box -->
           <div class="diagram-box">
             <div class="diagram-header">
-              <span class="diagram-title">As-Is: Monolithic Anti-Pattern</span>
-              <span class="pill pill-orange">Violated SoC</span>
+              <span class="diagram-title">As-Is: 모놀리식 안티패턴</span>
+              <span class="pill pill-orange">관심사 분리(SoC) 위반</span>
             </div>
 
             <div class="mock-screen">
               <div class="mock-screen-title">
-                <span>AAOS Display (Task: Vehicle Settings)</span>
-                <span class="pill pill-orange" style="font-size: 0.65rem;">Single APK Shell</span>
+                <span>AAOS 디스플레이 (Task: Vehicle Settings)</span>
+                <span class="pill pill-orange" style="font-size: 0.65rem;">단일 APK 셸</span>
               </div>
               <div class="mock-screen-layout">
                 <div class="mock-pane mock-pane-primary">
-                  <strong>Category List</strong>
+                  <strong>카테고리 목록</strong>
                   <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">VehicleSettings.apk</span>
                 </div>
                 <div class="mock-pane mock-pane-violation">
-                  <strong style="color: var(--accent-orange);">Voice Settings UI & DB</strong>
-                  <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">❌ Implemented in VehicleSettings.apk</span>
+                  <strong style="color: var(--accent-orange);">음성 설정 UI 및 DB</strong>
+                  <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">❌ VehicleSettings.apk에 직접 구현됨</span>
                 </div>
               </div>
             </div>
 
             <div class="mock-connector mock-connector-warning">
-              <span>▲▼ Fragile IPC Sync: ContentProvider / AIDL</span>
+              <span>▲▼ 취약한 IPC 동기화: ContentProvider / AIDL</span>
             </div>
 
             <div class="mock-external-pkg">
-              <strong>Headless Voice Recognition Service</strong><br>
+              <strong>헤드리스 음성 인식 서비스</strong><br>
               <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">com.example.voice (VoiceService.apk)</span>
             </div>
 
             <div class="diagram-summary">
-              <strong style="color: var(--accent-orange);">⚠️ Architectural Flaw:</strong> Domain boundaries collapse. Every feature update, UI change, or schema modification in Voice Recognition forces code churn, re-testing, and redeployment of the central Vehicle Settings app.
+              <strong style="color: var(--accent-orange);">⚠️ 아키텍처 결함:</strong> 도메인 경계의 붕괴. 음성 인식 서비스의 기능 추가, UI 변경, 데이터 스키마 수정이 발생할 때마다 메인 차량 설정 앱의 코드를 수정하고, 재테스트 및 재배포해야 하는 불필요한 결합이 발생합니다.
             </div>
           </div>
 
           <!-- To-Be Box -->
           <div class="diagram-box">
             <div class="diagram-header">
-              <span class="diagram-title">To-Be: Activity Embedding Host</span>
-              <span class="pill pill-green">Clean Modular Host</span>
+              <span class="diagram-title">To-Be: Activity Embedding 호스트</span>
+              <span class="pill pill-green">깔끔한 모듈식 호스트</span>
             </div>
 
             <div class="mock-screen">
               <div class="mock-screen-title">
-                <span>AAOS Display (Unified Task Container)</span>
-                <span class="pill pill-green" style="font-size: 0.65rem;">Multi-APK Split</span>
+                <span>AAOS 디스플레이 (통합 태스크 컨테이너)</span>
+                <span class="pill pill-green" style="font-size: 0.65rem;">멀티 APK 분할</span>
               </div>
               <div class="mock-screen-layout">
                 <div class="mock-pane mock-pane-primary">
-                  <strong>Category List</strong>
+                  <strong>카테고리 목록</strong>
                   <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">TaskFragment 1<br>(VehicleSettings.apk)</span>
                 </div>
                 <div class="mock-pane mock-pane-embedded">
                   <strong style="color: var(--accent-green);">VoiceSettingsActivity</strong>
-                  <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">TaskFragment 2<br>(✅ Embedded from VoiceService.apk)</span>
+                  <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">TaskFragment 2<br>(✅ VoiceService.apk로부터 임베딩)</span>
                 </div>
               </div>
             </div>
 
             <div class="mock-external-pkg" style="margin-top: 0.5rem;">
-              <strong>Voice Recognition Package</strong><br>
-              <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">Owns VoiceSettingsActivity & Service in VoiceService.apk</span>
+              <strong>음성 인식 패키지</strong><br>
+              <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">VoiceService.apk 내에서 자체 VoiceSettingsActivity 및 Service를 완전히 소유</span>
             </div>
 
             <div class="diagram-summary">
-              <strong style="color: var(--accent-green);">✅ Architectural Gain:</strong> Pure Separation of Concerns. The voice team owns its UI, business logic, and storage completely. The driver sees one unified, seamless settings app with zero cross-package UI maintenance.
+              <strong style="color: var(--accent-green);">✅ 아키텍처 이점:</strong> 순수한 관심사 분리(SoC). 음성 인식 팀이 자체 UI, 비즈니스 로직, 데이터 스토리지를 독립적으로 관리합니다. 운전자에게는 시각적으로 매끄러운 단일 설정 앱으로 표시되면서도, 패키지 간 교차 유지보수 부담이 완전히 제거됩니다.
             </div>
           </div>
         </div>
@@ -692,17 +692,17 @@
 
       <!-- Section 2 -->
       <section id="architecture">
-        <h2>2. The 4-Layer Architecture</h2>
-        <p>Activity Embedding is not just a Jetpack library; it is a full-stack coordination involving AndroidX, an OEM dynamic bridge, Framework client IPC, and the WindowManager System Server.</p>
+        <h2>2. 4계층 아키텍처</h2>
+        <p>Activity Embedding은 단순한 Jetpack 라이브러리가 아닙니다. AndroidX, OEM 동적 브리지, 프레임워크 클라이언트 IPC, 그리고 WindowManager 시스템 서버(ATMS)가 긴밀하게 연동하는 풀스택 아키텍처입니다.</p>
 
         <div class="arch-stack">
           <!-- Layer 1 -->
           <div class="arch-layer">
             <div class="arch-layer-header">
-              <span class="arch-layer-title">Layer 1: Jetpack WindowManager (App Process)</span>
+              <span class="arch-layer-title">Layer 1: Jetpack WindowManager (앱 프로세스)</span>
               <span class="pill pill-blue">androidx.window.embedding</span>
             </div>
-            <p>Public AndroidX developer API. Provides declarative XML rules, programmatic <code>RuleController</code>, and state observers. Translates high-level API into OEM extension interface calls.</p>
+            <p>공개 AndroidX 개발자 API. 선언적 XML 규칙, 프로그래밍 방식의 <code>RuleController</code> 및 상태 옵저버를 제공합니다. 고수준 API 호출을 OEM 확장(Extension) 인터페이스 규격으로 변환합니다.</p>
             <div class="arch-chips">
               <span class="chip">SplitController.kt</span>
               <span class="chip">RuleController.kt</span>
@@ -712,7 +712,7 @@
             </div>
           </div>
 
-          <div class="arch-arrow">▼ Dynamic Reflection / OEM Interface</div>
+          <div class="arch-arrow">▼ 동적 리플렉션 / OEM 인터페이스</div>
 
           <!-- Layer 2 -->
           <div class="arch-layer">
@@ -720,7 +720,7 @@
               <span class="arch-layer-title">Layer 2: WindowManager Extensions (OEM / AOSP)</span>
               <span class="pill pill-purple">androidx.window.extensions.embedding</span>
             </div>
-            <p>Shipped with the device OS or vendor image. Evaluates screen dimensions, folding state, aspect ratios, and builds atomic <code>TaskFragmentTransaction</code> operations.</p>
+            <p>기기 OS 또는 벤더 시스템 이미지에 탑재됩니다. 화면 크기, 폴딩 상태, 가로세로 비율을 평가하고 원자적 <code>TaskFragmentTransaction</code> 작업을 생성합니다.</p>
             <div class="arch-chips">
               <span class="chip">SplitController.java</span>
               <span class="chip">SplitPresenter.java</span>
@@ -729,15 +729,15 @@
             </div>
           </div>
 
-          <div class="arch-arrow">▼ IPC via ITaskFragmentOrganizerController.aidl</div>
+          <div class="arch-arrow">▼ ITaskFragmentOrganizerController.aidl을 통한 IPC</div>
 
           <!-- Layer 3 -->
           <div class="arch-layer">
             <div class="arch-layer-header">
-              <span class="arch-layer-title">Layer 3: Framework Core Client</span>
+              <span class="arch-layer-title">Layer 3: Framework Core Client (프레임워크 핵심 클라이언트)</span>
               <span class="pill pill-orange">android.window</span>
             </div>
-            <p>Client-side binder bridge. Defines atomic operation codes and wraps communication with WindowManager Service.</p>
+            <p>클라이언트 측 Binder 브리지. 원자적 작업 코드를 정의하고 WindowManager Service와의 바인더 통신을 캡슐화합니다.</p>
             <div class="arch-chips">
               <span class="chip">TaskFragmentOrganizer.java</span>
               <span class="chip">TaskFragmentTransaction.java</span>
@@ -745,19 +745,19 @@
             </div>
           </div>
 
-          <div class="arch-arrow">▼ Binder IPC to system_server (ATMS)</div>
+          <div class="arch-arrow">▼ system_server (ATMS) 대상 Binder IPC</div>
 
           <!-- Layer 4 -->
           <div class="arch-layer">
             <div class="arch-layer-header">
-              <span class="arch-layer-title">Layer 4: System Server & WindowManager Core</span>
+              <span class="arch-layer-title">Layer 4: System Server & WindowManager Core (시스템 서버 및 WindowManager 코어)</span>
               <span class="pill pill-green">com.android.server.wm</span>
             </div>
-            <p>ActivityTaskManagerService (ATMS) system server. Enforces security rules and container boundaries, manages activity lifecycles, and executes atomic SurfaceControl transactions.</p>
+            <p>ActivityTaskManagerService (ATMS) 시스템 서버. 보안 규칙 및 컨테이너 경계를 강제하고, 액티비티 생명주기를 관리하며, 원자적 SurfaceControl 트랜잭션을 실행합니다.</p>
             <div class="arch-chips">
               <span class="chip">TaskFragmentOrganizerController.java</span>
               <span class="chip">TaskFragment.java</span>
-              <span class="chip">Task.java (extends TaskFragment)</span>
+              <span class="chip">Task.java (TaskFragment 상속)</span>
             </div>
           </div>
         </div>
@@ -767,58 +767,58 @@
           <!-- Insight 1: Layer 2 is the Dynamic Brain -->
           <div class="card">
             <div class="card-title">
-              <span>Which Layer Decides Dynamic Split Changes?</span>
+              <span>동적 분할 변경은 어느 계층이 결정하는가?</span>
               <span class="pill pill-purple">Layer 2 (OEM Extension)</span>
             </div>
-            <p>When screen width changes (display resize, fold/unfold, multi-window drag), <strong>neither AndroidX (Layer 1) nor ATMS (Layer 4) evaluates the layout decision</strong>:</p>
+            <p>화면 너비가 변경될 때(디스플레이 리사이즈, 폴더블 접기/펼치기, 멀티윈도우 드래그), <strong>AndroidX(Layer 1)와 ATMS(Layer 4) 모두 레이아웃 분할 여부를 직접 계산하지 않습니다</strong>:</p>
             <ul style="margin-left: 1.2rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted);">
-              <li><strong>Layer 1 (AndroidX)</strong> only registers rules once at app startup; it performs zero runtime layout geometry.</li>
-              <li><strong>Layer 4 (ATMS)</strong> has <em>zero knowledge of SplitRule or split ratios</em>. It only detects parent bounds changes and fires <code>TYPE_TASK_FRAGMENT_PARENT_INFO_CHANGED</code>.</li>
-              <li><strong>Layer 2 (OEM Extensions: <code>SplitController</code> & <code>SplitPresenter</code>)</strong> is the dynamic runtime brain inside the app process. It evaluates <code>minWidthDp</code> and <code>minDimensions</code>, decides whether to split or stack (<code>EXPAND_CONTAINERS_ATTRIBUTES</code>), and submits a <code>WindowContainerTransaction</code>.</li>
+              <li><strong>Layer 1 (AndroidX)</strong>은 앱 시작 시 규칙을 한 번 등록할 뿐이며, 런타임 레이아웃 기하학(Geometry) 연산을 전혀 수행하지 않습니다.</li>
+              <li><strong>Layer 4 (ATMS)</strong>는 <em>SplitRule이나 분할 비율(ratio)에 대해 전혀 알지 못합니다</em>. 부모 바운드(bounds) 변경만 감지하여 <code>TYPE_TASK_FRAGMENT_PARENT_INFO_CHANGED</code> 이벤트를 발행합니다.</li>
+              <li><strong>Layer 2 (OEM Extensions: <code>SplitController</code> 및 <code>SplitPresenter</code>)</strong>가 앱 프로세스 내에 상주하는 실질적인 동적 런타임 두뇌입니다. <code>minWidthDp</code>와 <code>minDimensions</code>를 평가하여 분할(Split)할지 전체화면 누적(Stack, <code>EXPAND_CONTAINERS_ATTRIBUTES</code>)할지 결정하고 <code>WindowContainerTransaction</code>을 구성하여 제출합니다.</li>
             </ul>
           </div>
 
           <!-- Insight 2: Task extends TaskFragment -->
           <div class="card">
             <div class="card-title">
-              <span>Code Logic: Task is a Special TaskFragment</span>
+              <span>코드 로직: Task는 특수한 TaskFragment이다</span>
               <span class="pill pill-green">Layer 4 (ATMS)</span>
             </div>
-            <p>In AOSP, <code>Task extends TaskFragment</code>. A <code>Task</code> represents the user-facing Recents entry, while its children are <strong>"pure TaskFragments"</strong> representing split panes:</p>
-            <pre style="margin: 0.5rem 0; font-size: 0.82rem;"><code>// Task.java: Overrides asTask() to identify itself
+            <p>AOSP에서 <code>Task extends TaskFragment</code> 구조를 갖습니다. <code>Task</code>는 사용자가 보는 최근 앱(Recents) 타일을 나타내며, 그 자식들은 분할 창을 나타내는 <strong>"순수 TaskFragment(Pure TaskFragments)"</strong>입니다:</p>
+            <pre style="margin: 0.5rem 0; font-size: 0.82rem;"><code>// Task.java: 자신이 Task임을 식별하기 위해 asTask() 오버라이드 (TaskFragment는 null 반환)
 @Override
-Task asTask() { return this; } // TaskFragment returns null
+Task asTask() { return this; }
 
-// Task.java:1489: Explicit check for pure TaskFragment
+// Task.java:1489: 순수 TaskFragment 여부 명시적 검사
 final TaskFragment childTaskFrag = child.asTaskFragment();
 if (childTaskFrag != null && childTaskFrag.asTask() == null) {
-    // Pure embedded TaskFragment, NOT a nested Task!
+    // 중첩된 Task가 아닌, 순수 임베디드 TaskFragment인 경우!
     childTaskFrag.setMinDimensions(mMinWidth, mMinHeight);
 }
 
-// WindowOrganizerController.java:2583-2594: Secondary added ABOVE Primary
+// WindowOrganizerController.java:2583-2594: Secondary는 Primary의 위(higher index)에 추가됨
 position = pairedPosition != -1 ? pairedPosition + 1 : POSITION_TOP;
-ownerTask.addChild(taskFragment, position); // TaskFragment 2 sits at higher index (Task Top)</code></pre>
+ownerTask.addChild(taskFragment, position); // TaskFragment 2가 더 높은 인덱스(Task 최상위)에 위치함</code></pre>
           </div>
         </div>
       </section>
 
       <!-- Section 3 -->
       <section id="execution-flow">
-        <h2>3. End-to-End Execution Sequence</h2>
-        <p>The activity embedding lifecycle operates across four core operational flows. Every operation coordinates across the 4 architectural layers introduced earlier:</p>
+        <h2>3. 엔드투엔드 실행 흐름</h2>
+        <p>Activity Embedding의 라이프사이클은 4가지 핵심 운영 흐름(Flow)에 걸쳐 동작합니다. 모든 작업은 앞서 살펴본 4개의 아키텍처 계층 간의 유기적 협력으로 완결됩니다:</p>
 
         <div class="flow-steps">
           <!-- Flow 1 -->
           <div class="step-item">
             <div class="step-number">1</div>
             <div class="step-content">
-              <h4>1. Setting Rule with RuleController</h4>
-              <p>At application startup, rules are registered and bound to the process:</p>
+              <h4>1. RuleController를 통한 규칙(Rule) 등록</h4>
+              <p>애플리케이션 시작 시점에 규칙들이 등록되고 프로세스에 바인딩됩니다:</p>
               <pre><code>RuleController.getInstance(context).setRules(setOf(splitPairRule));</code></pre>
               <ul style="margin-left: 1.2rem; line-height: 1.8;">
-                <li><strong class="pill pill-blue" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 1: App / AndroidX</strong> The app creates high-level rules (e.g. <code>SplitPairRule</code>) and calls <code>RuleController.setRules()</code>. <code>EmbeddingAdapter</code> converts them into OEM contract interfaces.</li>
-                <li><strong class="pill pill-purple" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 2: OEM Extension</strong> <code>SplitController.setEmbeddingRules()</code> receives the rules and attaches an <code>ActivityStartMonitor</code> to the app's <code>Instrumentation</code> instance (via <code>instrumentation.addMonitor(mActivityStartMonitor)</code>) to intercept subsequent activity launches.</li>
+                <li><strong class="pill pill-blue" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 1: App / AndroidX</strong> 앱이 고수준 규칙(예: <code>SplitPairRule</code>)을 생성하고 <code>RuleController.setRules()</code>를 호출합니다. <code>EmbeddingAdapter</code>가 이를 OEM 계약 인터페이스 규격으로 변환합니다.</li>
+                <li><strong class="pill pill-purple" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 2: OEM Extension</strong> <code>SplitController.setEmbeddingRules()</code>가 규칙을 수신하고, 앱의 <code>Instrumentation</code> 인스턴스에 <code>ActivityStartMonitor</code>를 등록(<code>instrumentation.addMonitor(mActivityStartMonitor)</code>)하여 이후 발생하는 액티비티 실행을 가로챌 수 있도록 준비합니다.</li>
               </ul>
             </div>
           </div>
@@ -827,19 +827,19 @@ ownerTask.addChild(taskFragment, position); // TaskFragment 2 sits at higher ind
           <div class="step-item">
             <div class="step-number">2</div>
             <div class="step-content">
-              <h4>2. startActivity</h4>
-              <p>When an activity initiates navigation, the launch is intercepted and routed into a split container:</p>
+              <h4>2. startActivity 호출 및 컨테이너 라우팅</h4>
+              <p>액티비티가 화면 전환을 시작하면, 실행 요청이 가로채어져 분할 컨테이너로 라우팅됩니다:</p>
               <ul style="margin-left: 1.2rem; line-height: 1.8;">
-                <li><strong class="pill pill-blue" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 1: App / AndroidX</strong> The app calls standard <code>startActivity(intent)</code> without custom flags or layout checks.</li>
-                <li><strong class="pill pill-purple" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 2: OEM Extension</strong> <code>Instrumentation.execStartActivity()</code> triggers <code>ActivityStartMonitor.onStartActivity()</code> inside the app process before IPC:
+                <li><strong class="pill pill-blue" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 1: App / AndroidX</strong> 앱은 커스텀 플래그나 별도의 레이아웃 검사 없이 표준 <code>startActivity(intent)</code>를 호출합니다.</li>
+                <li><strong class="pill pill-purple" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 2: OEM Extension</strong> <code>Instrumentation.execStartActivity()</code>가 IPC 호출 이전에 앱 프로세스 내부의 <code>ActivityStartMonitor.onStartActivity()</code>를 트리거합니다:
                   <ol style="margin-left: 1.2rem; margin-top: 0.25rem;">
-                    <li><code>SplitController</code> matches <code>(who, intent)</code> against registered rules.</li>
-                    <li><code>SplitPresenter</code> evaluates current window bounds (e.g. width &ge; 600dp) and device fold posture.</li>
-                    <li>If satisfied, it retrieves/creates the target <code>TaskFragmentContainer</code> and injects <code>ActivityOptions.KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>.</li>
+                    <li><code>SplitController</code>가 <code>(who, intent)</code> 쌍을 등록된 규칙들과 대조(Matching)합니다.</li>
+                    <li><code>SplitPresenter</code>가 현재 윈도우 바운드(예: width &ge; 600dp) 및 디바이스 폴딩 상태를 평가합니다.</li>
+                    <li>조건이 충족되면 대상 <code>TaskFragmentContainer</code>를 조회/생성하고 <code>ActivityOptions.KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>을 옵션에 주입합니다.</li>
                   </ol>
                 </li>
-                <li><strong class="pill pill-orange" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 3: Framework Client</strong> <code>TaskFragmentOrganizer</code> bundles container creation and bounds operations into an atomic <code>TaskFragmentTransaction</code>.</li>
-                <li><strong class="pill pill-green" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 4: System Server (ATMS)</strong> <code>ActivityStarter</code> inspects <code>options.getLaunchTaskFragmentToken()</code>, verifies UID embedding security, and routes the new <code>ActivityRecord</code> directly into the designated <code>TaskFragment</code>. SurfaceFlinger smoothly composites both activities side-by-side.</li>
+                <li><strong class="pill pill-orange" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 3: Framework Client</strong> <code>TaskFragmentOrganizer</code>가 컨테이너 생성 및 바운드 설정 작업을 원자적 <code>TaskFragmentTransaction</code>으로 패키징합니다.</li>
+                <li><strong class="pill pill-green" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 4: System Server (ATMS)</strong> <code>ActivityStarter</code>가 <code>options.getLaunchTaskFragmentToken()</code>을 검사하고, UID 임베딩 보안을 검증한 후, 새 <code>ActivityRecord</code>를 지정된 <code>TaskFragment</code>로 직접 라우팅합니다. SurfaceFlinger가 두 액티비티를 깜빡임 없이 나란히 합성(Composite)합니다.</li>
               </ul>
             </div>
           </div>
@@ -848,19 +848,19 @@ ownerTask.addChild(taskFragment, position); // TaskFragment 2 sits at higher ind
           <div class="step-item">
             <div class="step-number">3</div>
             <div class="step-content">
-              <h4>3. finish</h4>
-              <p>When an embedded activity finishes (user back press or <code>finish()</code> call):</p>
+              <h4>3. finish 처리 및 라이프사이클 조정</h4>
+              <p>임베딩된 액티비티가 종료될 때 (사용자의 뒤로 가기 또는 <code>finish()</code> 호출):</p>
               <ul style="margin-left: 1.2rem; line-height: 1.8;">
-                <li><strong class="pill pill-blue" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 1: App / AndroidX</strong> An activity invokes <code>finish()</code> or receives back navigation.</li>
-                <li><strong class="pill pill-purple" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 2: OEM Extension</strong> <code>SplitController</code> intercepts the container state change and evaluates the rule's <code>FinishBehavior</code>:
+                <li><strong class="pill pill-blue" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 1: App / AndroidX</strong> 액티비티가 <code>finish()</code>를 호출하거나 뒤로 가기 내비게이션 이벤트를 수신합니다.</li>
+                <li><strong class="pill pill-purple" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 2: OEM Extension</strong> <code>SplitController</code>가 컨테이너 상태 변경을 감지하고 해당 규칙의 <code>FinishBehavior</code>를 평가합니다:
                   <ul style="margin-left: 1.2rem; margin-top: 0.25rem;">
-                    <li><code>FINISH_NEVER</code>: The adjacent activity remains open and expands to fill the parent Task.</li>
-                    <li><code>FINISH_ALWAYS</code>: Finishing one activity automatically finishes the associated activity in the other pane.</li>
-                    <li><code>FINISH_ADJACENT</code>: Associated activity is finished only when the two containers are actively displayed side-by-side.</li>
+                    <li><code>FINISH_NEVER</code>: 인접 액티비티가 계속 열려 있으며, 부모 Task 전체 영역으로 자동 확장됩니다.</li>
+                    <li><code>FINISH_ALWAYS</code>: 한쪽 액티비티가 종료되면 다른 창의 연관된 액티비티도 함께 자동 종료됩니다.</li>
+                    <li><code>FINISH_ADJACENT</code>: 두 컨테이너가 나란히 분할 표시 중일 때만 연관 액티비티가 함께 종료됩니다.</li>
                   </ul>
                 </li>
-                <li><strong class="pill pill-orange" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 3: Framework Client</strong> <code>TaskFragmentOrganizer</code> batches container removal and adjacent container bounds expansion into a <code>TaskFragmentTransaction</code>.</li>
-                <li><strong class="pill pill-green" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 4: System Server (ATMS)</strong> <code>TaskFragmentOrganizerController</code> executes the transaction, destroying the finished container and expanding the remaining <code>TaskFragment</code> to full-screen with zero visual flickering.</li>
+                <li><strong class="pill pill-orange" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 3: Framework Client</strong> <code>TaskFragmentOrganizer</code>가 컨테이너 제거 및 인접 컨테이너 영역 확장 작업을 <code>TaskFragmentTransaction</code>으로 묶어 전달합니다.</li>
+                <li><strong class="pill pill-green" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 4: System Server (ATMS)</strong> <code>TaskFragmentOrganizerController</code>가 트랜잭션을 실행하여, 종료된 컨테이너를 파괴하고 남은 <code>TaskFragment</code>를 시각적 깜빡임 없이 전체 화면으로 매끄럽게 확장합니다.</li>
               </ul>
             </div>
           </div>
@@ -869,24 +869,24 @@ ownerTask.addChild(taskFragment, position); // TaskFragment 2 sits at higher ind
           <div class="step-item">
             <div class="step-number">4</div>
             <div class="step-content">
-              <h4>4. Dynamic Screen Width & Configuration Change (Split ↔ Stacked)</h4>
-              <p>When the screen width dynamically changes (device rotation, folding/unfolding a foldable, or multi-window resizing), the layout adapts in real-time between side-by-side split and stacked:</p>
+              <h4>4. 동적 화면 너비 및 구성 변경 (Split ↔ Stacked)</h4>
+              <p>화면 너비가 동적으로 변경될 때(기기 회전, 폴더블 접기/펼치기, 멀티윈도우 크기 조절), 레이아웃은 실시간으로 분할(Split)과 누적(Stacked) 상태 사이를 전환합니다:</p>
               <ul style="margin-left: 1.2rem; line-height: 1.8;">
-                <li><strong class="pill pill-green" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 4: System Server (ATMS)</strong> Detects that parent leaf <code>Task</code> bounds have changed. Because ATMS has <em>zero knowledge of SplitRule or split ratios</em>, it dispatches a <code>TaskFragmentTransaction</code> with <code>TYPE_TASK_FRAGMENT_PARENT_INFO_CHANGED</code> carrying the new <code>TaskFragmentParentInfo</code>.</li>
-                <li><strong class="pill pill-purple" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 2: OEM Extension (The Brain)</strong> <code>JetpackTaskFragmentOrganizer</code> catches the transaction and invokes <code>SplitController.onTaskFragmentParentInfoChanged()</code> inside the app process:
+                <li><strong class="pill pill-green" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 4: System Server (ATMS)</strong> 부모 리프 <code>Task</code>의 바운드가 변경되었음을 감지합니다. ATMS는 <em>SplitRule이나 분할 비율에 대해 전혀 알지 못하므로</em>, 새 <code>TaskFragmentParentInfo</code>를 담은 <code>TYPE_TASK_FRAGMENT_PARENT_INFO_CHANGED</code> 트랜잭션을 디스패치합니다.</li>
+                <li><strong class="pill pill-purple" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 2: OEM Extension (런타임 두뇌)</strong> <code>JetpackTaskFragmentOrganizer</code>가 트랜잭션을 수신하여 앱 프로세스 내부의 <code>SplitController.onTaskFragmentParentInfoChanged()</code>를 호출합니다:
                   <ol style="margin-left: 1.2rem; margin-top: 0.25rem;">
-                    <li><code>taskContainer.updateTaskFragmentParentInfo(parentInfo)</code> refreshes cached parent task dimensions.</li>
-                    <li><code>SplitPresenter.computeSplitAttributes()</code> evaluates the new parent bounds against the rule's <code>minWidthDp</code> and the activities' <code>minDimensions</code>.</li>
-                    <li><strong>Layout Decision:</strong>
+                    <li><code>taskContainer.updateTaskFragmentParentInfo(parentInfo)</code>가 캐시된 부모 태스크 치수를 갱신합니다.</li>
+                    <li><code>SplitPresenter.computeSplitAttributes()</code>가 새 부모 바운드를 규칙의 <code>minWidthDp</code> 및 각 액티비티의 <code>minDimensions</code>와 비교 평가합니다.</li>
+                    <li><strong>레이아웃 결정:</strong>
                       <ul style="margin-left: 1.2rem;">
-                        <li><strong>Width &lt; minWidthDp (Too Narrow):</strong> Returns <code>EXPAND_CONTAINERS_ATTRIBUTES</code>. <code>SplitPresenter.expandTaskFragment(wct, container)</code> stacks containers full-screen.</li>
-                        <li><strong>Width &ge; minWidthDp (Wide Enough):</strong> Calculates proportional relative split bounds and updates <code>SplitContainer</code>.</li>
+                        <li><strong>너비 &lt; minWidthDp (화면이 좁아진 경우):</strong> <code>EXPAND_CONTAINERS_ATTRIBUTES</code>를 반환합니다. <code>SplitPresenter.expandTaskFragment(wct, container)</code>가 각 컨테이너를 전체화면 스택(Stacked) 구조로 전환합니다.</li>
+                        <li><strong>너비 &ge; minWidthDp (화면이 충분히 넓은 경우):</strong> 비례적 상대 분할 바운드를 계산하고 <code>SplitContainer</code>를 업데이트합니다.</li>
                       </ul>
                     </li>
                   </ol>
                 </li>
-                <li><strong class="pill pill-orange" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 3: Framework Client</strong> Packages the calculated bounds / expand operations into a <code>WindowContainerTransaction</code> (WCT).</li>
-                <li><strong class="pill pill-green" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 4: System Server (ATMS)</strong> <code>WindowOrganizerController.applyTransaction(wct)</code> executes the atomic layout update, smoothly reparenting and scaling SurfaceControl surfaces with zero activity restarts.</li>
+                <li><strong class="pill pill-orange" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 3: Framework Client</strong> 계산된 바운드 설정 및 확장 작업을 <code>WindowContainerTransaction</code> (WCT)에 담아 전달합니다.</li>
+                <li><strong class="pill pill-green" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 4: System Server (ATMS)</strong> <code>WindowOrganizerController.applyTransaction(wct)</code>가 원자적 레이아웃 업데이트를 실행하여, 액티비티 재시작 없이 SurfaceControl 서피스들을 부드럽게 재배치하고 스케일링합니다.</li>
               </ul>
             </div>
           </div>
@@ -895,64 +895,64 @@ ownerTask.addChild(taskFragment, position); // TaskFragment 2 sits at higher ind
 
       <!-- Section 4 -->
       <section id="backward-compatibility">
-        <h2>4. Backward Compatibility by Design: Hierarchy Evolution & Rule-Based Model</h2>
-        <p>Both the WindowManager hierarchy redesign and the rule-based embedding system share one foundational architectural goal: <strong>absolute backward compatibility</strong>. Existing multi-activity applications run without code rewrites, and the Android OS continues to manage tasks through established lifecycle contracts.</p>
+        <h2>4. 하위 호환성 설계: 계층 구조의 진화 및 규칙 기반 모델</h2>
+        <p>WindowManager 계층 구조의 재설계와 규칙(Rule) 기반 임베딩 시스템은 한 가지 근본적인 아키텍처 목표를 공유합니다. 바로 <strong>완벽한 하위 호환성(Absolute Backward Compatibility)</strong>입니다. 기존의 멀티 액티비티 앱들은 코드 수정 없이 그대로 실행되며, Android OS는 기존의 표준 생명주기 계약에 따라 일관되게 태스크를 관리합니다.</p>
 
-        <h3>1. The Hierarchy Evolution: Task extends TaskFragment</h3>
-        <p>In legacy Android, the OS contract assumed <code>Task</code> directly contained <code>ActivityRecord</code>s and mapped 1:1 to a Recents entry. Rather than introducing a breaking new container type at the top level, Android 12L refactored the inheritance tree:</p>
+        <h3>1. 계층 구조의 진화: Task extends TaskFragment</h3>
+        <p>레거시 Android에서 OS의 기본 계약은 <code>Task</code>가 <code>ActivityRecord</code>들을 직접 포함하며, 최근 앱(Recents) 타일과 1:1로 대응된다고 가정했습니다. 최상위 레벨에 기존 호환성을 깨뜨리는 새로운 컨테이너 타입을 도입하는 대신, Android 12L은 상속 계층 트리를 리팩터링했습니다:</p>
 
-        <pre><code>// Android 11 and earlier:
+        <pre><code>// Android 11 및 이전:
 class Task extends WindowContainer&lt;ActivityRecord&gt; { ... }
 
-// Android 12L and beyond:
+// Android 12L 및 이후:
 class TaskFragment extends WindowContainer&lt;WindowContainer&gt; { ... }
 class Task extends TaskFragment { ... }</code></pre>
 
-        <pre><code>// Android 12L+ Hierarchy:
+        <pre><code>// Android 12L+ 계층 구조:
 RootWindowContainer
  └── DisplayContent
       └── TaskDisplayArea
-           └── Task (Top-level TaskFragment, represents Recents tile)
-                ├── TaskFragment 1 (Left / Primary Pane)
-                │    └── ActivityRecord (e.g. ListActivity)
-                └── TaskFragment 2 (Right / Secondary Pane)
-                     └── ActivityRecord (e.g. DetailActivity)</code></pre>
+           └── Task (최상위 TaskFragment, 최근 앱(Recents) 타일에 대응)
+                ├── TaskFragment 1 (좌측 / 기본 창)
+                │    └── ActivityRecord (예: ListActivity)
+                └── TaskFragment 2 (우측 / 보조 창)
+                     └── ActivityRecord (예: DetailActivity)</code></pre>
 
-        <p>Because <code>Task</code> extends <code>TaskFragment</code>, external system services (Launcher, Recents, ATMS) continue to treat a Task as a single unit. Internally, <code>TaskFragment</code> takes over managing individual activity stacks and multi-pane bounds. Existing single-pane apps simply run inside a default <code>TaskFragment</code> with zero awareness or behavioral change.</p>
+        <p><code>Task</code>가 <code>TaskFragment</code>를 상속하기 때문에, 외부 시스템 서비스들(Launcher, Recents, ATMS)은 여전히 Task를 단일 단위로 취급합니다. 내부적으로는 <code>TaskFragment</code>가 개별 액티비티 스택과 멀티페인 바운드를 독립적으로 관리합니다. 기존의 단일 창 앱들은 기본 <code>TaskFragment</code> 안에서 아무런 동작 변경이나 호환성 문제 없이 그대로 실행됩니다.</p>
 
         <!-- Insight: Top Activity Resolution in Split & Multi-Resume -->
         <div class="callout" style="margin-top: 1.5rem;">
           <div class="callout-title" style="display: flex; align-items: center; justify-content: space-between;">
-            <span>💡 Architectural Traversal: Secondary Activity is Considered "Top" of the Task</span>
-            <span class="pill pill-purple">Multi-Resume &amp; Z-Order</span>
+            <span>💡 아키텍처 탐색: Secondary Activity가 태스크의 "Top"으로 간주되는 이유</span>
+            <span class="pill pill-purple">멀티-리쥼(Multi-Resume) &amp; Z-Order</span>
           </div>
           <p style="margin-top: 0.5rem; margin-bottom: 0.6rem;">
-            Even though both Primary and Secondary activities are <strong>simultaneously visible and in the <code>RESUMED</code> lifecycle state</strong> (via Android 10+ multi-resume), the internal WindowManager container hierarchy is strictly linear:
+            Primary와 Secondary 액티비티가 (Android 10+ 멀티-리쥼을 통해) <strong>동시에 화면에 표시되고 모두 <code>RESUMED</code> 생명주기 상태</strong>에 있더라도, WindowManager 내부의 컨테이너 계층 구조는 엄격하게 선형(Linear)적입니다:
           </p>
           <ul style="margin-left: 1.2rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted);">
             <li>
-              <strong>Child Placement in ATMS:</strong> When <code>TaskFragment 2</code> (Secondary) is created, AOSP (<code>WindowOrganizerController.java:2583</code>) places it at <code>pairedPosition + 1</code> in <code>Task.mChildren</code>, directly <em>above</em> <code>TaskFragment 1</code> (Primary).
+              <strong>ATMS 내 자식 배치 순서:</strong> <code>TaskFragment 2</code> (Secondary)가 생성될 때, AOSP (<code>WindowOrganizerController.java:2583</code>)는 이를 <code>Task.mChildren</code> 리스트의 <code>pairedPosition + 1</code> 위치, 즉 <code>TaskFragment 1</code> (Primary)의 바로 <em>위(상위 인덱스)</em>에 배치합니다.
             </li>
             <li>
-              <strong>Top Activity Traversal:</strong> When ATMS queries the top running activity (<code>Task.topRunningActivity()</code> via <code>WindowContainer.java:2044</code>), it searches <code>mChildren</code> backwards from the highest index downwards. Thus, <strong><code>SecondaryActivity</code> is always evaluated as the "Top Activity" of the Task</strong>.
+              <strong>최상위 액티비티 탐색 방식:</strong> ATMS가 현재 실행 중인 최상위 액티비티를 조회할 때(<code>WindowContainer.java:2044</code>를 통한 <code>Task.topRunningActivity()</code>), <code>mChildren</code>을 가장 높은 인덱스부터 역순으로 탐색합니다. 따라서 <strong>항상 <code>SecondaryActivity</code>가 태스크 전체의 "Top Activity"로 평가</strong>됩니다.
             </li>
             <li>
-              <strong>Impact on <code>singleTop</code> &amp; <code>clearTop</code>:</strong>
-              Because <code>singleTop</code> evaluates against the top of the entire <em>Task</em> (not an internal fragment), re-launching <code>PrimaryActivity</code> with <code>singleTop</code> alone will <strong>not</strong> trigger <code>onNewIntent()</code>; it starts a new instance because <code>SecondaryActivity</code> sits on top. Conversely, launching with <code>FLAG_ACTIVITY_CLEAR_TOP</code> clears all activities above Primary (destroying Secondary) before delivering <code>onNewIntent()</code> to Primary.
+              <strong><code>singleTop</code> 및 <code>clearTop</code> 동작에 미치는 영향:</strong>
+              <code>singleTop</code> 플래그는 개별 내부 프래그먼트가 아닌 <em>태스크 전체의 최상위(Top)</em>를 기준으로 평가되므로, <code>PrimaryActivity</code>를 <code>singleTop</code> 단독으로 재실행해도 <code>onNewIntent()</code>가 호출되지 않습니다(그 위에 <code>SecondaryActivity</code>가 탑으로 위치해 있기 때문이며, 새 인스턴스가 시작됩니다). 반대로 <code>FLAG_ACTIVITY_CLEAR_TOP</code>으로 실행하면 Primary 위의 모든 액티비티를 정리(Secondary를 파괴)한 후 Primary에 정상적으로 <code>onNewIntent()</code>를 전달합니다.
             </li>
             <li>
-              <strong>AOSP Test Confirmation:</strong> Verified in <code>TaskContainerTest.java:186-188</code>: <code>assertEquals(activity1, taskContainer.getTopNonFinishingActivity(true))</code> explicitly asserts that the secondary activity is the top non-finishing activity of the task container.
+              <strong>AOSP 테스트 코드 검증:</strong> <code>TaskContainerTest.java:186-188</code>에서 확인: <code>assertEquals(activity1, taskContainer.getTopNonFinishingActivity(true))</code> 코드는 보조 액티비티가 태스크 컨테이너의 최상위 비종료 액티비티임을 명시적으로 단언(assert)하여 검증합니다.
             </li>
           </ul>
         </div>
 
-        <h3 style="margin-top: 2rem;">2. The Rule-Based Architecture</h3>
-        <p>Similarly, the rule-based approach avoids breaking activity launch contracts. Instead of requiring new <code>startActivity</code> arguments or custom Intent flags, layout behavior is driven by centralized rules registered at startup:</p>
+        <h3 style="margin-top: 2rem;">2. 규칙 기반(Rule-Based) 아키텍처</h3>
+        <p>마찬가지로 규칙 기반 접근 방식은 기존 액티비티 실행 계약을 해치지 않습니다. <code>startActivity</code>에 새로운 인자를 요구하거나 커스텀 Intent 플래그를 추가하는 대신, 앱 시작 시 등록된 중앙화된 규칙에 따라 레이아웃 동작이 제어됩니다:</p>
 
-        <pre><code>// 1. Navigation call site remains standard:
+        <pre><code>// 1. 화면 전환 호출부는 표준 코드 그대로 유지:
 startActivity(Intent(this, DetailActivity::class.java))
 
-// 2. Rules registered once at startup:
+// 2. 앱 시작 시점에 한 번만 등록되는 규칙:
 val splitPairRule = SplitPairRule.Builder(
     filterSet = setOf(SplitPairFilter(
         ComponentName(this, ListActivity::class.java),
@@ -971,98 +971,98 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
         <div class="grid-2" style="margin-top: 1.5rem;">
           <div class="card">
             <div class="card-title">
-              <span>Standard Call Sites</span>
-              <span class="pill pill-green">Separation of Concerns</span>
+              <span>표준 호출부 유지 (Standard Call Sites)</span>
+              <span class="pill pill-green">관심사 분리</span>
             </div>
-            <p><code>startActivity(intent)</code> requires zero custom flags or window bounds checks. Navigation business logic is fully decoupled from presentation layout.</p>
+            <p><code>startActivity(intent)</code> 호출 시 커스텀 플래그나 윈도우 바운드 검사가 필요 없습니다. 화면 이동 비즈니스 로직과 화면 배치 레이아웃이 완전히 분리됩니다.</p>
           </div>
 
           <div class="card">
             <div class="card-title">
-              <span>Dynamic Screen Adaptation</span>
-              <span class="pill pill-blue">Adaptive</span>
+              <span>동적 화면 적응 (Dynamic Screen Adaptation)</span>
+              <span class="pill pill-blue">반응형</span>
             </div>
-            <p>Rules adapt dynamically at runtime. Folding, unfolding, or resizing seamlessly transitions between split and stacked layouts without restarting activities.</p>
+            <p>규칙은 런타임에 동적으로 적용됩니다. 폴더블 기기를 접거나 펼칠 때, 혹은 창 크기를 조절할 때 액티비티 재시작 없이 분할(Split)과 누적(Stacked) 레이아웃 사이를 매끄럽게 전환합니다.</p>
           </div>
 
           <div class="card">
             <div class="card-title">
-              <span>Zero UI Rewrites</span>
-              <span class="pill pill-purple">High Velocity</span>
+              <span>UI 전면 재작성 불필요 (Zero UI Rewrites)</span>
+              <span class="pill pill-purple">높은 생산성</span>
             </div>
-            <p>Multi-activity codebases gain large-screen and foldable support with XML or programmatic rules, avoiding multi-month Fragment or Compose migrations.</p>
+            <p>기존 멀티 액티비티 코드베이스에서 XML 또는 코드로 몇 줄의 규칙만 추가하면 대화면 및 폴더블을 즉시 지원할 수 있으므로, 수개월이 소요되는 Fragment나 Compose 전면 마이그레이션을 피할 수 있습니다.</p>
           </div>
 
           <div class="card">
             <div class="card-title">
-              <span>Coordinated Lifecycles</span>
-              <span class="pill pill-orange">Control</span>
+              <span>조율된 생명주기 (Coordinated Lifecycles)</span>
+              <span class="pill pill-orange">정밀한 제어</span>
             </div>
-            <p>Declarative <code>FinishBehavior</code> (<code>FINISH_ALWAYS</code>, <code>FINISH_ADJACENT</code>, <code>FINISH_NEVER</code>) ensures predictable back-navigation across split containers.</p>
+            <p>선언적 <code>FinishBehavior</code> (<code>FINISH_ALWAYS</code>, <code>FINISH_ADJACENT</code>, <code>FINISH_NEVER</code>) 설정을 통해 분할 컨테이너 간의 예측 가능한 뒤로 가기 내비게이션을 보장합니다.</p>
           </div>
         </div>
       </section>
 
       <!-- Section 5 -->
       <section id="security">
-        <h2>5. Security & Trust Boundaries</h2>
-        <p>Why can't malicious apps embed arbitrary banking or payment activities to intercept taps or steal user data? Android enforces strict <strong>trusted vs. untrusted embedding</strong> checks inside <code>TaskFragment.java</code> and ATMS <code>ActivityStarter</code>.</p>
+        <h2>5. 보안 및 신뢰 경계</h2>
+        <p>악의적인 앱이 임의의 금융 또는 결제 액티비티를 임베딩하여 사용자 터치를 가로채거나(Tapjacking) 화면을 탈취하는 것을 어떻게 방지할까요? Android는 <code>TaskFragment.java</code>와 ATMS <code>ActivityStarter</code> 내부에서 엄격한 <strong>신뢰(Trusted) 대 비신뢰(Untrusted) 임베딩</strong> 검사를 수행합니다.</p>
 
         <div class="grid-2">
           <div class="card">
             <div class="card-title">
-              <span>Trusted Embedding</span>
-              <span class="pill pill-green">Same UID</span>
+              <span>신뢰된 임베딩 (Trusted Embedding)</span>
+              <span class="pill pill-green">동일 UID</span>
             </div>
-            <p>Activities belonging to the same application package / UID are automatically trusted and can be embedded into adjacent <code>TaskFragment</code>s freely without manifest opt-in.</p>
+            <p>동일한 애플리케이션 패키지 및 UID에 속한 액티비티들은 자동으로 신뢰되며, 매니페스트 설정 없이도 인접한 <code>TaskFragment</code>에 자유롭게 임베딩될 수 있습니다.</p>
           </div>
 
           <div class="card">
             <div class="card-title">
-              <span>Cross-App Embedding</span>
-              <span class="pill pill-orange">Cross-UID</span>
+              <span>교차 앱 임베딩 (Cross-App Embedding)</span>
+              <span class="pill pill-orange">교차 UID</span>
             </div>
-            <p>When an app attempts to embed an activity from a different UID/package, the target activity must explicitly grant permission in its <code>AndroidManifest.xml</code> via one of two mechanisms:</p>
+            <p>서로 다른 UID/패키지의 액티비티를 임베딩하려는 경우, 대상 액티비티는 <code>AndroidManifest.xml</code>에서 다음 두 가지 메커니즘 중 하나를 통해 명시적으로 권한을 부여해야 합니다:</p>
           </div>
         </div>
 
         <div class="grid-2" style="margin-top: 1.5rem;">
           <div class="card">
             <div class="card-title">
-              <span>1. Open Opt-In (Untrusted Embedding)</span>
+              <span>1. 공개 허용 (비신뢰 임베딩 / Untrusted Embedding)</span>
               <span class="pill pill-orange">Android 12L+</span>
             </div>
-            <p>Allows <em>any</em> host app to embed this activity (e.g. public document viewers or sharing dialogs):</p>
+            <p><em>어떤</em> 호스트 앱이라도 이 액티비티를 임베딩할 수 있도록 허용합니다 (예: 공용 문서 뷰어 또는 시스템 공유 대화상자):</p>
             <pre><code>&lt;activity
     android:name=".PublicShareActivity"
     android:allowUntrustedActivityEmbedding="true" /&gt;</code></pre>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Without this flag, the system server rejects the embedding transaction with a security exception, preventing tapjacking and overlay hijacking.</p>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">이 플래그가 선언되지 않은 경우, 시스템 서버는 보안 예외(SecurityException)를 발생시키며 임베딩 트랜잭션을 거부하여 탭재킹 및 오버레이 탈취 공격을 차단합니다.</p>
           </div>
 
           <div class="card">
             <div class="card-title">
-              <span>2. Certificate Verification (Restricted Partners)</span>
+              <span>2. 인증서 검증 (제한된 파트너 / Restricted Partners)</span>
               <span class="pill pill-blue">Android 13+ (API 33)</span>
             </div>
-            <p>Restricts embedding exclusively to trusted partner apps verified by their SHA-256 signing certificate digest:</p>
+            <p>SHA-256 서명 인증서 다이제스트 검증을 통해 신뢰할 수 있는 특정 파트너 앱에게만 임베딩을 제한적으로 허용합니다:</p>
             <pre><code>&lt;activity
     android:name=".PartnerActivity"
     android:knownActivityEmbeddingCerts="@array/trusted_embedding_certs" /&gt;</code></pre>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">ATMS validates the calling host's signing certificate against the referenced string array. Untrusted callers are blocked, enabling safe ecosystem splits without public exposure (introduced in Android 13; Android 14 enforced manifest validation limits of up to 50 certificates).</p>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">ATMS가 호출 호스트의 서명 인증서를 참조된 문자열 배열과 대조하여 검증합니다. 신뢰할 수 없는 호출자는 즉시 차단되므로, 외부에 무분별하게 노출되지 않고 안전한 파트너 간 화면 분할을 구현할 수 있습니다 (Android 13에서 최초 도입되었으며, Android 14부터 매니페스트 내 최대 50개 인증서 제한 검증이 추가됨).</p>
           </div>
         </div>
       </section>
 
       <!-- Section 6 -->
       <section id="upstream-sources">
-        <h2>6. Upstream Source Repositories</h2>
-        <p>Activity Embedding spans two primary Google upstream source trees on <a href="https://cs.android.com" target="_blank" style="color: var(--accent);">cs.android.com</a>. Browse the official implementations directly:</p>
+        <h2>6. 업스트림 소스 저장소</h2>
+        <p>Activity Embedding은 <a href="https://cs.android.com" target="_blank" style="color: var(--accent);">cs.android.com</a>의 두 가지 주요 Google 업스트림 소스 트리에 걸쳐 구현되어 있습니다. 공식 구현체 코드를 직접 탐색해 보세요:</p>
 
         <table>
           <thead>
             <tr>
-              <th style="width: 30%;">Repository / Layer</th>
-              <th>Upstream Code & Key Components</th>
+              <th style="width: 30%;">저장소 / 계층</th>
+              <th>업스트림 코드 및 주요 컴포넌트</th>
             </tr>
           </thead>
           <tbody>
@@ -1078,13 +1078,13 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
                   </a>
                 </div>
                 <div style="font-size: 0.88rem; color: var(--text-main);">
-                  Public developer APIs: <code>SplitController.kt</code>, <code>RuleController.kt</code>, <code>SplitPairRule.kt</code>, <code>EmbeddingAdapter.kt</code>
+                  공개 개발자 API: <code>SplitController.kt</code>, <code>RuleController.kt</code>, <code>SplitPairRule.kt</code>, <code>EmbeddingAdapter.kt</code>
                 </div>
               </td>
             </tr>
             <tr>
               <td>
-                <strong>OEM Extension Spec</strong><br>
+                <strong>OEM 확장 규격 (OEM Extension Spec)</strong><br>
                 <span class="pill pill-blue" style="font-size: 0.7rem;">platform/frameworks/support</span>
               </td>
               <td>
@@ -1094,13 +1094,13 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
                   </a>
                 </div>
                 <div style="font-size: 0.88rem; color: var(--text-main);">
-                  Contract specification interfaces: <code>ActivityEmbeddingComponent.java</code>, <code>SplitInfo.java</code>, <code>SplitAttributes.java</code>
+                  계약 명세 인터페이스: <code>ActivityEmbeddingComponent.java</code>, <code>SplitInfo.java</code>, <code>SplitAttributes.java</code>
                 </div>
               </td>
             </tr>
             <tr>
               <td>
-                <strong>Official Demos</strong><br>
+                <strong>공식 데모 (Official Demos)</strong><br>
                 <span class="pill pill-blue" style="font-size: 0.7rem;">platform/frameworks/support</span>
               </td>
               <td>
@@ -1110,13 +1110,13 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
                   </a>
                 </div>
                 <div style="font-size: 0.88rem; color: var(--text-main);">
-                  Official sample implementations: <code>SplitActivityBase.java</code>, <code>ExampleWindowInitializer.kt</code>
+                  공식 샘플 구현체: <code>SplitActivityBase.java</code>, <code>ExampleWindowInitializer.kt</code>
                 </div>
               </td>
             </tr>
             <tr>
               <td>
-                <strong>OEM Extension Impl</strong><br>
+                <strong>OEM 확장 구현체 (OEM Extension Impl)</strong><br>
                 <span class="pill pill-purple" style="font-size: 0.7rem;">platform/frameworks/base</span>
               </td>
               <td>
@@ -1126,13 +1126,13 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
                   </a>
                 </div>
                 <div style="font-size: 0.88rem; color: var(--text-main);">
-                  AOSP/OEM runtime backend: <code>SplitController.java</code>, <code>SplitPresenter.java</code>, <code>JetpackTaskFragmentOrganizer.java</code>
+                  AOSP/OEM 런타임 백엔드: <code>SplitController.java</code>, <code>SplitPresenter.java</code>, <code>JetpackTaskFragmentOrganizer.java</code>
                 </div>
               </td>
             </tr>
             <tr>
               <td>
-                <strong>Framework Client Core</strong><br>
+                <strong>프레임워크 클라이언트 코어 (Framework Client Core)</strong><br>
                 <span class="pill pill-orange" style="font-size: 0.7rem;">platform/frameworks/base</span>
               </td>
               <td>
@@ -1142,13 +1142,13 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
                   </a>
                 </div>
                 <div style="font-size: 0.88rem; color: var(--text-main);">
-                  Client-side IPC contracts: <code>TaskFragmentOrganizer.java</code>, <code>TaskFragmentTransaction.java</code>, <code>TaskFragmentOperation.java</code>
+                  클라이언트 측 IPC 계약: <code>TaskFragmentOrganizer.java</code>, <code>TaskFragmentTransaction.java</code>, <code>TaskFragmentOperation.java</code>
                 </div>
               </td>
             </tr>
             <tr>
               <td>
-                <strong>System Server (ATMS)</strong><br>
+                <strong>시스템 서버 (ATMS)</strong><br>
                 <span class="pill pill-green" style="font-size: 0.7rem;">platform/frameworks/base</span>
               </td>
               <td>
@@ -1158,7 +1158,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
                   </a>
                 </div>
                 <div style="font-size: 0.88rem; color: var(--text-main);">
-                  WindowManager Core: <code>TaskFragmentOrganizerController.java</code>, <code>TaskFragment.java</code>, <code>Task.java</code>
+                  WindowManager 코어: <code>TaskFragmentOrganizerController.java</code>, <code>TaskFragment.java</code>, <code>Task.java</code>
                 </div>
               </td>
             </tr>
@@ -1168,27 +1168,27 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
 
       <!-- Section 7 (Appendix) -->
       <section id="appendix-ioc">
-        <h2>7. Appendix: The Architectural Secret — IoC via compileOnly & System Shared Library</h2>
-        <p>How does an unbundled Jetpack library (<code>androidx.window:window</code>) shipped inside an application's APK communicate directly in-process with a device-specific OEM implementation (<code>SplitController</code>) inside <code>frameworks/base</code>, without runtime crashes, class duplication, or annual OS release coupling?</p>
+        <h2>7. 부록: 아키텍처의 비밀 — compileOnly 및 시스템 공유 라이브러리를 통한 IoC</h2>
+        <p>애플리케이션 APK 내부에 번들링된 비번들(Unbundled) Jetpack 라이브러리(<code>androidx.window:window</code>)가 런타임 크래시나 클래스 중복, 연간 OS 판올림 종속성 없이 어떻게 <code>frameworks/base</code>에 위치한 기기별 OEM 구현체(<code>SplitController</code>)와 동일 프로세스(In-process) 내에서 직접 통신할 수 있을까요?</p>
         
-        <p>The secret lies in an elegant <strong>Inversion of Control (IoC)</strong> pattern orchestrated across three tiers using <code>compileOnly</code> dependencies, <code>&lt;uses-library&gt;</code>, and dynamic ClassLoader injection.</p>
+        <p>그 비밀은 <code>compileOnly</code> 의존성, <code>&lt;uses-library&gt;</code>, 그리고 동적 ClassLoader 주입을 유기적으로 결합한 우아한 <strong>제어의 역전(Inversion of Control, IoC)</strong> 아키텍처 패턴에 있습니다.</p>
 
         <div class="card" style="margin: 1.5rem 0;">
           <div class="card-title">
-            <span>The 3-Tier Dependency & Loading Model</span>
-            <span class="pill pill-purple">Architecture</span>
+            <span>3계층 의존성 및 로딩 모델 (3-Tier Dependency & Loading Model)</span>
+            <span class="pill pill-purple">아키텍처</span>
           </div>
           <pre><code>┌─────────────────────────────────────────────────────────────────────────────┐
-│ Tier 1: Specification Contract (androidx.window:window-extensions)          │
-│ - Defines interface WindowExtensions                                        │
-│ - Defines interface ActivityEmbeddingComponent                             │
-│ - Defines entry point class WindowExtensionsProvider                        │
+│ Tier 1: 규격 명세 계약 (androidx.window:window-extensions)                  │
+│ - WindowExtensions 인터페이스 정의                                          │
+│ - ActivityEmbeddingComponent 인터페이스 정의                                │
+│ - 진입점 클래스 WindowExtensionsProvider 정의                                │
 └───────────────────────┬─────────────────────────────┬───────────────────────┘
                         │ compileOnly                 │ static_libs
                         ▼                             ▼
 ┌──────────────────────────────────────┐   ┌──────────────────────────────────┐
-│ Tier 2: App Consumer                 │   │ Tier 3: Platform / OEM Provider  │
-│ (androidx.window:window in APK)      │   │ (/system_ext/framework/...)      │
+│ Tier 2: 앱 소비자 (App Consumer)      │   │ Tier 3: 플랫폼 / OEM 제공자      │
+│ (APK 내부의 androidx.window:window)  │   │ (/system_ext/framework/...)      │
 ├──────────────────────────────────────┤   ├──────────────────────────────────┤
 │ - compileOnly(window-extensions)     │   │ - static_libs: [window-extensions]│
 │ - AndroidManifest.xml:               │   │ - WindowExtensionsImpl           │
@@ -1201,41 +1201,41 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
 └──────────────────────────────────────┘   └──────────────────────────────────┘</code></pre>
         </div>
 
-        <h3>Runtime Injection Flow Step-by-Step</h3>
+        <h3>단계별 런타임 주입 흐름 (Runtime Injection Flow Step-by-Step)</h3>
         <div class="flow-steps">
           <div class="step-item">
             <div class="step-number">1</div>
             <div class="step-content">
-              <h4>Process Launch & ClassLoader Mounting</h4>
-              <p>When the app process forks from Zygote, <code>ApplicationLoaders</code> detects the <code>&lt;uses-library android:name="androidx.window.extensions" android:required="false" /&gt;</code> tag in the APK manifest and appends <code>/system_ext/framework/androidx.window.extensions.jar</code> to the app's <code>PathClassLoader</code>.</p>
+              <h4>프로세스 기동 및 ClassLoader 마운팅</h4>
+              <p>앱 프로세스가 Zygote로부터 포크(fork)될 때, <code>ApplicationLoaders</code>가 APK 매니페스트 내의 <code>&lt;uses-library android:name="androidx.window.extensions" android:required="false" /&gt;</code> 태그를 감지하고 기기의 <code>/system_ext/framework/androidx.window.extensions.jar</code>를 앱의 <code>PathClassLoader</code>에 추가 마운트합니다.</p>
             </div>
           </div>
           <div class="step-item">
             <div class="step-number">2</div>
             <div class="step-content">
-              <h4>Entry Point Discovery</h4>
-              <p><code>ExtensionEmbeddingBackend</code> calls <code>EmbeddingCompat.isEmbeddingAvailable()</code>, which calls <code>WindowExtensionsProvider.getWindowExtensions()</code> on the device.</p>
+              <h4>진입점 탐색 (Entry Point Discovery)</h4>
+              <p><code>ExtensionEmbeddingBackend</code>가 <code>EmbeddingCompat.isEmbeddingAvailable()</code>을 호출하고, 이는 기기 플랫폼 상의 <code>WindowExtensionsProvider.getWindowExtensions()</code>를 호출합니다.</p>
             </div>
           </div>
           <div class="step-item">
             <div class="step-number">3</div>
             <div class="step-content">
-              <h4>Component Instantiation in OEM Layer</h4>
-              <p><code>WindowExtensionsImpl.getActivityEmbeddingComponent()</code> instantiates the device's concrete <code>mSplitController = new SplitController(...)</code> and returns it typed as the <code>ActivityEmbeddingComponent</code> interface.</p>
+              <h4>OEM 계층 내 컴포넌트 인스턴스화</h4>
+              <p><code>WindowExtensionsImpl.getActivityEmbeddingComponent()</code>가 기기 고유의 구체 클래스 인스턴스인 <code>mSplitController = new SplitController(...)</code>를 생성하고 이를 <code>ActivityEmbeddingComponent</code> 인터페이스 타입으로 반환합니다.</p>
             </div>
           </div>
           <div class="step-item">
             <div class="step-number">4</div>
             <div class="step-content">
-              <h4>Defensive Reflection Guard</h4>
-              <p><code>SafeActivityEmbeddingComponentProvider</code> inspects the returned object at runtime, checking method signatures against the declared <code>vendorApiLevel</code> to prevent crashes on non-compliant OEM ROMs.</p>
+              <h4>방어적 리플렉션 가드 (Defensive Reflection Guard)</h4>
+              <p><code>SafeActivityEmbeddingComponentProvider</code>가 런타임에 반환된 객체를 조사하여 선언된 <code>vendorApiLevel</code>과 실제 메서드 시그니처를 검증함으로써, 비표준 OEM ROM 환경에서의 앱 크래시를 방지합니다.</p>
             </div>
           </div>
           <div class="step-item">
             <div class="step-number">5</div>
             <div class="step-content">
-              <h4>IoC Complete</h4>
-              <p><code>EmbeddingCompat</code> stores the validated <code>ActivityEmbeddingComponent</code>. High-level Jetpack rule changes now dispatch directly into the in-memory <code>SplitController</code> singleton!</p>
+              <h4>IoC 주입 완료 (IoC Complete)</h4>
+              <p><code>EmbeddingCompat</code>이 검증된 <code>ActivityEmbeddingComponent</code>를 저장합니다. 이제 고수준 Jetpack 규칙 변경 호출이 메모리 상의 <code>SplitController</code> 싱글톤으로 직접 디스패치됩니다!</p>
             </div>
           </div>
         </div>
@@ -1243,29 +1243,29 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
         <div class="callout callout-warning">
           <div class="callout-title">
             <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>
-            Why compileOnly is the Key to Avoiding ClassLoader Collisions
+            compileOnly가 ClassLoader 충돌을 방지하는 핵심 열쇠인 이유
           </div>
-          <p>In Java/Android, class identity is strictly determined by <code>(Fully Qualified Name, ClassLoader)</code>. If <code>androidx.window:window</code> bundled <code>WindowExtensions.class</code> inside the APK's <code>classes.dex</code>, casting the object loaded from the system JAR would result in a fatal error: <code>ClassCastException: WindowExtensions cannot be cast to WindowExtensions</code>.</p>
-          <p>By declaring <code>compileOnly</code> in Gradle, the interface bytecode is <strong>completely stripped from the final APK</strong>. Exactly <strong>one single copy</strong> of <code>WindowExtensions.class</code> exists in memory at runtime—loaded from the system shared library!</p>
+          <p>Java/Android 런타임에서 클래스의 동일성은 <code>(클래스 전체 경로, ClassLoader)</code>의 조합으로 엄격히 결정됩니다. 만약 <code>androidx.window:window</code>가 APK 내부의 <code>classes.dex</code>에 <code>WindowExtensions.class</code>를 직접 포함해 배포한다면, 시스템 JAR에서 로드된 객체로 형변환(Casting)할 때 치명적인 런타임 오류(<code>ClassCastException: WindowExtensions cannot be cast to WindowExtensions</code>)가 발생합니다.</p>
+          <p>Gradle에서 <code>compileOnly</code>로 선언함으로써, 해당 인터페이스의 바이트코드는 <strong>최종 APK 파일에서 완전히 제거</strong>됩니다. 따라서 런타임 메모리에는 시스템 공유 라이브러리에서 로드된 <strong>단 하나의 <code>WindowExtensions.class</code>만 존재</strong>하게 됩니다!</p>
         </div>
 
-        <h3>Why Can androidx.window.extensions Be Customized While android.* Cannot?</h3>
-        <p>The interface itself is declared in AndroidX (<code>platform/frameworks/support</code>) at <a href="https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:window/extensions/extensions/src/main/java/androidx/window/extensions/WindowExtensions.java" target="_blank" style="color: var(--accent);"><code>WindowExtensions.java</code></a> and imported into AOSP as a prebuilt static library (<code>androidx.window.extensions_extensions-nodeps</code>).</p>
+        <h3>android.*는 수정할 수 없는데 왜 androidx.window.extensions는 커스터마이징이 가능할까?</h3>
+        <p>인터페이스 자체는 AndroidX(<code>platform/frameworks/support</code>)의 <a href="https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:window/extensions/extensions/src/main/java/androidx/window/extensions/WindowExtensions.java" target="_blank" style="color: var(--accent);"><code>WindowExtensions.java</code></a>에 선언되어 있으며, 사전 빌드된 정적 라이브러리(<code>androidx.window.extensions_extensions-nodeps</code>) 형태로 AOSP에 임포트됩니다.</p>
 
         <div class="grid-2">
           <div class="card">
             <div class="card-title">
-              <span>android.* (Strictly Immutable)</span>
-              <span class="pill pill-orange">Public Android SDK</span>
+              <span>android.* (엄격한 불변성)</span>
+              <span class="pill pill-orange">공개 Android SDK</span>
             </div>
-            <p>Protected by the <strong>Android Compatibility Definition Document (CDD)</strong> and <strong>CTS</strong>. OEMs are strictly forbidden from modifying or extending signatures in <code>android.*</code>. Violating this fails CTS certification and prevents shipping Google Mobile Services (Google Play Store).</p>
+            <p><strong>Android 호환성 정의 문서(CDD)</strong>와 <strong>CTS(호환성 테스트 슈트)</strong>에 의해 보호됩니다. 제조사(OEM)는 <code>android.*</code> 패키지 내부의 메서드 시그니처를 임의로 수정하거나 확장하는 것이 엄격히 금지됩니다. 이를 위반하면 CTS 인증에 실패하여 GMS(Google Play 스토어 등) 탑재가 불가능해집니다.</p>
           </div>
           <div class="card">
             <div class="card-title">
-              <span>androidx.window.extensions.* (OEM Plugin)</span>
-              <span class="pill pill-green">Vendor Extension Contract</span>
+              <span>androidx.window.extensions.* (OEM 플러그인)</span>
+              <span class="pill pill-green">벤더 확장 계약</span>
             </div>
-            <p>Designed intentionally as a hardware-specific plugin interface. OEMs (Samsung, Pixel, OnePlus) have different physical hinges, folding angle thresholds, and multi-window UI rules. They are free to implement the internals of <code>SplitController</code> however their hardware requires, as long as it adheres to the contract and passes <code>CtsWindowManagerJetpackTestCases</code>.</p>
+            <p>처음부터 하드웨어 특화 플러그인 인터페이스로 의도되어 설계되었습니다. 제조사(삼성, 픽셀, 원플러스 등)마다 물리적 힌지 구조, 폴딩 각도 임계값, 멀티윈도우 UI 정책이 모두 다릅니다. 따라서 제조사는 인터페이스 규격을 준수하고 <code>CtsWindowManagerJetpackTestCases</code>를 통과하기만 하면, 자사 하드웨어 요구에 맞춰 <code>SplitController</code>의 내부 구현을 자유롭게 최적화할 수 있습니다.</p>
           </div>
         </div>
       </section>
