@@ -1042,13 +1042,13 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
           <div class="card">
             <div class="card-title">
               <span>2. Certificate Verification (Restricted Partners)</span>
-              <span class="pill pill-blue">Android 14+ (API 34)</span>
+              <span class="pill pill-blue">Android 13+ (API 33)</span>
             </div>
             <p>Restricts embedding exclusively to trusted partner apps verified by their SHA-256 signing certificate digest:</p>
             <pre><code>&lt;activity
     android:name=".PartnerActivity"
     android:knownActivityEmbeddingCerts="@array/trusted_embedding_certs" /&gt;</code></pre>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">ATMS validates the calling host's signing certificate against the referenced string array. Untrusted callers are blocked, enabling safe ecosystem splits without public exposure.</p>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">ATMS validates the calling host's signing certificate against the referenced string array. Untrusted callers are blocked, enabling safe ecosystem splits without public exposure (introduced in Android 13; Android 14 enforced manifest validation limits of up to 50 certificates).</p>
           </div>
         </div>
       </section>
