@@ -734,18 +734,18 @@
             </div>
           </div>
 
-          <div class="arch-arrow">▼ 동적 리플렉션 / ClassLoader 바인딩 (인프로세스)</div>
+          <div class="arch-arrow">▼ 시스템 공유 라이브러리 동적 로딩 (&lt;uses-library&gt;) & 인터페이스 바인딩 (인프로세스)</div>
 
           <!-- Layer 2 -->
           <div class="arch-layer">
             <div class="arch-layer-header">
-              <span class="arch-layer-title">Layer 2: WindowManager Extensions (OEM / 벤더 확장)</span>
+              <span class="arch-layer-title">Layer 2: WindowManager Extensions (시스템 공유 라이브러리)</span>
               <div style="display: flex; gap: 0.4rem; align-items: center;">
                 <span class="pill pill-purple">androidx.window.extensions.embedding</span>
                 <span class="pill pill-green" style="font-size: 0.72rem;">앱 프로세스 (IoC)</span>
               </div>
             </div>
-            <p><strong>규격 명세(AndroidX)와 기기 구현체(AOSP/OEM) 양쪽에 존재</strong>하며, <strong>IoC(제어의 역전)와 시스템 공유 라이브러리(<code>&lt;uses-library&gt;</code>)</strong>를 통해 앱 프로세스 메모리에 로드됩니다. 기기별 화면 크기, 힌지 접힘 상태, 가로세로 비율을 실시간 계산하여 분할/누적 여부를 결정하는 <strong>동적 분할의 실질적인 런타임 두뇌</strong>입니다.</p>
+            <p><strong>규격 명세(AndroidX)와 플랫폼 구현체(AOSP/기기 제조사) 양쪽에 존재</strong>하며, <strong>시스템 공유 라이브러리(<code>&lt;uses-library&gt;</code>) 동적 로딩과 IoC(제어의 역전)</strong>를 통해 앱 프로세스 메모리에 로드됩니다. 기기별 화면 크기, 힌지 접힘 상태, 가로세로 비율을 실시간 계산하여 분할/누적 여부를 결정하는 <strong>동적 분할의 실질적인 런타임 두뇌</strong>입니다. (※ 리플렉션은 진입 시 메서드/클래스 존재 여부를 검증하는 <em>방어적 가드</em>일 뿐, 실제 바인딩의 핵심은 공유 라이브러리 동적 마운트와 인터페이스 계약 다형성입니다.)</p>
             <div class="arch-chips">
               <span class="chip">SplitController.java</span>
               <span class="chip">SplitPresenter.java</span>
@@ -811,8 +811,8 @@
               <p>애플리케이션 시작 시점에 규칙들이 등록되고 프로세스에 바인딩됩니다:</p>
               <pre><code>RuleController.getInstance(context).setRules(setOf(splitPairRule));</code></pre>
               <ul style="margin-left: 1.2rem; line-height: 1.8;">
-                <li><strong class="pill pill-blue" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 1: App / AndroidX</strong> 앱이 고수준 규칙(예: <code>SplitPairRule</code>)을 생성하고 <code>RuleController.setRules()</code>를 호출합니다. <code>EmbeddingAdapter</code>가 이를 OEM 계약 인터페이스 규격으로 변환합니다.</li>
-                <li><strong class="pill pill-purple" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 2: OEM Extension</strong> <code>SplitController.setEmbeddingRules()</code>가 규칙을 수신하고, 앱의 <code>Instrumentation</code> 인스턴스에 <code>ActivityStartMonitor</code>를 등록(<code>instrumentation.addMonitor(mActivityStartMonitor)</code>)하여 이후 발생하는 액티비티 실행을 가로챌 수 있도록 준비합니다.</li>
+                <li><strong class="pill pill-blue" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 1: App / AndroidX</strong> 앱이 고수준 규칙(예: <code>SplitPairRule</code>)을 생성하고 <code>RuleController.setRules()</code>를 호출합니다. <code>EmbeddingAdapter</code>가 이를 WindowManager Extensions 계약 인터페이스 규격으로 변환합니다.</li>
+                <li><strong class="pill pill-purple" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 2: WindowManager Extensions</strong> <code>SplitController.setEmbeddingRules()</code>가 규칙을 수신하고, 앱의 <code>Instrumentation</code> 인스턴스에 <code>ActivityStartMonitor</code>를 등록(<code>instrumentation.addMonitor(mActivityStartMonitor)</code>)하여 이후 발생하는 액티비티 실행을 가로챌 수 있도록 준비합니다.</li>
               </ul>
             </div>
           </div>
@@ -825,7 +825,7 @@
               <p>액티비티가 화면 전환을 시작하면, 실행 요청이 가로채어져 분할 컨테이너로 라우팅됩니다:</p>
               <ul style="margin-left: 1.2rem; line-height: 1.8;">
                 <li><strong class="pill pill-blue" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 1: App / AndroidX</strong> 앱은 커스텀 플래그나 별도의 레이아웃 검사 없이 표준 <code>startActivity(intent)</code>를 호출합니다.</li>
-                <li><strong class="pill pill-purple" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 2: OEM Extension</strong> <code>Instrumentation.execStartActivity()</code>가 IPC 호출 이전에 앱 프로세스 내부의 <code>ActivityStartMonitor.onStartActivity()</code>를 트리거합니다:
+                <li><strong class="pill pill-purple" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 2: WindowManager Extensions</strong> <code>Instrumentation.execStartActivity()</code>가 IPC 호출 이전에 앱 프로세스 내부의 <code>ActivityStartMonitor.onStartActivity()</code>를 트리거합니다:
                   <ol style="margin-left: 1.2rem; margin-top: 0.25rem;">
                     <li><code>SplitController</code>가 <code>(who, intent)</code> 쌍을 등록된 규칙들과 대조(Matching)합니다.</li>
                     <li><code>SplitPresenter</code>가 현재 윈도우 바운드(예: width &ge; 600dp) 및 디바이스 폴딩 상태를 평가합니다.</li>
@@ -846,7 +846,7 @@
               <p>임베딩된 액티비티가 종료될 때 (사용자의 뒤로 가기 또는 <code>finish()</code> 호출):</p>
               <ul style="margin-left: 1.2rem; line-height: 1.8;">
                 <li><strong class="pill pill-blue" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 1: App / AndroidX</strong> 액티비티가 <code>finish()</code>를 호출하거나 뒤로 가기 내비게이션 이벤트를 수신합니다.</li>
-                <li><strong class="pill pill-purple" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 2: OEM Extension</strong> <code>SplitController</code>가 컨테이너 상태 변경을 감지하고 해당 규칙의 <code>FinishBehavior</code>를 평가합니다:
+                <li><strong class="pill pill-purple" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 2: WindowManager Extensions</strong> <code>SplitController</code>가 컨테이너 상태 변경을 감지하고 해당 규칙의 <code>FinishBehavior</code>를 평가합니다:
                   <ul style="margin-left: 1.2rem; margin-top: 0.25rem;">
                     <li><code>FINISH_NEVER</code>: 인접 액티비티가 계속 열려 있으며, 부모 Task 전체 영역으로 자동 확장됩니다.</li>
                     <li><code>FINISH_ALWAYS</code>: 한쪽 액티비티가 종료되면 다른 창의 연관된 액티비티도 함께 자동 종료됩니다.</li>
@@ -1102,7 +1102,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             </tr>
             <tr>
               <td>
-                <strong>OEM 확장 규격 (OEM Extension Spec)</strong><br>
+                <strong>WindowManager Extensions 규격 명세 (AndroidX Spec)</strong><br>
                 <span class="pill pill-blue" style="font-size: 0.7rem;">platform/frameworks/support</span>
               </td>
               <td>
@@ -1134,7 +1134,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             </tr>
             <tr>
               <td>
-                <strong>OEM 확장 구현체 (OEM Extension Impl)</strong><br>
+                <strong>WindowManager Extensions 플랫폼 구현체 (AOSP/Platform Impl)</strong><br>
                 <span class="pill pill-purple" style="font-size: 0.7rem;">platform/frameworks/base</span>
               </td>
               <td>
@@ -1144,7 +1144,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
                   </a>
                 </div>
                 <div style="font-size: 0.88rem; color: var(--text-main);">
-                  AOSP/OEM 런타임 백엔드: <code>SplitController.java</code>, <code>SplitPresenter.java</code>, <code>JetpackTaskFragmentOrganizer.java</code>
+                  플랫폼 런타임 백엔드: <code>SplitController.java</code>, <code>SplitPresenter.java</code>, <code>JetpackTaskFragmentOrganizer.java</code>
                 </div>
               </td>
             </tr>
@@ -1187,9 +1187,9 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
       <!-- Section 7 (Appendix) -->
       <section id="appendix-ioc">
         <h2>7. 부록: 아키텍처의 비밀 — compileOnly 및 시스템 공유 라이브러리를 통한 IoC</h2>
-        <p>애플리케이션 APK 내부에 번들링된 비번들(Unbundled) Jetpack 라이브러리(<code>androidx.window:window</code>)가 런타임 크래시나 클래스 중복, 연간 OS 판올림 종속성 없이 어떻게 <code>frameworks/base</code>에 위치한 기기별 OEM 구현체(<code>SplitController</code>)와 동일 프로세스(In-process) 내에서 직접 통신할 수 있을까요?</p>
+        <p>애플리케이션 APK 내부에 번들링된 비번들(Unbundled) Jetpack 라이브러리(<code>androidx.window:window</code>)가 런타임 크래시나 클래스 중복, 연간 OS 판올림 종속성 없이 어떻게 시스템 파티션에 위치한 기기 플랫폼 구현체(<code>SplitController</code>)와 동일 프로세스(In-process) 내에서 직접 통신할 수 있을까요?</p>
         
-        <p>그 비밀은 <code>compileOnly</code> 의존성, <code>&lt;uses-library&gt;</code>, 그리고 동적 ClassLoader 주입을 유기적으로 결합한 우아한 <strong>제어의 역전(Inversion of Control, IoC)</strong> 아키텍처 패턴에 있습니다.</p>
+        <p>그 비밀은 <code>compileOnly</code> 의존성, <code>&lt;uses-library&gt;</code>, 그리고 동적 ClassLoader 마운트를 유기적으로 결합한 우아한 <strong>제어의 역전(Inversion of Control, IoC)</strong> 아키텍처 패턴에 있습니다.</p>
 
         <div class="card" style="margin: 1.5rem 0;">
           <div class="card-title">
@@ -1205,7 +1205,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
                         │ compileOnly                 │ static_libs
                         ▼                             ▼
 ┌──────────────────────────────────────┐   ┌──────────────────────────────────┐
-│ Tier 2: 앱 소비자 (App Consumer)      │   │ Tier 3: 플랫폼 / OEM 제공자      │
+│ Tier 2: 앱 소비자 (App Consumer)      │   │ Tier 3: 플랫폼 / 기기 구현체      │
 │ (APK 내부의 androidx.window:window)  │   │ (/system_ext/framework/...)      │
 ├──────────────────────────────────────┤   ├──────────────────────────────────┤
 │ - compileOnly(window-extensions)     │   │ - static_libs: [window-extensions]│
@@ -1238,15 +1238,15 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
           <div class="step-item">
             <div class="step-number">3</div>
             <div class="step-content">
-              <h4>OEM 계층 내 컴포넌트 인스턴스화</h4>
+              <h4>WindowManager Extensions 컴포넌트 인스턴스화</h4>
               <p><code>WindowExtensionsImpl.getActivityEmbeddingComponent()</code>가 기기 고유의 구체 클래스 인스턴스인 <code>mSplitController = new SplitController(...)</code>를 생성하고 이를 <code>ActivityEmbeddingComponent</code> 인터페이스 타입으로 반환합니다.</p>
             </div>
           </div>
           <div class="step-item">
             <div class="step-number">4</div>
             <div class="step-content">
-              <h4>방어적 리플렉션 가드 (Defensive Reflection Guard)</h4>
-              <p><code>SafeActivityEmbeddingComponentProvider</code>가 런타임에 반환된 객체를 조사하여 선언된 <code>vendorApiLevel</code>과 실제 메서드 시그니처를 검증함으로써, 비표준 OEM ROM 환경에서의 앱 크래시를 방지합니다.</p>
+              <h4>방어적 리플렉션 가드: 메서드 검증 (Defensive Reflection Guard)</h4>
+              <p>리플렉션의 실질적인 역할은 바인딩 메커니즘 자체가 아니라 <strong>안전성 검증 가드(Guard)</strong>입니다. <code>SafeActivityEmbeddingComponentProvider</code> 및 <code>ReflectionUtils</code>가 런타임에 리플렉션으로 객체를 조사하여 선언된 <code>vendorApiLevel</code>과 필수 메서드 시그니처가 실제로 온전히 존재하는지 사전 검증(Method Verification)함으로써, 비표준 기기 ROM 환경에서 <code>NoSuchMethodError</code>나 <code>ClassNotFoundException</code>으로 앱이 강제 종료되는 것을 방지합니다. 검증이 통과하면 이후 모든 호출은 리플렉션 오버헤드 없이 순수 Java 인터페이스 다형성으로 고속 디스패치됩니다.</p>
             </div>
           </div>
           <div class="step-item">
@@ -1276,11 +1276,11 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
               <span>android.* (엄격한 불변성)</span>
               <span class="pill pill-orange">공개 Android SDK</span>
             </div>
-            <p><strong>Android 호환성 정의 문서(CDD)</strong>와 <strong>CTS(호환성 테스트 슈트)</strong>에 의해 보호됩니다. 제조사(OEM)는 <code>android.*</code> 패키지 내부의 메서드 시그니처를 임의로 수정하거나 확장하는 것이 엄격히 금지됩니다. 이를 위반하면 CTS 인증에 실패하여 GMS(Google Play 스토어 등) 탑재가 불가능해집니다.</p>
+            <p><strong>Android 호환성 정의 문서(CDD)</strong>와 <strong>CTS(호환성 테스트 슈트)</strong>에 의해 보호됩니다. 기기 제조사는 <code>android.*</code> 패키지 내부의 메서드 시그니처를 임의로 수정하거나 확장하는 것이 엄격히 금지됩니다. 이를 위반하면 CTS 인증에 실패하여 GMS(Google Play 스토어 등) 탑재가 불가능해집니다.</p>
           </div>
           <div class="card">
             <div class="card-title">
-              <span>androidx.window.extensions.* (OEM 플러그인)</span>
+              <span>androidx.window.extensions.* (WindowManager Extensions)</span>
               <span class="pill pill-green">벤더 확장 계약</span>
             </div>
             <p>처음부터 하드웨어 특화 플러그인 인터페이스로 의도되어 설계되었습니다. 제조사(삼성, 픽셀, 원플러스 등)마다 물리적 힌지 구조, 폴딩 각도 임계값, 멀티윈도우 UI 정책이 모두 다릅니다. 따라서 제조사는 인터페이스 규격을 준수하고 <code>CtsWindowManagerJetpackTestCases</code>를 통과하기만 하면, 자사 하드웨어 요구에 맞춰 <code>SplitController</code>의 내부 구현을 자유롭게 최적화할 수 있습니다.</p>
