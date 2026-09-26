@@ -803,6 +803,24 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
           대신 Extensions 계층이 가로채어 규칙을 평가하고, Frameworks 계층을 통해 원자적 트랜잭션을 패키징하여, 프로세스 경계를 넘어 System Server 계층으로 전달해 분할 창을 생성합니다.
         </p>
 
+        <!-- Conceptual Bridge: TaskFragment introduced between Task and Activity -->
+        <div class="callout" style="margin: 1.25rem 0 1.5rem; border-color: rgba(88, 166, 255, 0.4); background: rgba(88, 166, 255, 0.05);">
+          <div class="callout-title" style="color: var(--accent); display: flex; align-items: center; justify-content: space-between;">
+            <span>💡 핵심 멘탈 모델: Task와 Activity 사이에 도입된 TaskFragment</span>
+            <span class="pill pill-blue">컨테이너 진화</span>
+          </div>
+          <p style="margin-top: 0.5rem; margin-bottom: 0.8rem; font-size: 0.95rem; line-height: 1.6;">
+            Activity Embedding의 실행 흐름을 이해하는 가장 핵심적인 열쇠는 <strong>"Task와 Activity 사이에 분할 화면을 담당하는 <code>TaskFragment</code>라는 창(Window) 단위 컨테이너가 새로 생겼다"</strong>는 멘탈 모델을 갖는 것입니다:
+          </p>
+          <div style="background: var(--code-bg); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0.85rem 1rem; font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.7; margin-bottom: 0.8rem;">
+            <div style="color: var(--text-muted);"><span style="color: var(--accent-orange); font-weight: 600;">레거시 (Android 11 이전):</span> Task (최근 앱 타일 1개) ──직접 포함──▶ Activity (화면 1개)</div>
+            <div style="color: var(--text-heading); margin-top: 0.35rem;"><span style="color: var(--accent-green); font-weight: 600;">현재 (Android 12L 이후):</span> Task (최근 앱 타일 1개) ──▶ <span style="color: var(--accent); font-weight: bold; background: rgba(88, 166, 255, 0.15); padding: 0.1rem 0.4rem; border-radius: 4px;">TaskFragment (분할 창 단위)</span> ──▶ Activity (화면 1개)</div>
+          </div>
+          <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0;">
+            하나의 태스크 안에서 화면을 좌/우로 분할하고 각각의 윈도우 크기(Bounds)와 생명주기를 독립 제어하기 위해 이 중간 컨테이너가 도입되었습니다. 이제 아래에서 <strong>Extensions &rarr; Frameworks &rarr; System Server 3개 계층</strong>이 <code>startActivity()</code> 시점에 어떻게 이 <code>TaskFragment</code>를 생성하고 배치하는지 살펴보겠습니다.
+          </p>
+        </div>
+
         <div class="arch-stack">
           <!-- Extensions Layer: Intercept & Evaluate -->
           <div class="arch-layer">
@@ -881,24 +899,6 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
               <span class="chip">SurfaceFlinger 합성</span>
             </div>
           </div>
-        </div>
-
-        <!-- Conceptual Bridge: TaskFragment introduced between Task and Activity -->
-        <div class="callout" style="margin-top: 1.5rem; border-color: rgba(88, 166, 255, 0.4); background: rgba(88, 166, 255, 0.05);">
-          <div class="callout-title" style="color: var(--accent); display: flex; align-items: center; justify-content: space-between;">
-            <span>💡 핵심 멘탈 모델: Task와 Activity 사이에 도입된 TaskFragment</span>
-            <span class="pill pill-blue">컨테이너 진화</span>
-          </div>
-          <p style="margin-top: 0.5rem; margin-bottom: 0.8rem; font-size: 0.95rem; line-height: 1.6;">
-            Activity Embedding의 핵심을 가장 직관적으로 이해하는 방법은 <strong>"Task와 Activity 사이에 분할 화면을 담당하는 <code>TaskFragment</code>라는 창(Window) 단위 컨테이너가 새로 생겼다"</strong>고 파악하는 것입니다:
-          </p>
-          <div style="background: var(--code-bg); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0.85rem 1rem; font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.7; margin-bottom: 0.8rem;">
-            <div style="color: var(--text-muted);"><span style="color: var(--accent-orange); font-weight: 600;">레거시 (Android 11 이전):</span> Task (최근 앱 타일 1개) ──직접 포함──▶ Activity (화면 1개)</div>
-            <div style="color: var(--text-heading); margin-top: 0.35rem;"><span style="color: var(--accent-green); font-weight: 600;">현재 (Android 12L 이후):</span> Task (최근 앱 타일 1개) ──▶ <span style="color: var(--accent); font-weight: bold; background: rgba(88, 166, 255, 0.15); padding: 0.1rem 0.4rem; border-radius: 4px;">TaskFragment (분할 창 단위)</span> ──▶ Activity (화면 1개)</div>
-          </div>
-          <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0;">
-            하나의 태스크 안에서 화면을 좌/우로 분할하고 각각의 윈도우 크기(Bounds)와 생명주기를 독립적으로 제어하기 위해 중간 컨테이너가 도입되었습니다. <strong>Extensions 계층과 Frameworks 계층(TaskFragmentOrganizer)</strong>이 앱 프로세스에서 이 <code>TaskFragment</code>들을 생성하고 바운드를 계산하며, <strong>System Server 계층(ATMS)</strong>이 시스템 윈도우 트리에 이를 반영하여 화면에 나란히 합성(Composite)합니다.
-          </p>
         </div>
 
         <!-- Dynamic Screen Resize Callout -->
