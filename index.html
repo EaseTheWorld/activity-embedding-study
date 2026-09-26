@@ -800,7 +800,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
         <p>
           규칙이 캐싱되고 감시자가 잠복한 상태에서, 실제 화면 전환이 일어날 때의 실행 흐름입니다.
           개발자는 평소대로 표준 <code>startActivity(intent)</code>를 호출할 뿐이며, <strong>이 실행 과정에서 AndroidX 계층은 전혀 개입하지 않습니다.</strong>
-          대신 Extensions 계층이 가로채어 규칙을 평가하고, Frameworks 계층을 통해 원자적 트랜잭션을 패키징하여, 프로세스 경계를 넘어 System Server 계층으로 전달해 분할 창을 생성합니다.
+          대신 Extensions 계층이 가로채어 규칙을 평가하고, Frameworks 계층을 통해 원자적 트랜잭션을 패키징하여, 프로세스 경계를 넘어 System Server 계층으로 전달해 분할 컨테이너(<code>TaskFragment</code>)를 생성합니다.
         </p>
 
         <!-- Conceptual Bridge: TaskFragment introduced between Task and Activity -->
@@ -810,14 +810,14 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             <span class="pill pill-blue">컨테이너 구조</span>
           </div>
           <p style="margin-top: 0.5rem; margin-bottom: 0.8rem; font-size: 0.95rem; line-height: 1.6;">
-            Activity Embedding의 핵심은 <strong>"하나의 Task 내에서 화면을 분할하기 위해, Task와 Activity 사이에 <code>TaskFragment</code>라는 창(Window) 단위 컨테이너가 새로 도입되었다"</strong>는 점입니다:
+            Activity Embedding의 핵심은 <strong>"하나의 Task 안에서 화면을 쪼개어 배치하기 위해, Task와 Activity 사이에 <code>TaskFragment</code>라는 분할 구획(Pane) 컨테이너가 새로 도입되었다"</strong>는 점입니다:
           </p>
           <div style="background: var(--code-bg); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0.85rem 1rem; font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.7; margin-bottom: 0.8rem;">
-            <div style="color: var(--text-muted);"><span style="color: var(--accent-orange); font-weight: 600;">레거시 (Android 11 이전):</span> Task (최근 앱 타일 1개) ──직접 포함──▶ Activity (화면 1개)</div>
-            <div style="color: var(--text-heading); margin-top: 0.35rem;"><span style="color: var(--accent-green); font-weight: 600;">현재 (Android 12L 이후):</span> Task (최근 앱 타일 1개) ──▶ <span style="color: var(--accent); font-weight: bold; background: rgba(88, 166, 255, 0.15); padding: 0.1rem 0.4rem; border-radius: 4px;">TaskFragment (분할 창 단위)</span> ──▶ Activity (화면 1개)</div>
+            <div style="color: var(--text-muted);"><span style="color: var(--accent-orange); font-weight: 600;">레거시 (Android 11 이전):</span> Task (작업 / 최근 앱 타일) ──직접 포함──▶ Activity (개별 UI 화면)</div>
+            <div style="color: var(--text-heading); margin-top: 0.35rem;"><span style="color: var(--accent-green); font-weight: 600;">현재 (Android 12L 이후):</span> Task (작업 / 최근 앱 타일) ──▶ <span style="color: var(--accent); font-weight: bold; background: rgba(88, 166, 255, 0.15); padding: 0.1rem 0.4rem; border-radius: 4px;">TaskFragment (분할 구획 및 서브 스택)</span> ──▶ Activity (개별 UI 화면)</div>
           </div>
           <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0;">
-            하나의 태스크 안에서 화면을 좌/우로 분할하고 각각의 윈도우 크기(Bounds)와 생명주기를 독립 제어하기 위해 이 중간 컨테이너가 도입되었습니다. 이제 아래에서 <strong>Extensions &rarr; Frameworks &rarr; System Server 3개 계층</strong>이 <code>startActivity()</code> 시점에 어떻게 이 <code>TaskFragment</code>를 생성하고 배치하는지 살펴보겠습니다.
+            <strong>Task</strong>가 '앱 전체 작업 단위'이고 <strong>Activity</strong>가 '실제 사용자가 조작하는 개별 UI 화면 단위'라면, <strong>TaskFragment</strong>는 <em>"화면을 좌/우로 분할한 특정 구획(Pane)의 크기(Bounds)를 잡고, 그 구획 안에서 액티비티들이 독립적으로 쌓이도록 관리하는 서브 스택(Sub-stack) 컨테이너"</em>입니다. 이제 아래에서 <strong>Extensions &rarr; Frameworks &rarr; System Server 3개 계층</strong>이 <code>startActivity()</code> 시점에 어떻게 이 <code>TaskFragment</code>를 생성하고 배치하는지 살펴보겠습니다.
           </p>
         </div>
 
@@ -884,7 +884,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
                 <span class="pill pill-orange" style="font-size: 0.72rem;">system_server</span>
               </div>
             </div>
-            <p><strong>트랜잭션 실행 및 액티비티 라우팅:</strong> 전달된 WCT를 창 계층 트리에 반영하고, 액티비티를 생성된 분할 창으로 정확히 인도합니다.</p>
+            <p><strong>트랜잭션 실행 및 액티비티 라우팅:</strong> 전달된 WCT를 창 계층 트리에 반영하고, 액티비티를 생성된 <code>TaskFragment</code> 구획 안으로 정확히 라우팅합니다.</p>
             <div style="margin-top: 0.65rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); background: rgba(63, 185, 80, 0.06); border-left: 3px solid var(--accent-green); padding: 0.55rem 0.85rem; border-radius: 0 6px 6px 0;">
               <ol style="margin-left: 1.2rem;">
                 <li><code>TaskFragmentOrganizerController</code>가 수신된 WCT를 실행하여 시스템 창 트리에 실제 <code>TaskFragment</code> 노드를 생성하고 바운드를 적용합니다.</li>
