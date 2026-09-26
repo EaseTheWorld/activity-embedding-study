@@ -446,6 +446,25 @@
       font-weight: bold;
     }
 
+    .process-boundary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      margin: 0.6rem 0;
+      color: var(--accent-orange);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+    .process-boundary::before,
+    .process-boundary::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      border-top: 1px dashed rgba(210, 153, 34, 0.45);
+    }
+
     /* Sequence Flow Box */
     .flow-steps {
       display: flex;
@@ -692,17 +711,20 @@
 
       <!-- Section 2 -->
       <section id="architecture">
-        <h2>2. 4계층 아키텍처</h2>
-        <p>Activity Embedding은 단순한 Jetpack 라이브러리가 아닙니다. AndroidX, OEM 동적 브리지, 프레임워크 클라이언트 IPC, 그리고 WindowManager 시스템 서버(ATMS)가 긴밀하게 연동하는 풀스택 아키텍처입니다.</p>
+        <h2>2. 4계층 아키텍처 및 프로세스 경계</h2>
+        <p>Activity Embedding은 단순한 단일 라이브러리가 아닙니다. <strong>앱 프로세스 내부</strong>에서 동작하는 AndroidX 및 WindowManager Extensions와, <strong>시스템 서버(system_server)</strong>의 WindowManager Core가 IPC를 통해 긴밀하게 협력하는 풀스택 아키텍처입니다.</p>
 
         <div class="arch-stack">
           <!-- Layer 1 -->
           <div class="arch-layer">
             <div class="arch-layer-header">
-              <span class="arch-layer-title">Layer 1: Jetpack WindowManager (앱 프로세스)</span>
-              <span class="pill pill-blue">androidx.window.embedding</span>
+              <span class="arch-layer-title">Layer 1: Jetpack WindowManager</span>
+              <div style="display: flex; gap: 0.4rem; align-items: center;">
+                <span class="pill pill-blue">androidx.window.embedding</span>
+                <span class="pill pill-green" style="font-size: 0.72rem;">앱 프로세스</span>
+              </div>
             </div>
-            <p>공개 AndroidX 개발자 API. 선언적 XML 규칙, 프로그래밍 방식의 <code>RuleController</code> 및 상태 옵저버를 제공합니다. 고수준 API 호출을 OEM 확장(Extension) 인터페이스 규격으로 변환합니다.</p>
+            <p><strong>일반 앱 개발자가 직접 사용하는 공개 API</strong> 계층입니다. 앱 APK 내에 번들링되어 배포되며, 선언적 XML 규칙 및 프로그래밍 방식의 <code>RuleController</code>, 분할 상태 옵저버를 제공합니다. 개발자의 고수준 규칙을 하위 확장 인터페이스 규격으로 변환합니다.</p>
             <div class="arch-chips">
               <span class="chip">SplitController.kt</span>
               <span class="chip">RuleController.kt</span>
@@ -712,15 +734,18 @@
             </div>
           </div>
 
-          <div class="arch-arrow">▼ 동적 리플렉션 / OEM 인터페이스</div>
+          <div class="arch-arrow">▼ 동적 리플렉션 / ClassLoader 바인딩 (인프로세스)</div>
 
           <!-- Layer 2 -->
           <div class="arch-layer">
             <div class="arch-layer-header">
-              <span class="arch-layer-title">Layer 2: WindowManager Extensions (OEM / AOSP)</span>
-              <span class="pill pill-purple">androidx.window.extensions.embedding</span>
+              <span class="arch-layer-title">Layer 2: WindowManager Extensions (OEM / 벤더 확장)</span>
+              <div style="display: flex; gap: 0.4rem; align-items: center;">
+                <span class="pill pill-purple">androidx.window.extensions.embedding</span>
+                <span class="pill pill-green" style="font-size: 0.72rem;">앱 프로세스 (IoC)</span>
+              </div>
             </div>
-            <p>기기 OS 또는 벤더 시스템 이미지에 탑재됩니다. 화면 크기, 폴딩 상태, 가로세로 비율을 평가하고 원자적 <code>TaskFragmentTransaction</code> 작업을 생성합니다.</p>
+            <p><strong>규격 명세(AndroidX)와 기기 구현체(AOSP/OEM) 양쪽에 존재</strong>하며, <strong>IoC(제어의 역전)와 시스템 공유 라이브러리(<code>&lt;uses-library&gt;</code>)</strong>를 통해 앱 프로세스 메모리에 로드됩니다. 기기별 화면 크기, 힌지 접힘 상태, 가로세로 비율을 실시간 계산하여 분할/누적 여부를 결정하는 <strong>동적 분할의 실질적인 런타임 두뇌</strong>입니다.</p>
             <div class="arch-chips">
               <span class="chip">SplitController.java</span>
               <span class="chip">SplitPresenter.java</span>
@@ -729,15 +754,18 @@
             </div>
           </div>
 
-          <div class="arch-arrow">▼ ITaskFragmentOrganizerController.aidl을 통한 IPC</div>
+          <div class="arch-arrow">▼ 프레임워크 내부 인터페이스 호출 (인프로세스)</div>
 
           <!-- Layer 3 -->
           <div class="arch-layer">
             <div class="arch-layer-header">
               <span class="arch-layer-title">Layer 3: Framework Core Client (프레임워크 핵심 클라이언트)</span>
-              <span class="pill pill-orange">android.window</span>
+              <div style="display: flex; gap: 0.4rem; align-items: center;">
+                <span class="pill pill-orange">android.window</span>
+                <span class="pill pill-green" style="font-size: 0.72rem;">앱 프로세스</span>
+              </div>
             </div>
-            <p>클라이언트 측 Binder 브리지. 원자적 작업 코드를 정의하고 WindowManager Service와의 바인더 통신을 캡슐화합니다.</p>
+            <p>Android 기본 플랫폼에 내장된 클라이언트 측 바인더 브리지입니다. 컨테이너 생성 및 바운드 설정 등의 작업을 원자적 <code>TaskFragmentTransaction</code>으로 묶어 시스템 서버로 전송할 수 있도록 캡슐화합니다.</p>
             <div class="arch-chips">
               <span class="chip">TaskFragmentOrganizer.java</span>
               <span class="chip">TaskFragmentTransaction.java</span>
@@ -745,60 +773,26 @@
             </div>
           </div>
 
-          <div class="arch-arrow">▼ system_server (ATMS) 대상 Binder IPC</div>
+          <!-- Process Boundary Divider -->
+          <div class="process-boundary">
+            <span>⚡ 프로세스 간 경계 (Cross-Process Boundary: Binder IPC) ⚡</span>
+          </div>
 
           <!-- Layer 4 -->
           <div class="arch-layer">
             <div class="arch-layer-header">
-              <span class="arch-layer-title">Layer 4: System Server & WindowManager Core (시스템 서버 및 WindowManager 코어)</span>
-              <span class="pill pill-green">com.android.server.wm</span>
+              <span class="arch-layer-title">Layer 4: System Server & WindowManager Core (시스템 서버 코어)</span>
+              <div style="display: flex; gap: 0.4rem; align-items: center;">
+                <span class="pill pill-green">com.android.server.wm</span>
+                <span class="pill pill-orange" style="font-size: 0.72rem;">system_server 프로세스</span>
+              </div>
             </div>
-            <p>ActivityTaskManagerService (ATMS) 시스템 서버. 보안 규칙 및 컨테이너 경계를 강제하고, 액티비티 생명주기를 관리하며, 원자적 SurfaceControl 트랜잭션을 실행합니다.</p>
+            <p>기기 전체의 창 관리를 총괄하는 ActivityTaskManagerService (ATMS) 시스템 서버 프로세스입니다. 컨테이너 경계 및 UID 보안 규칙을 강제하고, 액티비티 생명주기를 총괄하며, SurfaceControl 트랜잭션을 원자적으로 실행합니다.</p>
             <div class="arch-chips">
               <span class="chip">TaskFragmentOrganizerController.java</span>
               <span class="chip">TaskFragment.java</span>
               <span class="chip">Task.java (TaskFragment 상속)</span>
             </div>
-          </div>
-        </div>
-
-        <!-- Architectural Insights: Layer Responsibilities & Hierarchy -->
-        <div class="grid-2" style="margin-top: 2rem;">
-          <!-- Insight 1: Layer 2 is the Dynamic Brain -->
-          <div class="card">
-            <div class="card-title">
-              <span>동적 분할 변경은 어느 계층이 결정하는가?</span>
-              <span class="pill pill-purple">Layer 2 (OEM Extension)</span>
-            </div>
-            <p>화면 너비가 변경될 때(디스플레이 리사이즈, 폴더블 접기/펼치기, 멀티윈도우 드래그), <strong>AndroidX(Layer 1)와 ATMS(Layer 4) 모두 레이아웃 분할 여부를 직접 계산하지 않습니다</strong>:</p>
-            <ul style="margin-left: 1.2rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted);">
-              <li><strong>Layer 1 (AndroidX)</strong>은 앱 시작 시 규칙을 한 번 등록할 뿐이며, 런타임 레이아웃 기하학(Geometry) 연산을 전혀 수행하지 않습니다.</li>
-              <li><strong>Layer 4 (ATMS)</strong>는 <em>SplitRule이나 분할 비율(ratio)에 대해 전혀 알지 못합니다</em>. 부모 바운드(bounds) 변경만 감지하여 <code>TYPE_TASK_FRAGMENT_PARENT_INFO_CHANGED</code> 이벤트를 발행합니다.</li>
-              <li><strong>Layer 2 (OEM Extensions: <code>SplitController</code> 및 <code>SplitPresenter</code>)</strong>가 앱 프로세스 내에 상주하는 실질적인 동적 런타임 두뇌입니다. <code>minWidthDp</code>와 <code>minDimensions</code>를 평가하여 분할(Split)할지 전체화면 누적(Stack, <code>EXPAND_CONTAINERS_ATTRIBUTES</code>)할지 결정하고 <code>WindowContainerTransaction</code>을 구성하여 제출합니다.</li>
-            </ul>
-          </div>
-
-          <!-- Insight 2: Task extends TaskFragment -->
-          <div class="card">
-            <div class="card-title">
-              <span>코드 로직: Task는 특수한 TaskFragment이다</span>
-              <span class="pill pill-green">Layer 4 (ATMS)</span>
-            </div>
-            <p>AOSP에서 <code>Task extends TaskFragment</code> 구조를 갖습니다. <code>Task</code>는 사용자가 보는 최근 앱(Recents) 타일을 나타내며, 그 자식들은 분할 창을 나타내는 <strong>"순수 TaskFragment(Pure TaskFragments)"</strong>입니다:</p>
-            <pre style="margin: 0.5rem 0; font-size: 0.82rem;"><code>// Task.java: 자신이 Task임을 식별하기 위해 asTask() 오버라이드 (TaskFragment는 null 반환)
-@Override
-Task asTask() { return this; }
-
-// Task.java:1489: 순수 TaskFragment 여부 명시적 검사
-final TaskFragment childTaskFrag = child.asTaskFragment();
-if (childTaskFrag != null && childTaskFrag.asTask() == null) {
-    // 중첩된 Task가 아닌, 순수 임베디드 TaskFragment인 경우!
-    childTaskFrag.setMinDimensions(mMinWidth, mMinHeight);
-}
-
-// WindowOrganizerController.java:2583-2594: Secondary는 Primary의 위(higher index)에 추가됨
-position = pairedPosition != -1 ? pairedPosition + 1 : POSITION_TOP;
-ownerTask.addChild(taskFragment, position); // TaskFragment 2가 더 높은 인덱스(Task 최상위)에 위치함</code></pre>
           </div>
         </div>
       </section>
@@ -873,7 +867,7 @@ ownerTask.addChild(taskFragment, position); // TaskFragment 2가 더 높은 인�
               <p>화면 너비가 동적으로 변경될 때(기기 회전, 폴더블 접기/펼치기, 멀티윈도우 크기 조절), 레이아웃은 실시간으로 분할(Split)과 누적(Stacked) 상태 사이를 전환합니다:</p>
               <ul style="margin-left: 1.2rem; line-height: 1.8;">
                 <li><strong class="pill pill-green" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 4: System Server (ATMS)</strong> 부모 리프 <code>Task</code>의 바운드가 변경되었음을 감지합니다. ATMS는 <em>SplitRule이나 분할 비율에 대해 전혀 알지 못하므로</em>, 새 <code>TaskFragmentParentInfo</code>를 담은 <code>TYPE_TASK_FRAGMENT_PARENT_INFO_CHANGED</code> 트랜잭션을 디스패치합니다.</li>
-                <li><strong class="pill pill-purple" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 2: OEM Extension (런타임 두뇌)</strong> <code>JetpackTaskFragmentOrganizer</code>가 트랜잭션을 수신하여 앱 프로세스 내부의 <code>SplitController.onTaskFragmentParentInfoChanged()</code>를 호출합니다:
+                <li><strong class="pill pill-purple" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 2: WindowManager Extensions (런타임 두뇌)</strong> <code>JetpackTaskFragmentOrganizer</code>가 트랜잭션을 수신하여 앱 프로세스 내부의 <code>SplitController.onTaskFragmentParentInfoChanged()</code>를 호출합니다:
                   <ol style="margin-left: 1.2rem; margin-top: 0.25rem;">
                     <li><code>taskContainer.updateTaskFragmentParentInfo(parentInfo)</code>가 캐시된 부모 태스크 치수를 갱신합니다.</li>
                     <li><code>SplitPresenter.computeSplitAttributes()</code>가 새 부모 바운드를 규칙의 <code>minWidthDp</code> 및 각 액티비티의 <code>minDimensions</code>와 비교 평가합니다.</li>
@@ -888,6 +882,21 @@ ownerTask.addChild(taskFragment, position); // TaskFragment 2가 더 높은 인�
                 <li><strong class="pill pill-orange" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 3: Framework Client</strong> 계산된 바운드 설정 및 확장 작업을 <code>WindowContainerTransaction</code> (WCT)에 담아 전달합니다.</li>
                 <li><strong class="pill pill-green" style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.4rem;">Layer 4: System Server (ATMS)</strong> <code>WindowOrganizerController.applyTransaction(wct)</code>가 원자적 레이아웃 업데이트를 실행하여, 액티비티 재시작 없이 SurfaceControl 서피스들을 부드럽게 재배치하고 스케일링합니다.</li>
               </ul>
+
+              <!-- Merged Insight Box -->
+              <div class="callout" style="margin-top: 1rem; border-color: rgba(188, 140, 255, 0.4); background: rgba(188, 140, 255, 0.05);">
+                <div class="callout-title" style="color: var(--accent-purple);">
+                  💡 핵심 아키텍처: 동적 분할 변경은 어느 계층이 결정하는가?
+                </div>
+                <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.35rem; line-height: 1.6;">
+                  화면 크기가 변경될 때 <strong>AndroidX(Layer 1)와 ATMS(Layer 4) 모두 레이아웃 분할 여부를 직접 계산하지 않습니다</strong>:
+                </p>
+                <ul style="margin-left: 1.2rem; font-size: 0.85rem; line-height: 1.6; color: var(--text-muted); margin-top: 0.3rem;">
+                  <li><strong>Layer 1 (AndroidX)</strong>은 앱 시작 시 규칙을 등록할 뿐이며, 런타임 지오메트리 계산을 전혀 수행하지 않습니다.</li>
+                  <li><strong>Layer 4 (ATMS)</strong>는 <em>SplitRule이나 분할 비율(ratio)을 전혀 알지 못하며</em>, 부모 바운드 변경 감지 시 <code>TYPE_TASK_FRAGMENT_PARENT_INFO_CHANGED</code>만 발행합니다.</li>
+                  <li><strong>Layer 2 (WindowManager Extensions: <code>SplitController</code> & <code>SplitPresenter</code>)</strong>가 <strong>앱 프로세스 내부</strong>에서 <code>minWidthDp</code>와 <code>minDimensions</code>를 비교 평가하여 분할(Split)할지 전체화면 누적(Stack, <code>EXPAND_CONTAINERS_ATTRIBUTES</code>)할지 결정하는 <strong>실질적인 동적 런타임 두뇌</strong>입니다.</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -1008,47 +1017,56 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
         <h2>5. 보안 및 신뢰 경계</h2>
         <p>악의적인 앱이 임의의 금융 또는 결제 액티비티를 임베딩하여 사용자 터치를 가로채거나(Tapjacking) 화면을 탈취하는 것을 어떻게 방지할까요? Android는 <code>TaskFragment.java</code>와 ATMS <code>ActivityStarter</code> 내부에서 엄격한 <strong>신뢰(Trusted) 대 비신뢰(Untrusted) 임베딩</strong> 검사를 수행합니다.</p>
 
-        <div class="grid-2">
-          <div class="card">
-            <div class="card-title">
-              <span>신뢰된 임베딩 (Trusted Embedding)</span>
-              <span class="pill pill-green">동일 UID</span>
-            </div>
-            <p>동일한 애플리케이션 패키지 및 UID에 속한 액티비티들은 자동으로 신뢰되며, 매니페스트 설정 없이도 인접한 <code>TaskFragment</code>에 자유롭게 임베딩될 수 있습니다.</p>
+        <!-- 1. 동일 앱 신뢰 -->
+        <div class="card" style="margin-top: 1.25rem;">
+          <div class="card-title">
+            <span>1. 동일 앱 임베딩 (Same UID / Trusted Embedding)</span>
+            <span class="pill pill-green">동일 UID · 자동 신뢰</span>
           </div>
-
-          <div class="card">
-            <div class="card-title">
-              <span>교차 앱 임베딩 (Cross-App Embedding)</span>
-              <span class="pill pill-orange">교차 UID</span>
-            </div>
-            <p>서로 다른 UID/패키지의 액티비티를 임베딩하려는 경우, 대상 액티비티는 <code>AndroidManifest.xml</code>에서 다음 두 가지 메커니즘 중 하나를 통해 명시적으로 권한을 부여해야 합니다:</p>
-          </div>
+          <p style="margin-top: 0.4rem;">동일한 애플리케이션 패키지 및 UID에 속한 액티비티들은 <strong>자동으로 신뢰</strong>되며, 매니페스트(<code>AndroidManifest.xml</code>)에 별도의 허용 설정을 하지 않아도 인접한 <code>TaskFragment</code>에 자유롭게 임베딩될 수 있습니다.</p>
         </div>
 
-        <div class="grid-2" style="margin-top: 1.5rem;">
-          <div class="card">
-            <div class="card-title">
-              <span>1. 공개 허용 (비신뢰 임베딩 / Untrusted Embedding)</span>
-              <span class="pill pill-orange">Android 12L+</span>
-            </div>
-            <p><em>어떤</em> 호스트 앱이라도 이 액티비티를 임베딩할 수 있도록 허용합니다 (예: 공용 문서 뷰어 또는 시스템 공유 대화상자):</p>
-            <pre><code>&lt;activity
+        <!-- 2. 교차 앱 임베딩 (하위 항목으로 방식 A, B 포함) -->
+        <div class="card" style="margin-top: 1.25rem; border-color: rgba(210, 153, 34, 0.4);">
+          <div class="card-title">
+            <span>2. 교차 앱 임베딩 (Cross-UID / Cross-App Embedding)</span>
+            <span class="pill pill-orange">교차 UID · 명시적 허용 필수</span>
+          </div>
+          <p style="margin-top: 0.4rem;">
+            서로 다른 UID/패키지의 액티비티를 임베딩하려는 경우, <strong>대상 액티비티(임베딩되는 앱)</strong>가 <code>AndroidManifest.xml</code>을 통해 임베딩 권한을 명시적으로 부여해야 합니다. 시스템은 보안 요구수준에 따라 <strong>2가지 하위 허용 방식</strong>을 제공합니다:
+          </p>
+
+          <!-- 하위 항목: 방식 A & 방식 B Grid -->
+          <div class="grid-2" style="margin-top: 1.25rem;">
+            <!-- 방식 A -->
+            <div class="card" style="background: rgba(13, 17, 23, 0.6); border: 1px solid var(--border-subtle);">
+              <div class="card-title">
+                <span style="font-size: 0.95rem;">방식 A. 공개 허용 (비신뢰 임베딩)</span>
+                <span class="pill pill-orange" style="font-size: 0.7rem;">Android 12L+</span>
+              </div>
+              <p style="font-size: 0.88rem; margin-top: 0.35rem;"><em>어떤</em> 호스트 앱이라도 이 액티비티를 임베딩할 수 있도록 전면 허용합니다 (예: 공용 문서 뷰어, 범용 공유 대화상자):</p>
+              <pre style="margin: 0.5rem 0; font-size: 0.82rem;"><code>&lt;activity
     android:name=".PublicShareActivity"
     android:allowUntrustedActivityEmbedding="true" /&gt;</code></pre>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">이 플래그가 선언되지 않은 경우, 시스템 서버는 보안 예외(SecurityException)를 발생시키며 임베딩 트랜잭션을 거부하여 탭재킹 및 오버레이 탈취 공격을 차단합니다.</p>
-          </div>
-
-          <div class="card">
-            <div class="card-title">
-              <span>2. 인증서 검증 (제한된 파트너 / Restricted Partners)</span>
-              <span class="pill pill-blue">Android 13+ (API 33)</span>
+              <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.35rem;">
+                ⚠️ 이 플래그가 없으면 시스템 서버가 보안 예외(SecurityException)를 발생시키며 트랜잭션을 즉시 차단합니다. 누구나 임베딩할 수 있으므로 민감한 UI에는 주의가 필요합니다.
+              </p>
             </div>
-            <p>SHA-256 서명 인증서 다이제스트 검증을 통해 신뢰할 수 있는 특정 파트너 앱에게만 임베딩을 제한적으로 허용합니다:</p>
-            <pre><code>&lt;activity
+
+            <!-- 방식 B -->
+            <div class="card" style="background: rgba(13, 17, 23, 0.6); border: 1px solid var(--border-subtle);">
+              <div class="card-title">
+                <span style="font-size: 0.95rem;">방식 B. 인증서 검증 (제한된 파트너)</span>
+                <span class="pill pill-blue" style="font-size: 0.7rem;">Android 13+ (API 33)</span>
+              </div>
+              <p style="font-size: 0.88rem; margin-top: 0.35rem;">지정된 <strong>SHA-256 서명 인증서 다이제스트</strong>가 일치하는 신뢰할 수 있는 특정 파트너 앱에게만 임베딩을 제한적으로 허용합니다:</p>
+              <pre style="margin: 0.5rem 0; font-size: 0.82rem;"><code>&lt;activity
     android:name=".PartnerActivity"
     android:knownActivityEmbeddingCerts="@array/trusted_embedding_certs" /&gt;</code></pre>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">ATMS가 호출 호스트의 서명 인증서를 참조된 문자열 배열과 대조하여 검증합니다. 신뢰할 수 없는 호출자는 즉시 차단되므로, 외부에 무분별하게 노출되지 않고 안전한 파트너 간 화면 분할을 구현할 수 있습니다 (Android 13에서 최초 도입되었으며, Android 14부터 매니페스트 내 최대 50개 인증서 제한 검증이 추가됨).</p>
+              <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.35rem;">
+                ✅ ATMS가 호스트 앱의 서명 인증서를 대조하여 검증합니다. 인가되지 않은 앱의 임베딩은 시스템 레벨에서 완전 차단되므로 안전한 파트너 간 화면 분할이 가능합니다 (Android 14부터 최대 50개 제한 검증 추가).
+              </p>
+            </div>
           </div>
         </div>
       </section>
