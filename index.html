@@ -796,8 +796,9 @@ if (childTaskFrag != null && childTaskFrag.asTask() == null) {
     childTaskFrag.setMinDimensions(mMinWidth, mMinHeight);
 }
 
-// WindowOrganizerController.java:2594
-ownerTask.addChild(taskFragment, position); // Parent Task holds child TaskFragment</code></pre>
+// WindowOrganizerController.java:2583-2594: Secondary added ABOVE Primary
+position = pairedPosition != -1 ? pairedPosition + 1 : POSITION_TOP;
+ownerTask.addChild(taskFragment, position); // TaskFragment 2 sits at higher index (Task Top)</code></pre>
           </div>
         </div>
       </section>
@@ -918,6 +919,32 @@ RootWindowContainer
                      └── ActivityRecord (e.g. DetailActivity)</code></pre>
 
         <p>Because <code>Task</code> extends <code>TaskFragment</code>, external system services (Launcher, Recents, ATMS) continue to treat a Task as a single unit. Internally, <code>TaskFragment</code> takes over managing individual activity stacks and multi-pane bounds. Existing single-pane apps simply run inside a default <code>TaskFragment</code> with zero awareness or behavioral change.</p>
+
+        <!-- Insight: Top Activity Resolution in Split & Multi-Resume -->
+        <div class="callout" style="margin-top: 1.5rem;">
+          <div class="callout-title" style="display: flex; align-items: center; justify-content: space-between;">
+            <span>💡 Architectural Traversal: Secondary Activity is Considered "Top" of the Task</span>
+            <span class="pill pill-purple">Multi-Resume &amp; Z-Order</span>
+          </div>
+          <p style="margin-top: 0.5rem; margin-bottom: 0.6rem;">
+            Even though both Primary and Secondary activities are <strong>simultaneously visible and in the <code>RESUMED</code> lifecycle state</strong> (via Android 10+ multi-resume), the internal WindowManager container hierarchy is strictly linear:
+          </p>
+          <ul style="margin-left: 1.2rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted);">
+            <li>
+              <strong>Child Placement in ATMS:</strong> When <code>TaskFragment 2</code> (Secondary) is created, AOSP (<code>WindowOrganizerController.java:2583</code>) places it at <code>pairedPosition + 1</code> in <code>Task.mChildren</code>, directly <em>above</em> <code>TaskFragment 1</code> (Primary).
+            </li>
+            <li>
+              <strong>Top Activity Traversal:</strong> When ATMS queries the top running activity (<code>Task.topRunningActivity()</code> via <code>WindowContainer.java:2044</code>), it searches <code>mChildren</code> backwards from the highest index downwards. Thus, <strong><code>SecondaryActivity</code> is always evaluated as the "Top Activity" of the Task</strong>.
+            </li>
+            <li>
+              <strong>Impact on <code>singleTop</code> &amp; <code>clearTop</code>:</strong>
+              Because <code>singleTop</code> evaluates against the top of the entire <em>Task</em> (not an internal fragment), re-launching <code>PrimaryActivity</code> with <code>singleTop</code> alone will <strong>not</strong> trigger <code>onNewIntent()</code>; it starts a new instance because <code>SecondaryActivity</code> sits on top. Conversely, launching with <code>FLAG_ACTIVITY_CLEAR_TOP</code> clears all activities above Primary (destroying Secondary) before delivering <code>onNewIntent()</code> to Primary.
+            </li>
+            <li>
+              <strong>AOSP Test Confirmation:</strong> Verified in <code>TaskContainerTest.java:186-188</code>: <code>assertEquals(activity1, taskContainer.getTopNonFinishingActivity(true))</code> explicitly asserts that the secondary activity is the top non-finishing activity of the task container.
+            </li>
+          </ul>
+        </div>
 
         <h3 style="margin-top: 2rem;">2. The Rule-Based Architecture</h3>
         <p>Similarly, the rule-based approach avoids breaking activity launch contracts. Instead of requiring new <code>startActivity</code> arguments or custom Intent flags, layout behavior is driven by centralized rules registered at startup:</p>
