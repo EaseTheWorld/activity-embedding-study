@@ -714,7 +714,7 @@
       <!-- Section 2 -->
       <section id="architecture">
         <h2>2. 4계층 아키텍처 및 프로세스 경계</h2>
-        <p>Activity Embedding은 단순한 단일 라이브러리가 아닙니다. <strong>앱 프로세스 내부</strong>에서 동작하는 AndroidX 및 WindowManager Extensions와, <strong>시스템 서버(system_server)</strong>의 WindowManager Core가 IPC를 통해 긴밀하게 협력하는 풀스택 아키텍처입니다.</p>
+        <p>Activity Embedding은 단순한 단일 라이브러리가 아닙니다. <strong>앱 프로세스 내부</strong>에서 동작하는 AndroidX 및 WindowManager Extensions와, <strong>시스템 서버(system_server)</strong>의 WindowManager Core가 IPC를 통해 긴밀하게 협력하는 풀스택 아키텍처입니다. 개발자가 기존의 <code>startActivity()</code> 코드를 단 한 줄도 수정하지 않고 대화면 분할을 적용할 수 있도록, <strong>선언적 규칙(Rule)이 4개 계층을 거치며 점진적으로 저수준 TaskFragment 트랜잭션으로 변환·실행</strong>됩니다.</p>
 
         <div class="arch-stack">
           <!-- Layer 1 -->
@@ -726,8 +726,11 @@
                 <span class="pill pill-green" style="font-size: 0.72rem;">앱 프로세스</span>
               </div>
             </div>
-            <p><strong>일반 앱 개발자가 직접 사용하는 공개 API</strong> 계층입니다. 앱 APK 내에 번들링되어 배포되며, 선언적 XML 규칙 및 프로그래밍 방식의 <code>RuleController</code>, 분할 상태 옵저버를 제공합니다. 개발자의 고수준 규칙을 하위 확장 인터페이스 규격으로 변환합니다.</p>
-            <div class="arch-chips">
+            <p><strong>일반 앱 개발자가 직접 사용하는 공개 API</strong> 계층입니다. 앱 APK 내에 번들링되어 배포되며, 선언적 XML 규칙 및 프로그래밍 방식의 <code>RuleController</code>, 분할 상태 옵저버를 제공합니다.</p>
+            <div style="margin-top: 0.65rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); background: rgba(88, 166, 255, 0.06); border-left: 3px solid var(--accent); padding: 0.55rem 0.85rem; border-radius: 0 6px 6px 0;">
+              <strong style="color: var(--text-heading);">규칙 추상화 및 변환 (Translate):</strong> 개발자가 <code>TaskFragment</code>를 직접 다루는 복잡함 없이 <code>SplitPairRule</code> 등 고수준 규칙만 등록하면, <code>EmbeddingAdapter.translate()</code>가 이를 하위 플랫폼 계약 인터페이스 규격(Java <code>Predicate</code> 및 Extensions 규격 객체)으로 자동 변환하여 Layer 2로 전달합니다.
+            </div>
+            <div class="arch-chips" style="margin-top: 0.75rem;">
               <span class="chip">SplitController.kt</span>
               <span class="chip">RuleController.kt</span>
               <span class="chip">SplitPairRule.kt</span>
@@ -747,8 +750,11 @@
                 <span class="pill pill-green" style="font-size: 0.72rem;">앱 프로세스 (IoC)</span>
               </div>
             </div>
-            <p><strong>규격 명세(AndroidX)와 플랫폼 구현체(AOSP/기기 제조사) 양쪽에 존재</strong>하며, <strong>시스템 공유 라이브러리(<code>&lt;uses-library&gt;</code>) 동적 로딩과 IoC(제어의 역전)</strong>를 통해 앱 프로세스 메모리에 로드됩니다. 기기별 화면 크기, 힌지 접힘 상태, 가로세로 비율을 실시간 계산하여 분할/누적 여부를 결정하는 <strong>동적 분할의 실질적인 런타임 두뇌</strong>입니다. (※ 리플렉션은 진입 시 메서드/클래스 존재 여부를 검증하는 <em>방어적 가드</em>일 뿐, 실제 바인딩의 핵심은 공유 라이브러리 동적 마운트와 인터페이스 계약 다형성입니다.)</p>
-            <div class="arch-chips">
+            <p><strong>규격 명세(AndroidX)와 플랫폼 구현체(AOSP/기기 제조사) 양쪽에 존재</strong>하며, <strong>시스템 공유 라이브러리(<code>&lt;uses-library&gt;</code>) 동적 로딩과 IoC(제어의 역전)</strong>를 통해 앱 프로세스 메모리에 로드되는 <strong>동적 분할의 실질적인 런타임 두뇌</strong>입니다. (※ 리플렉션은 진입 시 메서드/클래스 존재 여부를 검증하는 <em>방어적 가드</em>일 뿐, 실제 바인딩은 공유 라이브러리 동적 마운트와 인터페이스 계약 다형성으로 이루어집니다.)</p>
+            <div style="margin-top: 0.65rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); background: rgba(188, 140, 255, 0.06); border-left: 3px solid var(--accent-purple); padding: 0.55rem 0.85rem; border-radius: 0 6px 6px 0;">
+              <strong style="color: var(--text-heading);">규칙 캐싱 및 startActivity 가로채기 (Intercept):</strong> <code>SplitController.setEmbeddingRules()</code>가 변환된 규칙들을 수신하여 <code>mSplitRules</code>에 캐싱합니다. 앱이 표준 <code>startActivity()</code>를 호출하면 <code>Instrumentation</code>에 등록된 <code>ActivityStartMonitor</code>가 IPC 호출 직전에 이를 가로채 규칙 및 현재 화면 너비(<code>minWidthDp</code>)를 평가합니다. 분할 조건 충족 시 타겟 <code>TaskFragment</code> 컨테이너를 생성하고, 그 바인더 토큰(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>)을 Intent 옵션에 주입합니다.
+            </div>
+            <div class="arch-chips" style="margin-top: 0.75rem;">
               <span class="chip">SplitController.java</span>
               <span class="chip">SplitPresenter.java</span>
               <span class="chip">JetpackTaskFragmentOrganizer.java</span>
@@ -768,7 +774,10 @@
               </div>
             </div>
             <p>Android 기본 플랫폼에 내장된 클라이언트 측 바인더 브리지입니다. 컨테이너 생성 및 바운드 설정 등의 작업을 원자적 <code>TaskFragmentTransaction</code>으로 묶어 시스템 서버로 전송할 수 있도록 캡슐화합니다.</p>
-            <div class="arch-chips">
+            <div style="margin-top: 0.65rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); background: rgba(210, 153, 34, 0.06); border-left: 3px solid var(--accent-orange); padding: 0.55rem 0.85rem; border-radius: 0 6px 6px 0;">
+              <strong style="color: var(--text-heading);">원자적 트랜잭션 패키징 및 IPC 전송:</strong> Layer 2가 결정한 <code>TaskFragment</code> 생성, 바운드 지정, 또는 파괴 작업을 <code>TaskFragmentOrganizer</code>가 원자적 <code>WindowContainerTransaction (WCT)</code>으로 패키징하여, 프로세스 경계를 넘어 <code>system_server</code>로 안전하게 전달합니다.
+            </div>
+            <div class="arch-chips" style="margin-top: 0.75rem;">
               <span class="chip">TaskFragmentOrganizer.java</span>
               <span class="chip">TaskFragmentTransaction.java</span>
               <span class="chip">TaskFragmentOperation.java</span>
@@ -790,7 +799,10 @@
               </div>
             </div>
             <p>기기 전체의 창 관리를 총괄하는 ActivityTaskManagerService (ATMS) 시스템 서버 프로세스입니다. 컨테이너 경계 및 UID 보안 규칙을 강제하고, 액티비티 생명주기를 총괄하며, SurfaceControl 트랜잭션을 원자적으로 실행합니다.</p>
-            <div class="arch-chips">
+            <div style="margin-top: 0.65rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); background: rgba(63, 185, 80, 0.06); border-left: 3px solid var(--accent-green); padding: 0.55rem 0.85rem; border-radius: 0 6px 6px 0;">
+              <strong style="color: var(--text-heading);">트랜잭션 실행 및 액티비티 라우팅 (Routing):</strong> <code>TaskFragmentOrganizerController</code>가 WCT를 실행하여 시스템 창 계층 트리에 실제 <code>TaskFragment</code> 노드를 생성하고, <code>ActivityStarter</code>가 Intent 옵션의 토큰을 읽어 시작되는 <code>ActivityRecord</code>를 해당 <code>TaskFragment</code> 안으로 정확히 라우팅하여 화면에 나란히 합성(Composite)합니다.
+            </div>
+            <div class="arch-chips" style="margin-top: 0.75rem;">
               <span class="chip">TaskFragmentOrganizerController.java</span>
               <span class="chip">TaskFragment.java</span>
               <span class="chip">Task.java (TaskFragment 상속)</span>
@@ -814,59 +826,6 @@
           <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0;">
             하나의 태스크 안에서 화면을 좌/우로 분할하고 각각의 윈도우 크기(Bounds)와 생명주기를 독립적으로 제어하기 위해 중간 컨테이너가 도입되었습니다. <strong>Layer 2(WindowManager Extensions)와 Layer 3(TaskFragmentOrganizer)</strong>가 앱 프로세스에서 이 <code>TaskFragment</code>들을 생성하고 바운드를 계산하며, <strong>Layer 4(ATMS)</strong>가 시스템 윈도우 트리에 이를 반영하여 화면에 나란히 합성(Composite)합니다.
           </p>
-        </div>
-
-        <!-- Rule Abstraction & Propagation Pipeline Card -->
-        <div class="card" style="margin-top: 1.5rem; border-color: rgba(188, 140, 255, 0.4);">
-          <div class="card-title">
-            <span>💡 규칙(Rule) 기반 추상화와 4계층 전파 파이프라인</span>
-            <span class="pill pill-purple">설계 철학 &amp; 데이터 흐름</span>
-          </div>
-
-          <h4 style="font-size: 0.98rem; margin: 0.8rem 0 0.4rem; color: var(--text-heading);">1. 왜 개발자가 TaskFragment를 직접 다루지 않고 규칙(Rule)으로 추상화했을까?</h4>
-          <p style="font-size: 0.9rem; line-height: 1.6; color: var(--text-muted); margin-bottom: 0.8rem;">
-            화면을 쪼갤 때마다 개발자가 <code>TaskFragment</code>를 직접 생성하고 윈도우 바운드를 수동 계산하게 만들면, 기존 앱의 모든 <code>startActivity()</code> 코드를 전면 재작성해야 합니다. 대신 구글은 <strong>"앱 시작 시점에 선언적 규칙만 미리 전달해 두고, 실제 화면 전환 시 시스템이 알아서 가로채어 컨테이너를 생성하는 규칙 기반(Rule-Based) 모델"</strong>을 택해 기존 코드를 단 한 줄도 건드리지 않는 100% 하위 호환성을 달성했습니다.
-          </p>
-
-          <h4 style="font-size: 0.98rem; margin: 1rem 0 0.4rem; color: var(--text-heading);">2. 규칙(Rule)의 4계층 변환 및 전파 단계 (Pipeline)</h4>
-          <div class="flow-steps" style="margin-top: 0.8rem;">
-            <div class="step-item">
-              <div class="step-number" style="width: 24px; height: 24px; font-size: 0.75rem;">1</div>
-              <div class="step-content">
-                <strong style="color: var(--accent);">Layer 1 (AndroidX): 고수준 규칙 선언 및 규격 변환</strong>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem; line-height: 1.5;">
-                  개발자가 <code>SplitPairRule</code>을 등록하면, <code>EmbeddingAdapter.translate()</code>가 이를 하위 플랫폼 계약 규격으로 변환합니다. (예: <code>SplitPairFilter</code>는 <code>Predicate&lt;Pair&lt;Activity, Intent&gt;&gt;</code>로, <code>SplitAttributes</code>는 Extensions 규격 객체로 변환).
-                </p>
-              </div>
-            </div>
-            <div class="step-item">
-              <div class="step-number" style="width: 24px; height: 24px; font-size: 0.75rem;">2</div>
-              <div class="step-content">
-                <strong style="color: var(--accent-purple);">Layer 2 (Extensions): 규칙 캐싱 및 ActivityStartMonitor 잠복</strong>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem; line-height: 1.5;">
-                  <code>SplitController.setEmbeddingRules()</code>가 변환된 규칙들을 수신하여 <code>mSplitRules</code>에 캐싱합니다. 동시에 앱 프로세스 내부의 <code>Instrumentation</code>에 <code>ActivityStartMonitor</code>를 등록하여 향후 발생하는 모든 액티비티 실행을 감시할 준비를 마칩니다.
-                </p>
-              </div>
-            </div>
-            <div class="step-item">
-              <div class="step-number" style="width: 24px; height: 24px; font-size: 0.75rem;">3</div>
-              <div class="step-content">
-                <strong style="color: var(--accent-green);">실행 시점: startActivity 가로채기 및 TaskFragment 토큰 주입</strong>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem; line-height: 1.5;">
-                  앱이 평소대로 <code>startActivity(intent)</code>를 호출하면, <code>ActivityStartMonitor.onStartActivity()</code>가 IPC 호출 직전에 이를 가로챕니다. 캐시된 규칙과 현재 화면 너비(<code>minWidthDp</code>)를 평가하여 조건이 충족되면 타겟 <code>TaskFragment</code> 컨테이너를 생성하고, 그 바인더 토큰(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>)을 Intent 옵션에 주입합니다.
-                </p>
-              </div>
-            </div>
-            <div class="step-item">
-              <div class="step-number" style="width: 24px; height: 24px; font-size: 0.75rem;">4</div>
-              <div class="step-content">
-                <strong style="color: var(--accent-orange);">Layer 3 &amp; 4 (Framework &amp; ATMS): 원자적 트랜잭션 전송 및 라우팅</strong>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem; line-height: 1.5;">
-                  <code>TaskFragmentOrganizer</code>가 컨테이너 생성 트랜잭션을 시스템 서버로 전달하고, ATMS의 <code>ActivityStarter</code>가 옵션에 주입된 토큰을 읽어 새 <code>ActivityRecord</code>를 지정된 <code>TaskFragment</code> 안으로 정확히 라우팅하여 배치합니다.
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
