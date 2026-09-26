@@ -806,11 +806,11 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
         <!-- Conceptual Bridge: TaskFragment introduced between Task and Activity -->
         <div class="callout" style="margin: 1.25rem 0 1.5rem; border-color: rgba(88, 166, 255, 0.4); background: rgba(88, 166, 255, 0.05);">
           <div class="callout-title" style="color: var(--accent); display: flex; align-items: center; justify-content: space-between;">
-            <span>💡 핵심 멘탈 모델: Task와 Activity 사이에 도입된 TaskFragment</span>
-            <span class="pill pill-blue">컨테이너 진화</span>
+            <span>💡 핵심 컨테이너 구조: Task와 Activity 사이에 도입된 TaskFragment</span>
+            <span class="pill pill-blue">컨테이너 구조</span>
           </div>
           <p style="margin-top: 0.5rem; margin-bottom: 0.8rem; font-size: 0.95rem; line-height: 1.6;">
-            Activity Embedding의 실행 흐름을 이해하는 가장 핵심적인 열쇠는 <strong>"Task와 Activity 사이에 분할 화면을 담당하는 <code>TaskFragment</code>라는 창(Window) 단위 컨테이너가 새로 생겼다"</strong>는 멘탈 모델을 갖는 것입니다:
+            Activity Embedding의 핵심은 <strong>"하나의 Task 내에서 화면을 분할하기 위해, Task와 Activity 사이에 <code>TaskFragment</code>라는 창(Window) 단위 컨테이너가 새로 도입되었다"</strong>는 점입니다:
           </p>
           <div style="background: var(--code-bg); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0.85rem 1rem; font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.7; margin-bottom: 0.8rem;">
             <div style="color: var(--text-muted);"><span style="color: var(--accent-orange); font-weight: 600;">레거시 (Android 11 이전):</span> Task (최근 앱 타일 1개) ──직접 포함──▶ Activity (화면 1개)</div>
