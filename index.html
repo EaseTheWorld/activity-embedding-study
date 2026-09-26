@@ -611,8 +611,10 @@
         <li><a href="#execution-flow">3. 엔드투엔드 실행 흐름</a></li>
         <li><a href="#backward-compatibility">4. 하위 호환성 설계</a></li>
         <li><a href="#security">5. 보안 및 신뢰 모델</a></li>
-        <li><a href="#upstream-sources">6. 업스트림 소스 저장소</a></li>
-        <li><a href="#appendix-ioc">7. 부록: IoC 및 동적 주입</a></li>
+        <li style="margin-top: 0.8rem; border-top: 1px solid var(--border-subtle); padding-top: 0.5rem;"><span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">부록 및 레퍼런스</span></li>
+        <li><a href="#appendix-ioc">부록 A. 시스템 공유 라이브러리 &amp; IoC</a></li>
+        <li><a href="#appendix-zorder">부록 B. Top Activity &amp; Z-Order 심층 분석</a></li>
+        <li><a href="#appendix-sources">부록 C. 업스트림 소스 코드 레퍼런스</a></li>
       </ul>
     </aside>
 
@@ -929,30 +931,18 @@ RootWindowContainer
 
         <p><code>Task</code>가 <code>TaskFragment</code>를 상속하기 때문에, 외부 시스템 서비스들(Launcher, Recents, ATMS)은 여전히 Task를 단일 단위로 취급합니다. 내부적으로는 <code>TaskFragment</code>가 개별 액티비티 스택과 멀티페인 바운드를 독립적으로 관리합니다. 기존의 단일 창 앱들은 기본 <code>TaskFragment</code> 안에서 아무런 동작 변경이나 호환성 문제 없이 그대로 실행됩니다.</p>
 
-        <!-- Insight: Top Activity Resolution in Split & Multi-Resume -->
-        <div class="callout" style="margin-top: 1.5rem;">
+        <!-- Brief Note: Top Activity in Split Layout -->
+        <div class="callout" style="margin-top: 1.25rem;">
           <div class="callout-title" style="display: flex; align-items: center; justify-content: space-between;">
-            <span>💡 아키텍처 탐색: Secondary Activity가 태스크의 "Top"으로 간주되는 이유</span>
-            <span class="pill pill-purple">멀티-리쥼(Multi-Resume) &amp; Z-Order</span>
+            <span>💡 화면 분할 시 어떤 액티비티가 최상위(Top)인가?</span>
+            <span class="pill pill-purple">Multi-Resume &amp; Z-Order</span>
           </div>
-          <p style="margin-top: 0.5rem; margin-bottom: 0.6rem;">
-            Primary와 Secondary 액티비티가 (Android 10+ 멀티-리쥼을 통해) <strong>동시에 화면에 표시되고 모두 <code>RESUMED</code> 생명주기 상태</strong>에 있더라도, WindowManager 내부의 컨테이너 계층 구조는 엄격하게 선형(Linear)적입니다:
+          <p style="margin-top: 0.5rem; margin-bottom: 0.4rem; font-size: 0.9rem;">
+            Primary와 Secondary 액티비티가 모두 화면에 표시되어 <code>RESUMED</code> 상태(Multi-Resume)라 하더라도, WindowManager 내부 컨테이너 트리에서는 <strong>Secondary Activity가 항상 선형 Z-order 상위(Top)</strong>로 관리됩니다. 따라서 <code>singleTop</code> 플래그 호출 등의 동작 시 Secondary가 최상위로 평가됩니다.
           </p>
-          <ul style="margin-left: 1.2rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted);">
-            <li>
-              <strong>ATMS 내 자식 배치 순서:</strong> <code>TaskFragment 2</code> (Secondary)가 생성될 때, AOSP (<code>WindowOrganizerController.java:2583</code>)는 이를 <code>Task.mChildren</code> 리스트의 <code>pairedPosition + 1</code> 위치, 즉 <code>TaskFragment 1</code> (Primary)의 바로 <em>위(상위 인덱스)</em>에 배치합니다.
-            </li>
-            <li>
-              <strong>최상위 액티비티 탐색 방식:</strong> ATMS가 현재 실행 중인 최상위 액티비티를 조회할 때(<code>WindowContainer.java:2044</code>를 통한 <code>Task.topRunningActivity()</code>), <code>mChildren</code>을 가장 높은 인덱스부터 역순으로 탐색합니다. 따라서 <strong>항상 <code>SecondaryActivity</code>가 태스크 전체의 "Top Activity"로 평가</strong>됩니다.
-            </li>
-            <li>
-              <strong><code>singleTop</code> 및 <code>clearTop</code> 동작에 미치는 영향:</strong>
-              <code>singleTop</code> 플래그는 개별 내부 프래그먼트가 아닌 <em>태스크 전체의 최상위(Top)</em>를 기준으로 평가되므로, <code>PrimaryActivity</code>를 <code>singleTop</code> 단독으로 재실행해도 <code>onNewIntent()</code>가 호출되지 않습니다(그 위에 <code>SecondaryActivity</code>가 탑으로 위치해 있기 때문이며, 새 인스턴스가 시작됩니다). 반대로 <code>FLAG_ACTIVITY_CLEAR_TOP</code>으로 실행하면 Primary 위의 모든 액티비티를 정리(Secondary를 파괴)한 후 Primary에 정상적으로 <code>onNewIntent()</code>를 전달합니다.
-            </li>
-            <li>
-              <strong>AOSP 테스트 코드 검증:</strong> <code>TaskContainerTest.java:186-188</code>에서 확인: <code>assertEquals(activity1, taskContainer.getTopNonFinishingActivity(true))</code> 코드는 보조 액티비티가 태스크 컨테이너의 최상위 비종료 액티비티임을 명시적으로 단언(assert)하여 검증합니다.
-            </li>
-          </ul>
+          <p style="font-size: 0.85rem; color: var(--accent); margin-bottom: 0;">
+            👉 <em>ATMS 자식 인덱스 탐색 알고리즘, singleTop/clearTop 상세 동작, AOSP 테스트 코드 검증은 <a href="#appendix-zorder" style="color: var(--accent); text-decoration: underline;">부록 B: Top Activity 판정과 Z-Order 심층 분석</a>을 참조하세요.</em>
+          </p>
         </div>
 
         <h3 style="margin-top: 2rem;">2. 규칙 기반(Rule-Based) 아키텍처</h3>
@@ -1071,9 +1061,171 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
         </div>
       </section>
 
-      <!-- Section 6 -->
-      <section id="upstream-sources">
-        <h2>6. 업스트림 소스 저장소</h2>
+      <!-- Appendix A -->
+      <section id="appendix-ioc">
+        <h2>부록 A. 아키텍처의 비밀 — compileOnly 및 시스템 공유 라이브러리를 통한 IoC</h2>
+        <p>애플리케이션 APK 내부에 번들링된 비번들(Unbundled) Jetpack 라이브러리(<code>androidx.window:window</code>)가 런타임 크래시나 클래스 중복, 연간 OS 판올림 종속성 없이 어떻게 시스템 파티션에 위치한 기기 플랫폼 구현체(<code>SplitController</code>)와 동일 프로세스(In-process) 내에서 직접 통신할 수 있을까요?</p>
+        
+        <p>그 비밀은 <code>compileOnly</code> 의존성, <code>&lt;uses-library&gt;</code>, 그리고 동적 ClassLoader 마운트를 유기적으로 결합한 우아한 <strong>제어의 역전(Inversion of Control, IoC)</strong> 아키텍처 패턴에 있습니다.</p>
+
+        <div class="card" style="margin: 1.5rem 0;">
+          <div class="card-title">
+            <span>3계층 의존성 및 로딩 모델 (3-Tier Dependency & Loading Model)</span>
+            <span class="pill pill-purple">아키텍처</span>
+          </div>
+          <pre><code>┌─────────────────────────────────────────────────────────────────────────────┐
+│ Tier 1: 규격 명세 계약 (androidx.window:window-extensions)                  │
+│ - WindowExtensions 인터페이스 정의                                          │
+│ - ActivityEmbeddingComponent 인터페이스 정의                                │
+│ - 진입점 클래스 WindowExtensionsProvider 정의                                │
+└───────────────────────┬─────────────────────────────┬───────────────────────┘
+                        │ compileOnly                 │ static_libs
+                        ▼                             ▼
+┌──────────────────────────────────────┐   ┌──────────────────────────────────┐
+│ Tier 2: 앱 소비자 (App Consumer)      │   │ Tier 3: 플랫폼 / 기기 구현체      │
+│ (APK 내부의 androidx.window:window)  │   │ (/system_ext/framework/...)      │
+├──────────────────────────────────────┤   ├──────────────────────────────────┤
+│ - compileOnly(window-extensions)     │   │ - static_libs: [window-extensions]│
+│ - AndroidManifest.xml:               │   │ - WindowExtensionsImpl           │
+│   &lt;uses-library                      │   │   implements WindowExtensions    │
+│     name="androidx.window.extensions"│   │ - SplitController                │
+│     required="false" /&gt;              │   │   implements                     │
+│ - ExtensionEmbeddingBackend.kt       │   │   ActivityEmbeddingComponent     │
+│ - SafeActivityEmbeddingComponent-    │   │                                  │
+│   Provider.kt                        │   │                                  │
+└──────────────────────────────────────┘   └──────────────────────────────────┘</code></pre>
+        </div>
+
+        <h3>단계별 런타임 주입 흐름 (Runtime Injection Flow Step-by-Step)</h3>
+        <div class="flow-steps">
+          <div class="step-item">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h4>프로세스 기동 및 ClassLoader 마운팅</h4>
+              <p>앱 프로세스가 Zygote로부터 포크(fork)될 때, <code>ApplicationLoaders</code>가 APK 매니페스트 내의 <code>&lt;uses-library android:name="androidx.window.extensions" android:required="false" /&gt;</code> 태그를 감지하고 기기의 <code>/system_ext/framework/androidx.window.extensions.jar</code>를 앱의 <code>PathClassLoader</code>에 추가 마운트합니다.</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h4>진입점 탐색 (Entry Point Discovery)</h4>
+              <p><code>ExtensionEmbeddingBackend</code>가 <code>EmbeddingCompat.isEmbeddingAvailable()</code>을 호출하고, 이는 기기 플랫폼 상의 <code>WindowExtensionsProvider.getWindowExtensions()</code>를 호출합니다.</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h4>WindowManager Extensions 컴포넌트 인스턴스화</h4>
+              <p><code>WindowExtensionsImpl.getActivityEmbeddingComponent()</code>가 기기 고유의 구체 클래스 인스턴스인 <code>mSplitController = new SplitController(...)</code>를 생성하고 이를 <code>ActivityEmbeddingComponent</code> 인터페이스 타입으로 반환합니다.</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">4</div>
+            <div class="step-content">
+              <h4>방어적 리플렉션 가드: 메서드 검증 (Defensive Reflection Guard)</h4>
+              <p>리플렉션의 실질적인 역할은 바인딩 메커니즘 자체가 아니라 <strong>안전성 검증 가드(Guard)</strong>입니다. <code>SafeActivityEmbeddingComponentProvider</code> 및 <code>ReflectionUtils</code>가 런타임에 리플렉션으로 객체를 조사하여 선언된 <code>vendorApiLevel</code>과 필수 메서드 시그니처가 실제로 온전히 존재하는지 사전 검증(Method Verification)함으로써, 비표준 기기 ROM 환경에서 <code>NoSuchMethodError</code>나 <code>ClassNotFoundException</code>으로 앱이 강제 종료되는 것을 방지합니다. 검증이 통과하면 이후 모든 호출은 리플렉션 오버헤드 없이 순수 Java 인터페이스 다형성으로 고속 디스패치됩니다.</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">5</div>
+            <div class="step-content">
+              <h4>IoC 주입 완료 (IoC Complete)</h4>
+              <p><code>EmbeddingCompat</code>이 검증된 <code>ActivityEmbeddingComponent</code>를 저장합니다. 이제 고수준 Jetpack 규칙 변경 호출이 메모리 상의 <code>SplitController</code> 싱글톤으로 직접 디스패치됩니다!</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-title">
+            <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>
+            compileOnly가 ClassLoader 충돌을 방지하는 핵심 열쇠인 이유
+          </div>
+          <p>Java/Android 런타임에서 클래스의 동일성은 <code>(클래스 전체 경로, ClassLoader)</code>의 조합으로 엄격히 결정됩니다. 만약 <code>androidx.window:window</code>가 APK 내부의 <code>classes.dex</code>에 <code>WindowExtensions.class</code>를 직접 포함해 배포한다면, 시스템 JAR에서 로드된 객체로 형변환(Casting)할 때 치명적인 런타임 오류(<code>ClassCastException: WindowExtensions cannot be cast to WindowExtensions</code>)가 발생합니다.</p>
+          <p>Gradle에서 <code>compileOnly</code>로 선언함으로써, 해당 인터페이스의 바이트코드는 <strong>최종 APK 파일에서 완전히 제거</strong>됩니다. 따라서 런타임 메모리에는 시스템 공유 라이브러리에서 로드된 <strong>단 하나의 <code>WindowExtensions.class</code>만 존재</strong>하게 됩니다!</p>
+        </div>
+
+        <h3>android.*는 수정할 수 없는데 왜 androidx.window.extensions는 커스터마이징이 가능할까?</h3>
+        <p>인터페이스 자체는 AndroidX(<code>platform/frameworks/support</code>)의 <a href="https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:window/extensions/extensions/src/main/java/androidx/window/extensions/WindowExtensions.java" target="_blank" style="color: var(--accent);"><code>WindowExtensions.java</code></a>에 선언되어 있으며, 사전 빌드된 정적 라이브러리(<code>androidx.window.extensions_extensions-nodeps</code>) 형태로 AOSP에 임포트됩니다.</p>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">
+              <span>android.* (엄격한 불변성)</span>
+              <span class="pill pill-orange">공개 Android SDK</span>
+            </div>
+            <p><strong>Android 호환성 정의 문서(CDD)</strong>와 <strong>CTS(호환성 테스트 슈트)</strong>에 의해 보호됩니다. 기기 제조사는 <code>android.*</code> 패키지 내부의 메서드 시그니처를 임의로 수정하거나 확장하는 것이 엄격히 금지됩니다. 이를 위반하면 CTS 인증에 실패하여 GMS(Google Play 스토어 등) 탑재가 불가능해집니다.</p>
+          </div>
+          <div class="card">
+            <div class="card-title">
+              <span>androidx.window.extensions.* (WindowManager Extensions)</span>
+              <span class="pill pill-green">벤더 확장 계약</span>
+            </div>
+            <p>처음부터 하드웨어 특화 플러그인 인터페이스로 의도되어 설계되었습니다. 제조사(삼성, 픽셀, 원플러스 등)마다 물리적 힌지 구조, 폴딩 각도 임계값, 멀티윈도우 UI 정책이 모두 다릅니다. 따라서 제조사는 인터페이스 규격을 준수하고 <code>CtsWindowManagerJetpackTestCases</code>를 통과하기만 하면, 자사 하드웨어 요구에 맞춰 <code>SplitController</code>의 내부 구현을 자유롭게 최적화할 수 있습니다.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Appendix B -->
+      <section id="appendix-zorder">
+        <h2>부록 B. Multi-Resume 환경에서의 Top Activity 판정과 Z-Order 심층 분석</h2>
+        <p>Android 10부터 도입된 <strong>멀티-리쥼(Multi-Resume)</strong> 환경에서는 분할된 두 화면(Primary와 Secondary)의 액티비티가 <strong>동시에 화면에 보이고 모두 <code>RESUMED</code> 생명주기 상태</strong>를 유지합니다. 그렇다면 시스템 레벨(ATMS)에서 "현재 태스크의 최상위 액티비티(Top Activity)는 누구인가?"를 판단할 때 어떤 원칙이 적용될까요? AOSP 소스 레벨에서 컨테이너 순서와 Intent 플래그 동작 원리를 상세히 분석합니다.</p>
+
+        <div class="card" style="margin: 1.5rem 0;">
+          <div class="card-title">
+            <span>태스크 내 TaskFragment 계층 및 Z-Order 인덱스 구조</span>
+            <span class="pill pill-purple">AOSP 구조</span>
+          </div>
+          <pre><code>Task (최상위 WindowContainer)
+ ├── mChildren[0]: TaskFragment 1 (Primary / 기본 창, ListActivity)
+ └── mChildren[1]: TaskFragment 2 (Secondary / 보조 창, DetailActivity) ◀── [Top Activity!]</code></pre>
+        </div>
+
+        <h3>1. ATMS 내부 컨테이너 배치 순서: pairedPosition + 1</h3>
+        <p>AOSP의 <code>WindowOrganizerController.java:2583</code>에 따르면, 보조 컨테이너(<code>TaskFragment 2</code>)가 생성되어 기본 컨테이너(<code>TaskFragment 1</code>)와 쌍(Pair)을 이룰 때 시스템 서버는 다음과 같이 자식을 삽입합니다:</p>
+        <pre><code>// frameworks/base/services/core/java/com/android/server/wm/WindowOrganizerController.java
+final int position = mTask.mChildren.indexOf(primaryTaskFragment) + 1;
+mTask.addChild(secondaryTaskFragment, position);</code></pre>
+        <p>즉, Secondary TaskFragment는 항상 Primary TaskFragment의 바로 위 인덱스(상위 위치)에 위치하게 됩니다.</p>
+
+        <h3>2. 최상위 액티비티 탐색 알고리즘: 역순 탐색 (Top-Down Search)</h3>
+        <p>ActivityTaskManagerService(ATMS)가 태스크의 최상위 실행 액티비티를 조회할 때(<code>Task.topRunningActivity()</code>), <code>WindowContainer.java:2044</code>에 정의된 공통 컨테이너 탐색 로직을 실행합니다:</p>
+        <pre><code>// frameworks/base/services/core/java/com/android/server/wm/WindowContainer.java
+for (int i = mChildren.size() - 1; i &gt;= 0; --i) {
+    final ActivityRecord r = mChildren.get(i).topRunningActivity();
+    if (r != null) {
+        return r;
+    }
+}</code></pre>
+        <p>리스트의 가장 높은 인덱스(역순)부터 탐색하므로, 나란히 분할 표시되어 양쪽이 모두 포커스를 받을 수 있는 상태라도 <strong>시스템은 언제나 <code>SecondaryActivity</code>를 태스크의 "Top Activity"로 평가</strong>합니다.</p>
+
+        <h3>3. Intent 시작 플래그(singleTop / clearTop)에 미치는 영향</h3>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">
+              <span>singleTop 단독 사용 시</span>
+              <span class="pill pill-orange">onNewIntent 미호출</span>
+            </div>
+            <p><code>singleTop</code> 플래그는 개별 <code>TaskFragment</code>가 아닌 <strong>태스크 전체의 최상위(Top)</strong>를 기준으로 평가됩니다. 현재 최상위 액티비티는 Secondary이므로, <code>PrimaryActivity</code>를 <code>singleTop</code>으로 재실행해도 Top으로 인정받지 못해 <code>onNewIntent()</code>가 호출되지 않으며, 새 액티비티 인스턴스가 생성됩니다.</p>
+          </div>
+          <div class="card">
+            <div class="card-title">
+              <span>FLAG_ACTIVITY_CLEAR_TOP 사용 시</span>
+              <span class="pill pill-green">정상 onNewIntent 호출</span>
+            </div>
+            <p><code>CLEAR_TOP</code> 플래그는 대상 액티비티보다 상위 Z-order에 존재하는 모든 액티비티를 정리(스택에서 제거)합니다. 따라서 <code>SecondaryActivity</code>가 파괴(finish)된 후, 최상위가 된 <code>PrimaryActivity</code>로 정상적인 <code>onNewIntent()</code>가 전달됩니다.</p>
+          </div>
+        </div>
+
+        <h3>4. AOSP 플랫폼 단위 테스트 검증</h3>
+        <p>Google WindowManager 팀은 <code>TaskContainerTest.java:186-188</code> 단위 테스트를 통해 보조 액티비티가 태스크 컨테이너의 최상위 비종료 액티비티임을 명시적으로 단언(assert)하여 검증하고 있습니다:</p>
+        <pre><code>// WindowManager Jetpack 테스트 코드 검증 (TaskContainerTest.java:186-188)
+assertEquals(activity1, taskContainer.getTopNonFinishingActivity(true));
+// activity1(보조 액티비티)이 항상 getTopNonFinishingActivity의 결과로 반환됨을 검증</code></pre>
+      </section>
+
+      <!-- Appendix C -->
+      <section id="appendix-sources">
+        <h2>부록 C. 업스트림 AOSP / AndroidX 소스 코드 탐색 가이드</h2>
         <p>Activity Embedding은 <a href="https://cs.android.com" target="_blank" style="color: var(--accent);">cs.android.com</a>의 두 가지 주요 Google 업스트림 소스 트리에 걸쳐 구현되어 있습니다. 공식 구현체 코드를 직접 탐색해 보세요:</p>
 
         <table>
@@ -1182,110 +1334,6 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             </tr>
           </tbody>
         </table>
-      </section>
-
-      <!-- Section 7 (Appendix) -->
-      <section id="appendix-ioc">
-        <h2>7. 부록: 아키텍처의 비밀 — compileOnly 및 시스템 공유 라이브러리를 통한 IoC</h2>
-        <p>애플리케이션 APK 내부에 번들링된 비번들(Unbundled) Jetpack 라이브러리(<code>androidx.window:window</code>)가 런타임 크래시나 클래스 중복, 연간 OS 판올림 종속성 없이 어떻게 시스템 파티션에 위치한 기기 플랫폼 구현체(<code>SplitController</code>)와 동일 프로세스(In-process) 내에서 직접 통신할 수 있을까요?</p>
-        
-        <p>그 비밀은 <code>compileOnly</code> 의존성, <code>&lt;uses-library&gt;</code>, 그리고 동적 ClassLoader 마운트를 유기적으로 결합한 우아한 <strong>제어의 역전(Inversion of Control, IoC)</strong> 아키텍처 패턴에 있습니다.</p>
-
-        <div class="card" style="margin: 1.5rem 0;">
-          <div class="card-title">
-            <span>3계층 의존성 및 로딩 모델 (3-Tier Dependency & Loading Model)</span>
-            <span class="pill pill-purple">아키텍처</span>
-          </div>
-          <pre><code>┌─────────────────────────────────────────────────────────────────────────────┐
-│ Tier 1: 규격 명세 계약 (androidx.window:window-extensions)                  │
-│ - WindowExtensions 인터페이스 정의                                          │
-│ - ActivityEmbeddingComponent 인터페이스 정의                                │
-│ - 진입점 클래스 WindowExtensionsProvider 정의                                │
-└───────────────────────┬─────────────────────────────┬───────────────────────┘
-                        │ compileOnly                 │ static_libs
-                        ▼                             ▼
-┌──────────────────────────────────────┐   ┌──────────────────────────────────┐
-│ Tier 2: 앱 소비자 (App Consumer)      │   │ Tier 3: 플랫폼 / 기기 구현체      │
-│ (APK 내부의 androidx.window:window)  │   │ (/system_ext/framework/...)      │
-├──────────────────────────────────────┤   ├──────────────────────────────────┤
-│ - compileOnly(window-extensions)     │   │ - static_libs: [window-extensions]│
-│ - AndroidManifest.xml:               │   │ - WindowExtensionsImpl           │
-│   &lt;uses-library                      │   │   implements WindowExtensions    │
-│     name="androidx.window.extensions"│   │ - SplitController                │
-│     required="false" /&gt;              │   │   implements                     │
-│ - ExtensionEmbeddingBackend.kt       │   │   ActivityEmbeddingComponent     │
-│ - SafeActivityEmbeddingComponent-    │   │                                  │
-│   Provider.kt                        │   │                                  │
-└──────────────────────────────────────┘   └──────────────────────────────────┘</code></pre>
-        </div>
-
-        <h3>단계별 런타임 주입 흐름 (Runtime Injection Flow Step-by-Step)</h3>
-        <div class="flow-steps">
-          <div class="step-item">
-            <div class="step-number">1</div>
-            <div class="step-content">
-              <h4>프로세스 기동 및 ClassLoader 마운팅</h4>
-              <p>앱 프로세스가 Zygote로부터 포크(fork)될 때, <code>ApplicationLoaders</code>가 APK 매니페스트 내의 <code>&lt;uses-library android:name="androidx.window.extensions" android:required="false" /&gt;</code> 태그를 감지하고 기기의 <code>/system_ext/framework/androidx.window.extensions.jar</code>를 앱의 <code>PathClassLoader</code>에 추가 마운트합니다.</p>
-            </div>
-          </div>
-          <div class="step-item">
-            <div class="step-number">2</div>
-            <div class="step-content">
-              <h4>진입점 탐색 (Entry Point Discovery)</h4>
-              <p><code>ExtensionEmbeddingBackend</code>가 <code>EmbeddingCompat.isEmbeddingAvailable()</code>을 호출하고, 이는 기기 플랫폼 상의 <code>WindowExtensionsProvider.getWindowExtensions()</code>를 호출합니다.</p>
-            </div>
-          </div>
-          <div class="step-item">
-            <div class="step-number">3</div>
-            <div class="step-content">
-              <h4>WindowManager Extensions 컴포넌트 인스턴스화</h4>
-              <p><code>WindowExtensionsImpl.getActivityEmbeddingComponent()</code>가 기기 고유의 구체 클래스 인스턴스인 <code>mSplitController = new SplitController(...)</code>를 생성하고 이를 <code>ActivityEmbeddingComponent</code> 인터페이스 타입으로 반환합니다.</p>
-            </div>
-          </div>
-          <div class="step-item">
-            <div class="step-number">4</div>
-            <div class="step-content">
-              <h4>방어적 리플렉션 가드: 메서드 검증 (Defensive Reflection Guard)</h4>
-              <p>리플렉션의 실질적인 역할은 바인딩 메커니즘 자체가 아니라 <strong>안전성 검증 가드(Guard)</strong>입니다. <code>SafeActivityEmbeddingComponentProvider</code> 및 <code>ReflectionUtils</code>가 런타임에 리플렉션으로 객체를 조사하여 선언된 <code>vendorApiLevel</code>과 필수 메서드 시그니처가 실제로 온전히 존재하는지 사전 검증(Method Verification)함으로써, 비표준 기기 ROM 환경에서 <code>NoSuchMethodError</code>나 <code>ClassNotFoundException</code>으로 앱이 강제 종료되는 것을 방지합니다. 검증이 통과하면 이후 모든 호출은 리플렉션 오버헤드 없이 순수 Java 인터페이스 다형성으로 고속 디스패치됩니다.</p>
-            </div>
-          </div>
-          <div class="step-item">
-            <div class="step-number">5</div>
-            <div class="step-content">
-              <h4>IoC 주입 완료 (IoC Complete)</h4>
-              <p><code>EmbeddingCompat</code>이 검증된 <code>ActivityEmbeddingComponent</code>를 저장합니다. 이제 고수준 Jetpack 규칙 변경 호출이 메모리 상의 <code>SplitController</code> 싱글톤으로 직접 디스패치됩니다!</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="callout callout-warning">
-          <div class="callout-title">
-            <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>
-            compileOnly가 ClassLoader 충돌을 방지하는 핵심 열쇠인 이유
-          </div>
-          <p>Java/Android 런타임에서 클래스의 동일성은 <code>(클래스 전체 경로, ClassLoader)</code>의 조합으로 엄격히 결정됩니다. 만약 <code>androidx.window:window</code>가 APK 내부의 <code>classes.dex</code>에 <code>WindowExtensions.class</code>를 직접 포함해 배포한다면, 시스템 JAR에서 로드된 객체로 형변환(Casting)할 때 치명적인 런타임 오류(<code>ClassCastException: WindowExtensions cannot be cast to WindowExtensions</code>)가 발생합니다.</p>
-          <p>Gradle에서 <code>compileOnly</code>로 선언함으로써, 해당 인터페이스의 바이트코드는 <strong>최종 APK 파일에서 완전히 제거</strong>됩니다. 따라서 런타임 메모리에는 시스템 공유 라이브러리에서 로드된 <strong>단 하나의 <code>WindowExtensions.class</code>만 존재</strong>하게 됩니다!</p>
-        </div>
-
-        <h3>android.*는 수정할 수 없는데 왜 androidx.window.extensions는 커스터마이징이 가능할까?</h3>
-        <p>인터페이스 자체는 AndroidX(<code>platform/frameworks/support</code>)의 <a href="https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:window/extensions/extensions/src/main/java/androidx/window/extensions/WindowExtensions.java" target="_blank" style="color: var(--accent);"><code>WindowExtensions.java</code></a>에 선언되어 있으며, 사전 빌드된 정적 라이브러리(<code>androidx.window.extensions_extensions-nodeps</code>) 형태로 AOSP에 임포트됩니다.</p>
-
-        <div class="grid-2">
-          <div class="card">
-            <div class="card-title">
-              <span>android.* (엄격한 불변성)</span>
-              <span class="pill pill-orange">공개 Android SDK</span>
-            </div>
-            <p><strong>Android 호환성 정의 문서(CDD)</strong>와 <strong>CTS(호환성 테스트 슈트)</strong>에 의해 보호됩니다. 기기 제조사는 <code>android.*</code> 패키지 내부의 메서드 시그니처를 임의로 수정하거나 확장하는 것이 엄격히 금지됩니다. 이를 위반하면 CTS 인증에 실패하여 GMS(Google Play 스토어 등) 탑재가 불가능해집니다.</p>
-          </div>
-          <div class="card">
-            <div class="card-title">
-              <span>androidx.window.extensions.* (WindowManager Extensions)</span>
-              <span class="pill pill-green">벤더 확장 계약</span>
-            </div>
-            <p>처음부터 하드웨어 특화 플러그인 인터페이스로 의도되어 설계되었습니다. 제조사(삼성, 픽셀, 원플러스 등)마다 물리적 힌지 구조, 폴딩 각도 임계값, 멀티윈도우 UI 정책이 모두 다릅니다. 따라서 제조사는 인터페이스 규격을 준수하고 <code>CtsWindowManagerJetpackTestCases</code>를 통과하기만 하면, 자사 하드웨어 요구에 맞춰 <code>SplitController</code>의 내부 구현을 자유롭게 최적화할 수 있습니다.</p>
-          </div>
-        </div>
       </section>
     </main>
   </div>
