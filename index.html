@@ -728,7 +728,7 @@
             </div>
             <p><strong>일반 앱 개발자가 직접 사용하는 공개 API</strong> 계층입니다. 앱 APK 내에 번들링되어 배포되며, 선언적 XML 규칙 및 프로그래밍 방식의 <code>RuleController</code>, 분할 상태 옵저버를 제공합니다.</p>
             <div style="margin-top: 0.65rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); background: rgba(88, 166, 255, 0.06); border-left: 3px solid var(--accent); padding: 0.55rem 0.85rem; border-radius: 0 6px 6px 0;">
-              <strong style="color: var(--text-heading);">규칙 추상화 및 변환 (Translate):</strong> 개발자가 <code>TaskFragment</code>를 직접 다루는 복잡함 없이 <code>SplitPairRule</code> 등 고수준 규칙만 등록하면, <code>EmbeddingAdapter.translate()</code>가 이를 하위 플랫폼 계약 인터페이스 규격(Java <code>Predicate</code> 및 Extensions 규격 객체)으로 자동 변환하여 Layer 2로 전달합니다.
+              <strong style="color: var(--text-heading);">규칙 선언 및 규격 변환 (Translate):</strong> 개발자가 선언한 분할 규칙(<code>SplitPairRule</code> 등)을 <code>EmbeddingAdapter.translate()</code>가 플랫폼 계약 규격(Java <code>Predicate</code> 및 Extensions 객체)으로 변환하여 Layer 2로 전달합니다.
             </div>
             <div class="arch-chips" style="margin-top: 0.75rem;">
               <span class="chip">SplitController.kt</span>
@@ -752,7 +752,7 @@
             </div>
             <p><strong>규격 명세(AndroidX)와 플랫폼 구현체(AOSP/기기 제조사) 양쪽에 존재</strong>하며, <strong>시스템 공유 라이브러리(<code>&lt;uses-library&gt;</code>) 동적 로딩과 IoC(제어의 역전)</strong>를 통해 앱 프로세스 메모리에 로드되는 <strong>동적 분할의 실질적인 런타임 두뇌</strong>입니다. (※ 리플렉션은 진입 시 메서드/클래스 존재 여부를 검증하는 <em>방어적 가드</em>일 뿐, 실제 바인딩은 공유 라이브러리 동적 마운트와 인터페이스 계약 다형성으로 이루어집니다.)</p>
             <div style="margin-top: 0.65rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); background: rgba(188, 140, 255, 0.06); border-left: 3px solid var(--accent-purple); padding: 0.55rem 0.85rem; border-radius: 0 6px 6px 0;">
-              <strong style="color: var(--text-heading);">규칙 캐싱 및 startActivity 가로채기 (Intercept):</strong> <code>SplitController.setEmbeddingRules()</code>가 변환된 규칙들을 수신하여 <code>mSplitRules</code>에 캐싱합니다. 앱이 표준 <code>startActivity()</code>를 호출하면 <code>Instrumentation</code>에 등록된 <code>ActivityStartMonitor</code>가 IPC 호출 직전에 이를 가로채 규칙 및 현재 화면 너비(<code>minWidthDp</code>)를 평가합니다. 분할 조건 충족 시 타겟 <code>TaskFragment</code> 컨테이너를 생성하고, 그 바인더 토큰(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>)을 Intent 옵션에 주입합니다.
+              <strong style="color: var(--text-heading);">규칙 캐싱 및 startActivity 가로채기 (Intercept):</strong> 전달받은 규칙을 캐싱하고, 앱이 <code>startActivity()</code>를 호출하면 <code>ActivityStartMonitor</code>가 이를 가로채 화면 너비 등을 평가합니다. 분할 조건에 맞으면 타겟 <code>TaskFragment</code>를 생성하고 그 바인더 토큰(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>)을 Intent 옵션에 주입합니다.
             </div>
             <div class="arch-chips" style="margin-top: 0.75rem;">
               <span class="chip">SplitController.java</span>
@@ -775,7 +775,7 @@
             </div>
             <p>Android 기본 플랫폼에 내장된 클라이언트 측 바인더 브리지입니다. 컨테이너 생성 및 바운드 설정 등의 작업을 원자적 <code>TaskFragmentTransaction</code>으로 묶어 시스템 서버로 전송할 수 있도록 캡슐화합니다.</p>
             <div style="margin-top: 0.65rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); background: rgba(210, 153, 34, 0.06); border-left: 3px solid var(--accent-orange); padding: 0.55rem 0.85rem; border-radius: 0 6px 6px 0;">
-              <strong style="color: var(--text-heading);">원자적 트랜잭션 패키징 및 IPC 전송:</strong> Layer 2가 결정한 <code>TaskFragment</code> 생성, 바운드 지정, 또는 파괴 작업을 <code>TaskFragmentOrganizer</code>가 원자적 <code>WindowContainerTransaction (WCT)</code>으로 패키징하여, 프로세스 경계를 넘어 <code>system_server</code>로 안전하게 전달합니다.
+              <strong style="color: var(--text-heading);">원자적 트랜잭션 패키징 및 IPC 전송:</strong> Layer 2의 <code>TaskFragment</code> 조작 요청들을 <code>TaskFragmentOrganizer</code>가 원자적 <code>WindowContainerTransaction (WCT)</code>으로 묶어 <code>system_server</code>로 전송합니다.
             </div>
             <div class="arch-chips" style="margin-top: 0.75rem;">
               <span class="chip">TaskFragmentOrganizer.java</span>
@@ -800,7 +800,7 @@
             </div>
             <p>기기 전체의 창 관리를 총괄하는 ActivityTaskManagerService (ATMS) 시스템 서버 프로세스입니다. 컨테이너 경계 및 UID 보안 규칙을 강제하고, 액티비티 생명주기를 총괄하며, SurfaceControl 트랜잭션을 원자적으로 실행합니다.</p>
             <div style="margin-top: 0.65rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); background: rgba(63, 185, 80, 0.06); border-left: 3px solid var(--accent-green); padding: 0.55rem 0.85rem; border-radius: 0 6px 6px 0;">
-              <strong style="color: var(--text-heading);">트랜잭션 실행 및 액티비티 라우팅 (Routing):</strong> <code>TaskFragmentOrganizerController</code>가 WCT를 실행하여 시스템 창 계층 트리에 실제 <code>TaskFragment</code> 노드를 생성하고, <code>ActivityStarter</code>가 Intent 옵션의 토큰을 읽어 시작되는 <code>ActivityRecord</code>를 해당 <code>TaskFragment</code> 안으로 정확히 라우팅하여 화면에 나란히 합성(Composite)합니다.
+              <strong style="color: var(--text-heading);">트랜잭션 실행 및 액티비티 라우팅 (Routing):</strong> <code>TaskFragmentOrganizerController</code>가 트랜잭션을 실행해 윈도우 트리에 <code>TaskFragment</code>를 생성하고, <code>ActivityStarter</code>가 인텐트 옵션의 토큰을 읽어 새 액티비티를 해당 <code>TaskFragment</code> 안으로 정확히 라우팅하여 화면에 나란히 배치합니다.
             </div>
             <div class="arch-chips" style="margin-top: 0.75rem;">
               <span class="chip">TaskFragmentOrganizerController.java</span>
