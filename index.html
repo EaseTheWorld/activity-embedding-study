@@ -838,38 +838,18 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
           대신 Extensions 계층이 가로채어 규칙을 평가하고, Frameworks 계층을 통해 원자적 트랜잭션을 패키징하여, 프로세스 경계를 넘어 System Server 계층으로 전달해 분할 컨테이너(<code>TaskFragment</code>)를 생성합니다.
         </p>
 
-        <!-- Conceptual Bridge: TaskFragment introduced between Task and Activity -->
+        <!-- Conceptual Bridge: TaskFragment container & Multi-Window distinction -->
         <div class="callout" style="margin: 1.25rem 0 1.5rem; border-color: rgba(88, 166, 255, 0.4); background: rgba(88, 166, 255, 0.05);">
           <div class="callout-title" style="color: var(--accent); display: flex; align-items: center; justify-content: space-between;">
-            <span>💡 핵심 컨테이너 구조: Task와 Activity 사이에 도입된 TaskFragment</span>
+            <span>💡 핵심 컨테이너 구조: Task와 Activity 사이의 TaskFragment</span>
             <span class="pill pill-blue">컨테이너 구조</span>
           </div>
-          <p style="margin-top: 0.5rem; margin-bottom: 0.8rem; font-size: 0.95rem; line-height: 1.6;">
-            Activity Embedding의 핵심은 <strong>"하나의 Task 안에서 화면을 쪼개어 배치하기 위해, Task와 Activity 사이에 <code>TaskFragment</code>라는 분할 구획(Pane) 컨테이너가 새로 도입되었다"</strong>는 점입니다:
+          <p style="margin-top: 0.5rem; margin-bottom: 0.4rem; font-size: 0.92rem; line-height: 1.6;">
+            Activity Embedding은 하나의 Task 안에서 화면을 쪼개어 배치하기 위해, Task와 Activity 사이에 <strong><code>TaskFragment</code>라는 분할 구획(서브 스택) 컨테이너</strong>를 동적으로 생성합니다.
+            전통적 Multi-Window가 서로 다른 Task 간 분할(2개 타일)인 것과 달리, <strong>단일 Task 내부를 쪼개어 쓰므로 최근 앱(Recents)에서도 1개의 통합 타일</strong>로 유지됩니다.
           </p>
-          <div style="background: var(--code-bg); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0.85rem 1rem; font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.7; margin-bottom: 0.8rem;">
-            <div style="color: var(--text-muted);"><span style="color: var(--accent-orange); font-weight: 600;">레거시 (Android 11 이전):</span> Task (작업 / 최근 앱 타일) ──직접 포함──▶ Activity (개별 UI 화면)</div>
-            <div style="color: var(--text-heading); margin-top: 0.35rem;"><span style="color: var(--accent-green); font-weight: 600;">현재 (Android 12L 이후):</span> Task (작업 / 최근 앱 타일) ──▶ <span style="color: var(--accent); font-weight: bold; background: rgba(88, 166, 255, 0.15); padding: 0.1rem 0.4rem; border-radius: 4px;">TaskFragment (분할 구획 및 서브 스택)</span> ──▶ Activity (개별 UI 화면)</div>
-          </div>
-          <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0;">
-            <strong>Task</strong>가 '앱 전체 작업 단위'이고 <strong>Activity</strong>가 '실제 사용자가 조작하는 개별 UI 화면 단위'라면, <strong>TaskFragment</strong>는 <em>"화면을 좌/우로 분할한 특정 구획(Pane)의 크기(Bounds)를 잡고, 그 구획 안에서 액티비티들이 독립적으로 쌓이도록 관리하는 서브 스택(Sub-stack) 컨테이너"</em>입니다. 이제 아래에서 <strong>Extensions &rarr; Frameworks &rarr; System Server 3개 계층</strong>이 <code>startActivity()</code> 시점에 어떻게 이 <code>TaskFragment</code>를 생성하고 배치하는지 살펴보겠습니다.
-          </p>
-          <p style="font-size: 0.84rem; color: var(--accent); margin-top: 0.65rem; margin-bottom: 0;">
-            👉 <em>상세 상속 계층 구조는 <a href="#backward-compatibility" style="color: var(--accent); text-decoration: underline;">4. 하위 호환성 설계</a> 참조</em>
-          </p>
-        </div>
-
-        <!-- Comparison Note: Multi-Window vs Activity Embedding -->
-        <div class="card" style="margin: 1rem 0 1.5rem; background: rgba(13, 17, 23, 0.5); border: 1px solid var(--border-subtle);">
-          <div class="card-title" style="font-size: 0.95rem;">
-            <span>💡 기존 분할 화면(Multi-Window)과의 차이</span>
-            <span class="pill pill-purple" style="font-size: 0.7rem;">Task vs TaskFragment</span>
-          </div>
-          <p style="font-size: 0.85rem; color: var(--text-main); line-height: 1.6; margin: 0.4rem 0 0.25rem;">
-            전통적 Multi-Window가 OS/사용자 주도의 <strong>서로 다른 Task 간 분할</strong>이라면, Activity Embedding은 앱 규칙 주도의 <strong>단일 Task 내부 TaskFragment 분할</strong>(최근 앱 1개 타일 유지)입니다.
-          </p>
-          <p style="font-size: 0.82rem; color: var(--accent); margin-top: 0.4rem; margin-bottom: 0;">
-            👉 <em><a href="#appendix-multiwindow" style="color: var(--accent); text-decoration: underline;">부록 E. Multi-Window vs Activity Embedding 심층 비교</a> 참조</em>
+          <p style="font-size: 0.84rem; color: var(--accent); margin-top: 0.5rem; margin-bottom: 0;">
+            👉 <em>상세 상속 계층 트리는 <a href="#backward-compatibility" style="color: var(--accent); text-decoration: underline;">4. 하위 호환성 설계</a>, 다중 창 비교는 <a href="#appendix-multiwindow" style="color: var(--accent); text-decoration: underline;">부록 E. Multi-Window 비교</a> 참조</em>
           </p>
         </div>
 
