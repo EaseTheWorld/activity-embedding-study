@@ -612,8 +612,9 @@
         <li><a href="#backward-compatibility">4. 하위 호환성 설계</a></li>
         <li><a href="#security">5. 보안 및 신뢰 모델</a></li>
         <li style="margin-top: 0.8rem; border-top: 1px solid var(--border-subtle); padding-top: 0.5rem;"><span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">부록 및 레퍼런스</span></li>
-        <li><a href="#appendix-zorder">부록 A. Top Activity &amp; Z-Order 심층 분석</a></li>
-        <li><a href="#appendix-sources">부록 B. 업스트림 소스 코드 레퍼런스</a></li>
+        <li><a href="#appendix-sources">부록 A. 업스트림 소스 코드 레퍼런스</a></li>
+        <li><a href="#appendix-zorder">부록 B. Top Activity &amp; Z-Order 심층 분석</a></li>
+        <li><a href="#appendix-finish">부록 C. Activity Finish 및 연쇄 종료 플로우</a></li>
       </ul>
     </aside>
 
@@ -793,7 +794,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
                 </li>
               </ol>
               <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.35rem; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 0.35rem;">
-                💡 <strong>왜 구체 클래스가 아닌 인터페이스인가?</strong> 단말 제조사(삼성 OneUI, 픽셀 등)가 기존 자사 멀티윈도우 프레임워크의 상속 계층을 온전히 유지하면서도, 규격 인터페이스(<code>implements ActivityEmbeddingComponent</code>)만 구현하여 자사 하드웨어에 최적화된 컨트롤러를 <strong>유연하게 플러그인(IoC)</strong>할 수 있도록 보장하기 위함입니다.
+                💡 <strong>왜 구체 클래스가 아닌 인터페이스인가?</strong> 단말 제조사(삼성 OneUI, 픽셀 등)가 기존 자사 멀티윈도우 프레임워크의 상속 계층을 온전히 유지하면서도, 규격 인터페이스(<code>implements ActivityEmbeddingComponent</code>)만 구현하여 자사 하드웨어에 최적화된 컨트롤러를 <strong>유연하게 플러그인</strong>할 수 있도록 보장하기 위함입니다.
               </div>
             </div>
 
@@ -984,7 +985,7 @@ RootWindowContainer
             Primary와 Secondary 액티비티가 모두 화면에 표시되어 <code>RESUMED</code> 상태(Multi-Resume)라 하더라도, WindowManager 내부 컨테이너 트리에서는 <strong>Secondary Activity가 항상 선형 Z-order 상위(Top)</strong>로 관리됩니다. 따라서 <code>singleTop</code> 플래그 호출 등의 동작 시 Secondary가 최상위로 평가됩니다.
           </p>
           <p style="font-size: 0.85rem; color: var(--accent); margin-bottom: 0;">
-            👉 <em>ATMS 자식 인덱스 탐색 알고리즘, singleTop/clearTop 상세 동작, AOSP 테스트 코드 검증은 <a href="#appendix-zorder" style="color: var(--accent); text-decoration: underline;">부록 A: Top Activity 판정과 Z-Order 심층 분석</a>을 참조하세요.</em>
+            👉 <em>ATMS 자식 인덱스 탐색 알고리즘, singleTop/clearTop 상세 동작, AOSP 테스트 코드 검증은 <a href="#appendix-zorder" style="color: var(--accent); text-decoration: underline;">부록 B: Top Activity 판정과 Z-Order 심층 분석</a>을 참조하세요.</em>
           </p>
         </div>
 
@@ -1105,66 +1106,8 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
       </section>
 
       <!-- Appendix A -->
-      <section id="appendix-zorder">
-        <h2>부록 A. Multi-Resume 환경에서의 Top Activity 판정과 Z-Order 심층 분석</h2>
-        <p>Android 10부터 도입된 <strong>멀티-리쥼(Multi-Resume)</strong> 환경에서는 분할된 두 화면(Primary와 Secondary)의 액티비티가 <strong>동시에 화면에 보이고 모두 <code>RESUMED</code> 생명주기 상태</strong>를 유지합니다. 그렇다면 시스템 레벨(ATMS)에서 "현재 태스크의 최상위 액티비티(Top Activity)는 누구인가?"를 판단할 때 어떤 원칙이 적용될까요? AOSP 소스 레벨에서 컨테이너 순서와 Intent 플래그 동작 원리를 상세히 분석합니다.</p>
-
-        <div class="card" style="margin: 1.5rem 0;">
-          <div class="card-title">
-            <span>태스크 내 TaskFragment 계층 및 Z-Order 인덱스 구조</span>
-            <span class="pill pill-purple">AOSP 구조</span>
-          </div>
-          <pre><code>Task (최상위 WindowContainer)
- ├── mChildren[0]: TaskFragment 1 (Primary / 기본 창, ListActivity)
- └── mChildren[1]: TaskFragment 2 (Secondary / 보조 창, DetailActivity) ◀── [Top Activity!]</code></pre>
-        </div>
-
-        <h3>1. ATMS 내부 컨테이너 배치 순서: pairedPosition + 1</h3>
-        <p>AOSP의 <code>WindowOrganizerController.java:2583</code>에 따르면, 보조 컨테이너(<code>TaskFragment 2</code>)가 생성되어 기본 컨테이너(<code>TaskFragment 1</code>)와 쌍(Pair)을 이룰 때 시스템 서버는 다음과 같이 자식을 삽입합니다:</p>
-        <pre><code>// frameworks/base/services/core/java/com/android/server/wm/WindowOrganizerController.java
-final int position = mTask.mChildren.indexOf(primaryTaskFragment) + 1;
-mTask.addChild(secondaryTaskFragment, position);</code></pre>
-        <p>즉, Secondary TaskFragment는 항상 Primary TaskFragment의 바로 위 인덱스(상위 위치)에 위치하게 됩니다.</p>
-
-        <h3>2. 최상위 액티비티 탐색 알고리즘: 역순 탐색 (Top-Down Search)</h3>
-        <p>ActivityTaskManagerService(ATMS)가 태스크의 최상위 실행 액티비티를 조회할 때(<code>Task.topRunningActivity()</code>), <code>WindowContainer.java:2044</code>에 정의된 공통 컨테이너 탐색 로직을 실행합니다:</p>
-        <pre><code>// frameworks/base/services/core/java/com/android/server/wm/WindowContainer.java
-for (int i = mChildren.size() - 1; i &gt;= 0; --i) {
-    final ActivityRecord r = mChildren.get(i).topRunningActivity();
-    if (r != null) {
-        return r;
-    }
-}</code></pre>
-        <p>리스트의 가장 높은 인덱스(역순)부터 탐색하므로, 나란히 분할 표시되어 양쪽이 모두 포커스를 받을 수 있는 상태라도 <strong>시스템은 언제나 <code>SecondaryActivity</code>를 태스크의 "Top Activity"로 평가</strong>합니다.</p>
-
-        <h3>3. Intent 시작 플래그(singleTop / clearTop)에 미치는 영향</h3>
-        <div class="grid-2">
-          <div class="card">
-            <div class="card-title">
-              <span>singleTop 단독 사용 시</span>
-              <span class="pill pill-orange">onNewIntent 미호출</span>
-            </div>
-            <p><code>singleTop</code> 플래그는 개별 <code>TaskFragment</code>가 아닌 <strong>태스크 전체의 최상위(Top)</strong>를 기준으로 평가됩니다. 현재 최상위 액티비티는 Secondary이므로, <code>PrimaryActivity</code>를 <code>singleTop</code>으로 재실행해도 Top으로 인정받지 못해 <code>onNewIntent()</code>가 호출되지 않으며, 새 액티비티 인스턴스가 생성됩니다.</p>
-          </div>
-          <div class="card">
-            <div class="card-title">
-              <span>FLAG_ACTIVITY_CLEAR_TOP 사용 시</span>
-              <span class="pill pill-green">정상 onNewIntent 호출</span>
-            </div>
-            <p><code>CLEAR_TOP</code> 플래그는 대상 액티비티보다 상위 Z-order에 존재하는 모든 액티비티를 정리(스택에서 제거)합니다. 따라서 <code>SecondaryActivity</code>가 파괴(finish)된 후, 최상위가 된 <code>PrimaryActivity</code>로 정상적인 <code>onNewIntent()</code>가 전달됩니다.</p>
-          </div>
-        </div>
-
-        <h3>4. AOSP 플랫폼 단위 테스트 검증</h3>
-        <p>Google WindowManager 팀은 <code>TaskContainerTest.java:186-188</code> 단위 테스트를 통해 보조 액티비티가 태스크 컨테이너의 최상위 비종료 액티비티임을 명시적으로 단언(assert)하여 검증하고 있습니다:</p>
-        <pre><code>// WindowManager Jetpack 테스트 코드 검증 (TaskContainerTest.java:186-188)
-assertEquals(activity1, taskContainer.getTopNonFinishingActivity(true));
-// activity1(보조 액티비티)이 항상 getTopNonFinishingActivity의 결과로 반환됨을 검증</code></pre>
-      </section>
-
-      <!-- Appendix B -->
       <section id="appendix-sources">
-        <h2>부록 B. 업스트림 AOSP / AndroidX 소스 코드 레퍼런스</h2>
+        <h2>부록 A. 업스트림 AOSP / AndroidX 소스 코드 탐색 가이드</h2>
         <p>Activity Embedding은 <a href="https://cs.android.com" target="_blank" style="color: var(--accent);">cs.android.com</a>의 두 가지 주요 Google 업스트림 소스 트리에 걸쳐 구현되어 있습니다. 공식 구현체 코드를 직접 탐색해 보세요:</p>
 
         <table>
@@ -1273,6 +1216,200 @@ assertEquals(activity1, taskContainer.getTopNonFinishingActivity(true));
             </tr>
           </tbody>
         </table>
+      </section>
+
+      <!-- Appendix B -->
+      <section id="appendix-zorder">
+        <h2>부록 B. Multi-Resume 환경에서의 Top Activity 판정과 Z-Order 심층 분석</h2>
+        <p>Android 10부터 도입된 <strong>멀티-리쥼(Multi-Resume)</strong> 환경에서는 분할된 두 화면(Primary와 Secondary)의 액티비티가 <strong>동시에 화면에 보이고 모두 <code>RESUMED</code> 생명주기 상태</strong>를 유지합니다. 그렇다면 시스템 레벨(ATMS)에서 "현재 태스크의 최상위 액티비티(Top Activity)는 누구인가?"를 판단할 때 어떤 원칙이 적용될까요? AOSP 소스 레벨에서 컨테이너 순서와 Intent 플래그 동작 원리를 상세히 분석합니다.</p>
+
+        <div class="card" style="margin: 1.5rem 0;">
+          <div class="card-title">
+            <span>태스크 내 TaskFragment 계층 및 Z-Order 인덱스 구조</span>
+            <span class="pill pill-purple">AOSP 구조</span>
+          </div>
+          <pre><code>Task (최상위 WindowContainer)
+ ├── mChildren[0]: TaskFragment 1 (Primary / 기본 창, ListActivity)
+ └── mChildren[1]: TaskFragment 2 (Secondary / 보조 창, DetailActivity) ◀── [Top Activity!]</code></pre>
+        </div>
+
+        <h3>1. ATMS 내부 컨테이너 배치 순서: pairedPosition + 1</h3>
+        <p>AOSP의 <code>WindowOrganizerController.java:2583</code>에 따르면, 보조 컨테이너(<code>TaskFragment 2</code>)가 생성되어 기본 컨테이너(<code>TaskFragment 1</code>)와 쌍(Pair)을 이룰 때 시스템 서버는 다음과 같이 자식을 삽입합니다:</p>
+        <pre><code>// frameworks/base/services/core/java/com/android/server/wm/WindowOrganizerController.java
+final int position = mTask.mChildren.indexOf(primaryTaskFragment) + 1;
+mTask.addChild(secondaryTaskFragment, position);</code></pre>
+        <p>즉, Secondary TaskFragment는 항상 Primary TaskFragment의 바로 위 인덱스(상위 위치)에 위치하게 됩니다.</p>
+
+        <h3>2. 최상위 액티비티 탐색 알고리즘: 역순 탐색 (Top-Down Search)</h3>
+        <p>ActivityTaskManagerService(ATMS)가 태스크의 최상위 실행 액티비티를 조회할 때(<code>Task.topRunningActivity()</code>), <code>WindowContainer.java:2044</code>에 정의된 공통 컨테이너 탐색 로직을 실행합니다:</p>
+        <pre><code>// frameworks/base/services/core/java/com/android/server/wm/WindowContainer.java
+for (int i = mChildren.size() - 1; i &gt;= 0; --i) {
+    final ActivityRecord r = mChildren.get(i).topRunningActivity();
+    if (r != null) {
+        return r;
+    }
+}</code></pre>
+        <p>리스트의 가장 높은 인덱스(역순)부터 탐색하므로, 나란히 분할 표시되어 양쪽이 모두 포커스를 받을 수 있는 상태라도 <strong>시스템은 언제나 <code>SecondaryActivity</code>를 태스크의 "Top Activity"로 평가</strong>합니다.</p>
+
+        <h3>3. Intent 시작 플래그(singleTop / clearTop)에 미치는 영향</h3>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">
+              <span>singleTop 단독 사용 시</span>
+              <span class="pill pill-orange">onNewIntent 미호출</span>
+            </div>
+            <p><code>singleTop</code> 플래그는 개별 <code>TaskFragment</code>가 아닌 <strong>태스크 전체의 최상위(Top)</strong>를 기준으로 평가됩니다. 현재 최상위 액티비티는 Secondary이므로, <code>PrimaryActivity</code>를 <code>singleTop</code>으로 재실행해도 Top으로 인정받지 못해 <code>onNewIntent()</code>가 호출되지 않으며, 새 액티비티 인스턴스가 생성됩니다.</p>
+          </div>
+          <div class="card">
+            <div class="card-title">
+              <span>FLAG_ACTIVITY_CLEAR_TOP 사용 시</span>
+              <span class="pill pill-green">정상 onNewIntent 호출</span>
+            </div>
+            <p><code>CLEAR_TOP</code> 플래그는 대상 액티비티보다 상위 Z-order에 존재하는 모든 액티비티를 정리(스택에서 제거)합니다. 따라서 <code>SecondaryActivity</code>가 파괴(finish)된 후, 최상위가 된 <code>PrimaryActivity</code>로 정상적인 <code>onNewIntent()</code>가 전달됩니다.</p>
+          </div>
+        </div>
+
+        <h3>4. AOSP 플랫폼 단위 테스트 검증</h3>
+        <p>Google WindowManager 팀은 <code>TaskContainerTest.java:186-188</code> 단위 테스트를 통해 보조 액티비티가 태스크 컨테이너의 최상위 비종료 액티비티임을 명시적으로 단언(assert)하여 검증하고 있습니다:</p>
+        <pre><code>// WindowManager Jetpack 테스트 코드 검증 (TaskContainerTest.java:186-188)
+assertEquals(activity1, taskContainer.getTopNonFinishingActivity(true));
+// activity1(보조 액티비티)이 항상 getTopNonFinishingActivity의 결과로 반환됨을 검증</code></pre>
+      </section>
+
+      <!-- Appendix C -->
+      <section id="appendix-finish">
+        <h2>부록 C. 분할 화면에서의 Activity Finish 생명주기 및 연쇄 종료(FinishBehavior) 플로우</h2>
+        <p>
+          기존의 단일 액티비티 스택 환경에서는 <code>finish()</code>가 단순히 최상위 액티비티를 팝(Pop)하여 스택의 바로 아래 액티비티를 드러내면 되었습니다.
+          하지만 두 액티비티가 <strong>나란히 분할(Split) 표시되는 환경에서는 한쪽 화면이 종료될 때 인접한 다른 화면을 어떻게 처리할 것인가</strong>에 대한 정밀한 생명주기 조율이 필요합니다.
+        </p>
+
+        <h3>1. 선언적 종료 정책: SplitRule.FinishBehavior 3가지 모드</h3>
+        <p>Jetpack WindowManager는 개발자가 규칙 등록 시 각 창의 종료 종속성을 선언할 수 있도록 세 가지 <code>FinishBehavior</code> 정책을 제공합니다:</p>
+
+        <div class="grid-2" style="margin: 1.5rem 0;">
+          <div class="card">
+            <div class="card-title">
+              <span>FINISH_NEVER (기본 정책)</span>
+              <span class="pill pill-blue">독립 유지 &amp; 전체화면 확장</span>
+            </div>
+            <p style="font-size: 0.88rem; line-height: 1.6; margin-top: 0.4rem;">
+              한쪽 액티비티가 종료되어도 <strong>인접 액티비티는 종료되지 않고 그대로 열려 있습니다.</strong>
+              대신 비어버린 공간을 채우기 위해, 남은 액티비티의 <code>TaskFragment</code>가 부모 <code>Task</code>의 전체 화면(Full-screen) 너비로 즉시 자동 확장됩니다.
+            </p>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.35rem;">
+              💡 <em>추천 시나리오:</em> 마스터-디테일 관계에서 상세 화면만 닫고 목록 화면은 온전히 전체화면으로 유지하고 싶을 때.
+            </p>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span>FINISH_ALWAYS</span>
+              <span class="pill pill-orange">동반 연쇄 종료</span>
+            </div>
+            <p style="font-size: 0.88rem; line-height: 1.6; margin-top: 0.4rem;">
+              한쪽 액티비티가 종료되면 <strong>연관된 다른 컨테이너의 액티비티도 강제로 함께 연쇄 종료</strong>됩니다.
+            </p>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.35rem;">
+              💡 <em>추천 시나리오:</em> 주-종속 관계가 명확하여 기본 화면(예: 로그인 또는 메인 대시보드)이 종료될 때 연관 보조 화면도 반드시 함께 닫혀야 하는 경우.
+            </p>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span>FINISH_ADJACENT</span>
+              <span class="pill pill-green">조건부 동반 종료</span>
+            </div>
+            <p style="font-size: 0.88rem; line-height: 1.6; margin-top: 0.4rem;">
+              두 컨테이너가 <strong>화면에 나란히 분할(Split) 표시 중일 때만</strong> 연관 액티비티를 함께 종료합니다.
+              만약 기기를 접거나 창을 좁혀서 전체화면 스택(Stacked)으로 포개진 상태라면, 동반 종료되지 않고 통상적인 뒤로 가기로 동작합니다.
+            </p>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span>양방향 규칙 설정 API</span>
+              <span class="pill pill-purple">SplitPairRule</span>
+            </div>
+            <p style="font-size: 0.88rem; line-height: 1.6; margin-top: 0.4rem;">
+              규칙 빌더에서 Primary가 닫힐 때와 Secondary가 닫힐 때의 동작을 독립적으로 각각 설정할 수 있습니다:
+            </p>
+            <pre style="font-size: 0.78rem; margin-top: 0.4rem;"><code>val splitPairRule = SplitPairRule.Builder(filterSet)
+    // Primary 종료 시 Secondary도 함께 종료
+    .setFinishSecondaryWithPrimary(SplitRule.FinishBehavior.ALWAYS)
+    // Secondary 종료 시 Primary는 그대로 유지
+    .setFinishPrimaryWithSecondary(SplitRule.FinishBehavior.NEVER)
+    .build()</code></pre>
+          </div>
+        </div>
+
+        <h3>2. 4단계 계층별 Finish 실행 파이프라인 (App ➔ Extensions ➔ Framework ➔ ATMS)</h3>
+        <p>임베딩된 액티비티에서 <code>finish()</code>가 호출되었을 때, 4개 계층이 어떻게 협력하여 깜빡임 없는 서피스 정리 및 레이아웃 확장을 달성하는지 살펴봅니다:</p>
+
+        <div class="flow-steps" style="margin: 1.5rem 0;">
+          <div class="step-item">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h4>
+                App / AndroidX 계층: 
+                <span style="font-size: 0.95rem; font-weight: normal; color: var(--text-muted);">종료 이벤트 발생</span>
+              </h4>
+              <p>사용자가 뒤로 가기 제스처를 수행하거나, 액티비티 코드에서 <code>activity.finish()</code>를 직접 호출합니다.</p>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h4>
+                Extensions 계층: 
+                <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/libs/WindowManager/Jetpack/src/androidx/window/extensions/embedding/SplitController.java" target="_blank" style="color: var(--accent); font-family: var(--font-mono);">
+                  SplitController
+                </a> 
+                &amp; 
+                <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/libs/WindowManager/Jetpack/src/androidx/window/extensions/embedding/SplitPresenter.java" target="_blank" style="color: var(--accent); font-family: var(--font-mono);">
+                  SplitPresenter
+                </a>
+              </h4>
+              <p>앱 프로세스 내부의 <code>SplitController</code>가 액티비티 파괴 이벤트를 감지하고 해당 규칙의 <code>FinishBehavior</code>를 평가합니다:</p>
+              <ul style="margin-left: 1.2rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-main); margin-top: 0.4rem;">
+                <li><code>ALWAYS</code> 또는 <code>ADJACENT</code> 조건에 부합할 경우: 연관된 다른 컨테이너의 액티비티에 대해 <code>finish()</code>를 동반 트리거합니다.</li>
+                <li><code>NEVER</code>일 경우: <code>SplitPresenter.expandTaskFragment()</code>를 호출하여, 남은 컨테이너의 바운드를 부모 Task의 전체 너비(0, 0, TaskWidth, TaskHeight)로 즉각 재계산합니다.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h4>
+                Frameworks 계층: 
+                <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/core/java/android/window/TaskFragmentOrganizer.java" target="_blank" style="color: var(--accent); font-family: var(--font-mono);">
+                  TaskFragmentOrganizer
+                </a>
+              </h4>
+              <p>
+                <code>JetpackTaskFragmentOrganizer</code>가 종료된 컨테이너의 삭제 오퍼레이션(<code>deleteTaskFragment</code>)과 남은 컨테이너의 바운드 확장 오퍼레이션(<code>setRelativeBounds</code>)을 단일 원자적 트랜잭션인 <strong><code>WindowContainerTransaction (WCT)</code></strong>으로 패키징하여 시스템 서버로 전송합니다.
+              </p>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <div class="step-number">4</div>
+            <div class="step-content">
+              <h4>
+                System Server 계층: 
+                <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/services/core/java/com/android/server/wm/TaskFragmentOrganizerController.java" target="_blank" style="color: var(--accent); font-family: var(--font-mono);">
+                  ATMS &amp; WindowManager
+                </a>
+              </h4>
+              <p>
+                <code>TaskFragmentOrganizerController</code>가 WCT 트랜잭션을 실행합니다.
+                종료된 <code>TaskFragment</code> 컨테이너를 파괴하고 서피스를 회수하는 동시에, <strong>남은 <code>TaskFragment</code>를 액티비티 재시작 없이 <code>SurfaceControl</code> 서피스 제어만으로 부드럽게 전체 화면으로 확장</strong>합니다. 사용자는 시각적 깜빡임이나 끊김 없이 매끄러운 화면 확장을 경험하게 됩니다.
+              </p>
+            </div>
+          </div>
+        </div>
       </section>
     </main>
   </div>
