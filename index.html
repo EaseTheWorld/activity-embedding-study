@@ -615,6 +615,7 @@
         <li><a href="#appendix-sources">부록 A. 업스트림 소스 코드 레퍼런스</a></li>
         <li><a href="#appendix-zorder">부록 B. Top Activity &amp; Z-Order 심층 분석</a></li>
         <li><a href="#appendix-finish">부록 C. Activity Finish 및 연쇄 종료 플로우</a></li>
+        <li><a href="#appendix-platform-internals">부록 D. Frameworks &amp; System Server 심층 분석</a></li>
       </ul>
     </aside>
 
@@ -945,6 +946,9 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             <li><strong>Extensions 계층 (WindowManager Extensions)</strong>이 새 너비와 규칙의 <code>minWidthDp</code>를 비교 평가하여, 화면이 좁아지면 전체화면 스택(Stacked, <code>EXPAND_CONTAINERS_ATTRIBUTES</code>)으로, 넓어지면 분할(Split)로 전환할 것을 결정합니다.</li>
             <li><strong>Frameworks 계층 &amp; System Server 계층</strong>이 계산된 결과를 WCT 트랜잭션으로 원자적으로 실행하여, 액티비티 재시작 없이 서피스만 부드럽게 재배치합니다.</li>
           </ul>
+          <p style="font-size: 0.84rem; color: var(--accent); margin-top: 0.65rem; margin-bottom: 0;">
+            👉 <em>WCT 원자적 배치, Task extends TaskFragment 상속 구조, Binder 토큰 원격 제어 등 프레임워크 이하 5대 핵심 패턴은 <a href="#appendix-platform-internals" style="color: var(--accent); text-decoration: underline;">부록 D: Frameworks &amp; System Server 플랫폼 엔지니어링 심층 분석</a>을 참조하세요.</em>
+          </p>
         </div>
       </section>
 
@@ -1409,6 +1413,143 @@ assertEquals(activity1, taskContainer.getTopNonFinishingActivity(true));
               </p>
             </div>
           </div>
+        </div>
+      </section>
+
+      <!-- Appendix D -->
+      <section id="appendix-platform-internals">
+        <h2>부록 D. Frameworks &amp; System Server 플랫폼 엔지니어링 심층 분석 (5대 핵심 아키텍처 패턴)</h2>
+        <p>
+          AndroidX 고수준 라이브러리 뒤편에는, 10년 이상 축적된 수백만 줄의 AOSP WindowManager 코어 시스템이 자리 잡고 있습니다.
+          구글 플랫폼 아키텍트들이 기존 레거시 아키텍처를 망가뜨리지 않으면서, 어떻게 <strong>화면 깜빡임 없는 원자적 레이아웃</strong>과 <strong>엄격한 샌드박스 보안</strong>, 그리고 <strong>동적 적응성</strong>을 달성했는지 5대 핵심 설계 패턴을 AOSP 소스 레벨에서 상세히 분석합니다.
+        </p>
+
+        <!-- Pattern 1 -->
+        <div class="card" style="margin: 1.5rem 0;">
+          <div class="card-title">
+            <span>패턴 1. Task extends TaskFragment — 레거시를 살린 Composite 패턴의 극치</span>
+            <span class="pill pill-purple">상속 계층 리팩토링</span>
+          </div>
+          <p style="font-size: 0.88rem; line-height: 1.6; margin-top: 0.4rem;">
+            Android 12 이전까지 시스템 윈도우 계층 구조에서 <code>Task</code>는 <code>ActivityRecord</code>들을 직접 품는 1:1 컨테이너였습니다. 수많은 ATMS 내부 로직이 <code>Task ──▶ ActivityRecord</code> 전제 위에 결합되어 있었습니다.
+          </p>
+          <pre style="font-size: 0.82rem; margin: 0.5rem 0;"><code>// frameworks/base/services/core/java/com/android/server/wm/Task.java
+class Task extends TaskFragment { ... }</code></pre>
+          <ul style="margin-left: 1.2rem; font-size: 0.85rem; line-height: 1.7; color: var(--text-main); margin-top: 0.4rem;">
+            <li>
+              <strong>Composite 패턴의 우아함:</strong> 구글은 <code>Task</code>를 완전히 뜯어고치는 대신, 새 컨테이너 단위인 <code>TaskFragment</code>를 정의하고 <code>Task</code>가 <code>TaskFragment</code>를 상속받도록(<code>extends</code>) 설계했습니다.
+            </li>
+            <li>
+              <strong>100% 하위 호환성 보장:</strong> 
+              <br>• <strong>Activity Embedding 사용 시:</strong> <code>Task</code>가 부모 컨테이너가 되고, 자식으로 2개 이상의 <code>TaskFragment</code>가 들어갑니다.
+              <br>• <strong>레거시 일반 앱 실행 시:</strong> <code>Task</code> 자체가 곧 하나의 <code>TaskFragment</code>로서 <code>ActivityRecord</code>를 직접 담습니다.
+            </li>
+            <li>
+              결과적으로 기존의 포커스 관리, 최근 앱(Recents) 타일 매핑, z-order 계산 로직을 단 한 줄도 손상시키지 않고 계층 구조를 확장했습니다.
+            </li>
+          </ul>
+        </div>
+
+        <!-- Pattern 2 -->
+        <div class="card" style="margin: 1.5rem 0;">
+          <div class="card-title">
+            <span>패턴 2. WindowContainerTransaction (WCT) — 화면 깜빡임(Tearing/Flickering) 원천 차단</span>
+            <span class="pill pill-orange">원자적 배치(Batching)</span>
+          </div>
+          <p style="font-size: 0.88rem; line-height: 1.6; margin-top: 0.4rem;">
+            화면 분할 시 최소 4단계의 조작(Primary 창 축소, Secondary 생성, 바운드 지정, 액티비티 이동)이 필요합니다. 만약 이를 개별 IPC 호출로 실행한다면, 중간 상태가 화면에 1프레임 노출되어 <strong>화면 깜빡임(Flicker)</strong>이나 <strong>티어링(Tearing)</strong>이 발생합니다.
+          </p>
+          <div class="grid-2" style="margin: 0.8rem 0;">
+            <div style="background: rgba(13, 17, 23, 0.7); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0.85rem;">
+              <strong style="color: var(--accent); font-size: 0.88rem;">클라이언트: <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/core/java/android/window/WindowContainerTransaction.java" target="_blank" style="color: var(--accent);">WindowContainerTransaction</a></strong>
+              <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.35rem; line-height: 1.5;">
+                앱 프로세스의 <code>TaskFragmentOrganizer</code>가 모든 창 생성, 크기 조절, 삭제 오퍼레이션을 메모리에 차곡차곡 쌓아(Queue) <strong>단 1회의 Binder IPC</strong>로 일괄 전송합니다.
+              </p>
+            </div>
+            <div style="background: rgba(13, 17, 23, 0.7); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0.85rem;">
+              <strong style="color: var(--accent-green); font-size: 0.88rem;">서버: <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/services/core/java/com/android/server/wm/WindowOrganizerController.java" target="_blank" style="color: var(--accent-green);">WindowOrganizerController</a></strong>
+              <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.35rem; line-height: 1.5;">
+                <code>mGlobalLock</code>을 획득하고 <strong>단 1회의 레이아웃 패스(Single Layout Pass)</strong>로 모든 오퍼레이션을 원자적(Atomic)으로 적용하며, SurfaceFlinger의 단일 VSYNC 프레임에 맞춰 화면을 갱신합니다.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pattern 3 -->
+        <div class="card" style="margin: 1.5rem 0;">
+          <div class="card-title">
+            <span>패턴 3. TaskFragmentOrganizer — 불투명한 Binder 토큰 기반 원격 보안 핸들 제어</span>
+            <span class="pill pill-blue">Organizer 패턴</span>
+          </div>
+          <p style="font-size: 0.88rem; line-height: 1.6; margin-top: 0.4rem;">
+            시스템 서버의 창 관리 노드(<code>WindowContainer</code>, <code>TaskFragment</code>)는 핵심 OS 상태이므로, 앱 프로세스에 직접 주소를 노출하거나 조작 객체를 넘겨줄 수 없습니다.
+          </p>
+          <ul style="margin-left: 1.2rem; font-size: 0.85rem; line-height: 1.7; color: var(--text-main); margin-top: 0.4rem;">
+            <li>
+              <strong>불투명 핸들(Opaque Handle):</strong> 앱은 시스템 서버로부터 오직 <code>IBinder fragmentToken</code>이라는 불투명한 토큰만 부여받습니다.
+            </li>
+            <li>
+              <strong>서버 측 레지스트리:</strong> 시스템 서버의 <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/services/core/java/com/android/server/wm/TaskFragmentOrganizerController.java" target="_blank" style="color: var(--accent);"><code>TaskFragmentOrganizerController</code></a>는 내부 <code>mTaskFragmentMap</code>에서 <code>(fragmentToken ➔ TaskFragment)</code> 매핑을 엄격히 관리합니다.
+            </li>
+            <li>
+              <strong>권한 검증(Enforcement):</strong> 앱이 "이 토큰 창의 크기를 변경해달라"고 요청할 때마다, 시스템 서버는 호출 프로세스가 해당 <code>TaskFragment</code>의 진짜 소유자(Organizer)인지 UID를 실시간 검증(<code>enforceTaskPermission</code>)하여 악의적인 창 탈취를 원천 차단합니다.
+            </li>
+          </ul>
+        </div>
+
+        <!-- Pattern 4 -->
+        <div class="card" style="margin: 1.5rem 0;">
+          <div class="card-title">
+            <span>패턴 4. ActivityStarter의 컨테이너 하이재킹: KEY_LAUNCH_TASK_FRAGMENT_TOKEN</span>
+            <span class="pill pill-green">라우팅 가로채기</span>
+          </div>
+          <p style="font-size: 0.88rem; line-height: 1.6; margin-top: 0.4rem;">
+            AOSP의 <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/services/core/java/com/android/server/wm/ActivityStarter.java" target="_blank" style="color: var(--accent);"><code>ActivityStarter.java</code></a>는 태스크 재사용, 인텐트 플래그, 런치 모드 등 수천 줄의 복잡한 규칙을 총괄하는 컴포넌트입니다.
+          </p>
+          <pre style="font-size: 0.82rem; margin: 0.5rem 0;"><code>// android.app.ActivityOptions (@hide)
+public static final String KEY_LAUNCH_TASK_FRAGMENT_TOKEN =
+        "android.activity.launchTaskFragmentToken";</code></pre>
+          <ul style="margin-left: 1.2rem; font-size: 0.85rem; line-height: 1.7; color: var(--text-main); margin-top: 0.4rem;">
+            <li>
+              <strong>우회 경로 주입:</strong> 기본 동작은 새 액티비티를 태스크 최상단에 올리는 것이지만, <code>ActivityStarter</code>는 인텐트 옵션에 <code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>이 존재하는지 검사합니다.
+            </li>
+            <li>
+              <strong>타깃 컨테이너 강제 배정:</strong> 유효한 토큰이 감지되면 통상적인 스택 배치 절차를 우회하고, 해당 <code>TaskFragment</code>를 <code>mTargetTaskFragment</code>로 직접 지정합니다.
+            </li>
+            <li>
+              <strong>실시간 보안 검증:</strong> 배치 직전 <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/services/core/java/com/android/server/wm/TaskFragment.java" target="_blank" style="color: var(--accent);"><code>TaskFragment.isAllowedToEmbedActivity()</code></a>를 호출하여 동일 UID 여부, <code>allowUntrustedActivityEmbedding</code> 선언, 또는 <code>knownActivityEmbeddingCerts</code> 인증서 일치 여부를 대조합니다.
+            </li>
+          </ul>
+        </div>
+
+        <!-- Pattern 5 -->
+        <div class="card" style="margin: 1.5rem 0;">
+          <div class="card-title">
+            <span>패턴 5. TaskFragmentParentInfo — 관찰(Observe)과 판단(Decide)의 역방향 피드백 루프</span>
+            <span class="pill pill-purple">관심사 분리(SoC)</span>
+          </div>
+          <p style="font-size: 0.88rem; line-height: 1.6; margin-top: 0.4rem;">
+            가장 아름다운 아키텍처적 반전은 <strong>"시스템 서버는 SplitRule의 존재 자체를 전혀 모른다"</strong>는 점입니다. 시스템 서버는 화면을 5:5로 나눌지 3:7로 나눌지 결정하지 않습니다.
+          </p>
+          <div style="background: rgba(13, 17, 23, 0.7); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0.85rem; margin-top: 0.6rem;">
+            <div style="display: flex; flex-direction: column; gap: 0.6rem; font-size: 0.85rem; line-height: 1.6;">
+              <div>
+                <span class="pill pill-green" style="font-size: 0.72rem; margin-right: 0.4rem;">1. 물리적 관찰 (ATMS)</span>
+                폴더블 접힘이나 화면 회전으로 태스크 크기가 변하면, 시스템 서버는 크기를 쪼개는 대신 새 치수를 담아 <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/core/java/android/window/TaskFragmentParentInfo.java" target="_blank" style="color: var(--accent);"><code>TaskFragmentParentInfo</code></a>를 앱의 Organizer로 발송합니다 (<code>TYPE_TASK_FRAGMENT_PARENT_INFO_CHANGED</code>).
+              </div>
+              <div>
+                <span class="pill pill-purple" style="font-size: 0.72rem; margin-right: 0.4rem;">2. 비즈니스 판단 (앱 Extensions)</span>
+                앱 프로세스의 <code>SplitPresenter</code>가 변경된 치수를 등록된 <code>minWidthDp</code>와 비교하여, 화면이 좁아졌으면 <code>EXPAND_CONTAINERS_ATTRIBUTES</code>(전체화면 Stack)를, 충분히 넓으면 분할(Split) 바운드를 스스로 계산합니다.
+              </div>
+              <div>
+                <span class="pill pill-orange" style="font-size: 0.72rem; margin-right: 0.4rem;">3. 물리적 집행 (ATMS)</span>
+                앱이 보낸 WCT를 수신한 시스템 서버는 그저 지정된 바운드대로 서피스를 재배치합니다.
+              </div>
+            </div>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.6rem; line-height: 1.6;">
+            👉 <strong>"물리적 상태 관찰은 시스템 서버가, 비즈니스 정책 판단은 앱 프로세스가, 최종 렌더링 집행은 다시 시스템 서버가"</strong> 수행함으로써 시스템 서버의 코드를 비대화하지 않고도 무한히 확장 가능한 윈도우 분할 생태계를 완성했습니다.
+          </p>
         </div>
       </section>
     </main>
