@@ -824,7 +824,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             규칙 등록 단계에서는 시스템 서버(ATMS)와의 IPC 통신이 일절 발생하지 않으며, 시스템 서버는 SplitRule의 존재 자체를 모릅니다. 규칙의 해석과 규격 변환, 메모리 캐싱, 감시자(Monitor) 등록까지의 모든 절차가 <strong>앱 프로세스 내부(AndroidX 계층 &rarr; Extensions 계층)</strong>에서 즉시 처리되므로 앱 시작 성능에 오버헤드를 주지 않습니다.
           </p>
           <p style="font-size: 0.84rem; color: var(--accent); margin-top: 0.65rem; margin-bottom: 0;">
-            👉 <em>AndroidX 및 WindowManager Extensions의 공식 소스 트리 경로와 핵심 클래스 파일 목록은 <a href="#appendix-sources" style="color: var(--accent); text-decoration: underline;">부록 A: 업스트림 소스 코드 탐색 가이드</a>를 참조하세요.</em>
+            👉 <em>관련 공식 소스 코드는 <a href="#appendix-sources" style="color: var(--accent); text-decoration: underline;">부록 A. 업스트림 소스 코드 레퍼런스</a> 참조</em>
           </p>
         </div>
       </section>
@@ -855,22 +855,21 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             <strong>Task</strong>가 '앱 전체 작업 단위'이고 <strong>Activity</strong>가 '실제 사용자가 조작하는 개별 UI 화면 단위'라면, <strong>TaskFragment</strong>는 <em>"화면을 좌/우로 분할한 특정 구획(Pane)의 크기(Bounds)를 잡고, 그 구획 안에서 액티비티들이 독립적으로 쌓이도록 관리하는 서브 스택(Sub-stack) 컨테이너"</em>입니다. 이제 아래에서 <strong>Extensions &rarr; Frameworks &rarr; System Server 3개 계층</strong>이 <code>startActivity()</code> 시점에 어떻게 이 <code>TaskFragment</code>를 생성하고 배치하는지 살펴보겠습니다.
           </p>
           <p style="font-size: 0.84rem; color: var(--accent); margin-top: 0.65rem; margin-bottom: 0;">
-            👉 <em>Task와 TaskFragment의 상세 상속 계층과 Composite 패턴 설계는 <a href="#backward-compatibility" style="color: var(--accent); text-decoration: underline;">4. 하위 호환성 설계</a>를 참조하세요.</em>
+            👉 <em>상세 상속 계층 구조는 <a href="#backward-compatibility" style="color: var(--accent); text-decoration: underline;">4. 하위 호환성 설계</a> 참조</em>
           </p>
         </div>
 
         <!-- Comparison Note: Multi-Window vs Activity Embedding -->
         <div class="card" style="margin: 1rem 0 1.5rem; background: rgba(13, 17, 23, 0.5); border: 1px solid var(--border-subtle);">
           <div class="card-title" style="font-size: 0.95rem;">
-            <span>💡 기존 분할 화면(Multi-Window)과의 결정적 차이</span>
+            <span>💡 기존 분할 화면(Multi-Window)과의 차이</span>
             <span class="pill pill-purple" style="font-size: 0.7rem;">Task vs TaskFragment</span>
           </div>
-          <p style="font-size: 0.85rem; color: var(--text-main); line-height: 1.6; margin: 0.4rem 0;">
-            Android 7.0~11의 <strong>전통적 Multi-Window</strong>가 OS와 사용자가 주도하여 <em>서로 다른 앱(Task A ⬌ Task B)을 나란히 배치</em>하는 멀티태스킹 기능이라면, 
-            <strong>Activity Embedding</strong>은 앱의 비즈니스 규칙에 따라 <em>오직 단일 Task 내부를 멀티페인으로 분할</em>하며 최근 앱(Recents)에서도 <strong>하나의 통합 타일</strong>로 유지되는 모듈식 UI 아키텍처입니다.
+          <p style="font-size: 0.85rem; color: var(--text-main); line-height: 1.6; margin: 0.4rem 0 0.25rem;">
+            전통적 Multi-Window가 OS/사용자 주도의 <strong>서로 다른 Task 간 분할</strong>이라면, Activity Embedding은 앱 규칙 주도의 <strong>단일 Task 내부 TaskFragment 분할</strong>(최근 앱 1개 타일 유지)입니다.
           </p>
-          <p style="font-size: 0.82rem; color: var(--accent); margin-top: 0.5rem; margin-bottom: 0;">
-            👉 <em>컨테이너 분할 단위, 제어 주체, Recents 타일, 생명주기(FinishBehavior) 등 상세 비교는 <a href="#appendix-multiwindow" style="color: var(--accent); text-decoration: underline;">부록 E: 전통적 Multi-Window vs Activity Embedding 심층 비교</a>를 참조하세요.</em>
+          <p style="font-size: 0.82rem; color: var(--accent); margin-top: 0.4rem; margin-bottom: 0;">
+            👉 <em><a href="#appendix-multiwindow" style="color: var(--accent); text-decoration: underline;">부록 E. Multi-Window vs Activity Embedding 심층 비교</a> 참조</em>
           </p>
         </div>
 
@@ -942,7 +941,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
               <ol style="margin-left: 1.2rem;">
                 <li><code>TaskFragmentOrganizerController</code>가 수신된 WCT를 실행하여 시스템 창 트리에 실제 <code>TaskFragment</code> 노드를 생성하고 바운드를 적용합니다.</li>
                 <li><code>ActivityStarter</code>가 <code>options.getLaunchTaskFragmentToken()</code>을 확인하고 UID 임베딩 보안을 검증한 후, 새 <code>ActivityRecord</code>를 해당 <code>TaskFragment</code> 내부로 직접 라우팅합니다.</li>
-                <li>SurfaceFlinger가 두 액티비티의 서피스를 깜빡임 없이 나란히 합성(Composite)하여 화면에 렌더링합니다. (분할 화면에서의 선형 Z-order 및 최상위 판정 원리는 <a href="#appendix-zorder" style="color: var(--accent); text-decoration: underline;">부록 B</a> 참조)</li>
+                <li>SurfaceFlinger가 두 액티비티의 서피스를 깜빡임 없이 나란히 합성(Composite)하여 화면에 렌더링합니다. (<a href="#appendix-zorder" style="color: var(--accent); text-decoration: underline;">부록 B. Z-Order 판정</a> 참조)</li>
               </ol>
             </div>
             <div class="arch-chips" style="margin-top: 0.75rem;">
@@ -969,7 +968,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             <li><strong>Frameworks 계층 &amp; System Server 계층</strong>이 계산된 결과를 WCT 트랜잭션으로 원자적으로 실행하여, 액티비티 재시작 없이 서피스만 부드럽게 재배치합니다.</li>
           </ul>
           <p style="font-size: 0.84rem; color: var(--accent); margin-top: 0.65rem; margin-bottom: 0;">
-            👉 <em>WCT 원자적 배치, Binder 토큰 기반 Organizer, ActivityStarter 하이재킹 등 프레임워크 이하 4대 핵심 패턴은 <a href="#appendix-platform-internals" style="color: var(--accent); text-decoration: underline;">부록 D: Frameworks &amp; System Server 플랫폼 엔지니어링 심층 분석</a>을 참조하세요.</em>
+            👉 <em>프레임워크 이하 핵심 구현 패턴은 <a href="#appendix-platform-internals" style="color: var(--accent); text-decoration: underline;">부록 D. Frameworks &amp; System Server 심층 분석</a> 참조</em>
           </p>
         </div>
       </section>
@@ -1020,7 +1019,7 @@ RootWindowContainer
             Primary와 Secondary 액티비티가 모두 화면에 표시되어 <code>RESUMED</code> 상태(Multi-Resume)라 하더라도, WindowManager 내부 컨테이너 트리에서는 <strong>Secondary Activity가 항상 선형 Z-order 상위(Top)</strong>로 관리됩니다. 따라서 <code>singleTop</code> 플래그 호출 등의 동작 시 Secondary가 최상위로 평가됩니다.
           </p>
           <p style="font-size: 0.85rem; color: var(--accent); margin-bottom: 0;">
-            👉 <em>ATMS 자식 인덱스 탐색 알고리즘, singleTop/clearTop 상세 동작, AOSP 테스트 코드 검증은 <a href="#appendix-zorder" style="color: var(--accent); text-decoration: underline;">부록 B: Top Activity 판정과 Z-Order 심층 분석</a>을 참조하세요.</em>
+            👉 <em>상세 알고리즘 및 테스트 검증은 <a href="#appendix-zorder" style="color: var(--accent); text-decoration: underline;">부록 B. Top Activity &amp; Z-Order 심층 분석</a> 참조</em>
           </p>
         </div>
 
@@ -1078,7 +1077,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             </div>
             <p>선언적 <code>FinishBehavior</code> (<code>FINISH_ALWAYS</code>, <code>FINISH_ADJACENT</code>, <code>FINISH_NEVER</code>) 설정을 통해 분할 컨테이너 간의 예측 가능한 뒤로 가기 내비게이션을 보장합니다.</p>
             <p style="font-size: 0.82rem; color: var(--accent); margin-top: 0.5rem; margin-bottom: 0;">
-              👉 <em>각 모드별 상세 동작과 4계층 연쇄 종료 IPC 파이프라인은 <a href="#appendix-finish" style="color: var(--accent); text-decoration: underline;">부록 C: Activity Finish 및 연쇄 종료 플로우</a>를 참조하세요.</em>
+              👉 <em>연쇄 종료 동작 및 실행 파이프라인은 <a href="#appendix-finish" style="color: var(--accent); text-decoration: underline;">부록 C. Activity Finish 플로우</a> 참조</em>
             </p>
           </div>
         </div>
@@ -1151,7 +1150,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             앱 프로세스가 임의로 <code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>을 조작하더라도, 시스템 서버의 <code>ActivityStarter</code>와 <code>TaskFragment.isAllowedToEmbedActivity()</code>가 호출 패키지의 서명 인증서와 UID를 실시간으로 직접 대조하여 권한 없는 임베딩을 즉각 차단합니다.
           </p>
           <p style="font-size: 0.84rem; color: var(--accent); margin-top: 0.5rem; margin-bottom: 0;">
-            👉 <em>ATMS의 라우팅 가로채기와 실시간 인증서 검증 메커니즘은 <a href="#appendix-platform-internals" style="color: var(--accent); text-decoration: underline;">부록 D: Frameworks &amp; System Server 심층 분석 (패턴 3)</a>에서, 관련 AOSP 소스 경로는 <a href="#appendix-sources" style="color: var(--accent); text-decoration: underline;">부록 A: 업스트림 소스 코드 레퍼런스</a>에서 확인하실 수 있습니다.</em>
+            👉 <em><a href="#appendix-platform-internals" style="color: var(--accent); text-decoration: underline;">부록 D (패턴 3. ActivityStarter 검증)</a> 및 <a href="#appendix-sources" style="color: var(--accent); text-decoration: underline;">부록 A (소스 레퍼런스)</a> 참조</em>
           </p>
         </div>
       </section>
