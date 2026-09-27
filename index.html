@@ -936,19 +936,15 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
         <!-- Dynamic Screen Resize Callout -->
         <div class="callout" style="margin-top: 1.25rem; border-color: rgba(188, 140, 255, 0.4); background: rgba(188, 140, 255, 0.05);">
           <div class="callout-title" style="color: var(--accent-purple); display: flex; align-items: center; justify-content: space-between;">
-            <span>💡 런타임 반응성: 화면 크기 변경 시(Split ↔ Stacked)는 어떻게 동작하는가?</span>
+            <span>💡 런타임 반응성: 화면 크기 변경 시(Split ↔ Stacked) 동작</span>
             <span class="pill pill-purple">동적 화면 적응</span>
           </div>
-          <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.35rem; line-height: 1.6;">
-            기기 회전, 폴더블 접기/펼치기 등으로 화면 너비가 동적으로 변할 때도 <strong>2단계와 동일한 역할 분담</strong>이 일어납니다:
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.4rem; margin-bottom: 0.35rem; line-height: 1.6;">
+            기기 회전이나 폴더블 접기/펼치기 시에도 액티비티 재시작 없이 매끄럽게 전환됩니다.
+            <strong>시스템 서버는 Task 크기 변경만 앱에 통보</strong>할 뿐 분할 규칙을 모르며, <strong>Extensions 계층이 <code>minWidthDp</code> 조건을 재평가하여 Split 또는 Stacked를 결정한 뒤 WCT로 서피스를 원자적 재배치</strong>합니다.
           </p>
-          <ul style="margin-left: 1.2rem; font-size: 0.85rem; line-height: 1.6; color: var(--text-muted); margin-top: 0.3rem;">
-            <li><strong>System Server 계층 (ATMS)</strong>은 <em>SplitRule이나 분할 비율을 전혀 모릅니다.</em> 단지 Task 크기가 바뀌었음을 감지하고 앱으로 변경 이벤트(<code>TYPE_TASK_FRAGMENT_PARENT_INFO_CHANGED</code>)를 보낼 뿐입니다.</li>
-            <li><strong>Extensions 계층 (WindowManager Extensions)</strong>이 새 너비와 규칙의 <code>minWidthDp</code>를 비교 평가하여, 화면이 좁아지면 전체화면 스택(Stacked, <code>EXPAND_CONTAINERS_ATTRIBUTES</code>)으로, 넓어지면 분할(Split)로 전환할 것을 결정합니다.</li>
-            <li><strong>Frameworks 계층 &amp; System Server 계층</strong>이 계산된 결과를 WCT 트랜잭션으로 원자적으로 실행하여, 액티비티 재시작 없이 서피스만 부드럽게 재배치합니다.</li>
-          </ul>
-          <p style="font-size: 0.84rem; color: var(--accent); margin-top: 0.65rem; margin-bottom: 0;">
-            👉 <em>프레임워크 이하 핵심 구현 패턴은 <a href="#appendix-platform-internals" style="color: var(--accent); text-decoration: underline;">부록 D. Frameworks &amp; System Server 심층 분석</a> 참조</em>
+          <p style="font-size: 0.84rem; color: var(--accent); margin-top: 0.5rem; margin-bottom: 0;">
+            👉 <em>관찰-판단-집행 피드백 루프 상세는 <a href="#appendix-platform-internals" style="color: var(--accent); text-decoration: underline;">부록 D (패턴 4. TaskFragmentParentInfo)</a> 참조</em>
           </p>
         </div>
       </section>
