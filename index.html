@@ -612,9 +612,8 @@
         <li><a href="#backward-compatibility">4. 하위 호환성 설계</a></li>
         <li><a href="#security">5. 보안 및 신뢰 모델</a></li>
         <li style="margin-top: 0.8rem; border-top: 1px solid var(--border-subtle); padding-top: 0.5rem;"><span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">부록 및 레퍼런스</span></li>
-        <li><a href="#appendix-ioc">부록 A. 시스템 공유 라이브러리 &amp; IoC</a></li>
-        <li><a href="#appendix-zorder">부록 B. Top Activity &amp; Z-Order 심층 분석</a></li>
-        <li><a href="#appendix-sources">부록 C. 업스트림 소스 코드 레퍼런스</a></li>
+        <li><a href="#appendix-zorder">부록 A. Top Activity &amp; Z-Order 심층 분석</a></li>
+        <li><a href="#appendix-sources">부록 B. 업스트림 소스 코드 레퍼런스</a></li>
       </ul>
     </aside>
 
@@ -767,16 +766,46 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
               <span class="arch-layer-title">Extensions 계층: WindowManager Extensions (시스템 공유 라이브러리)</span>
               <div style="display: flex; gap: 0.4rem; align-items: center;">
                 <span class="pill pill-purple">androidx.window.extensions.embedding</span>
-                <span class="pill pill-green" style="font-size: 0.72rem;">앱 프로세스 (IoC)</span>
+                <span class="pill pill-green" style="font-size: 0.72rem;">앱 프로세스 (인프로세스 바인딩)</span>
               </div>
             </div>
-            <p><strong>시스템 공유 라이브러리(<code>&lt;uses-library&gt;</code>) 동적 로딩과 IoC(제어의 역전)</strong>를 통해 앱 프로세스 메모리에 마운트되는 <strong>동적 분할의 실질적인 런타임 두뇌</strong>입니다. (※ 상세 바인딩 원리는 <a href="#appendix-ioc" style="color: var(--accent); text-decoration: underline;">부록 A</a> 참조)</p>
-            <div style="margin-top: 0.65rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); background: rgba(188, 140, 255, 0.06); border-left: 3px solid var(--accent-purple); padding: 0.55rem 0.85rem; border-radius: 0 6px 6px 0;">
+            <p>
+              앱 기동 시 <code>&lt;uses-library&gt;</code>를 통해 앱 <code>PathClassLoader</code>에 동적 마운트되는 기기 OS 시스템 라이브러리(<code>/system_ext/framework/androidx.window.extensions.jar</code>)이자, <strong>동적 분할의 실질적인 런타임 두뇌</strong>입니다.
+            </p>
+
+            <div style="margin-top: 0.65rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); background: rgba(188, 140, 255, 0.06); border-left: 3px solid var(--accent-purple); padding: 0.65rem 0.85rem; border-radius: 0 6px 6px 0;">
+              <strong style="color: var(--text-heading);">🔗 런타임 플랫폼 바인딩 흐름 (WindowExtensionsProvider ➔ SplitController):</strong>
+              <ol style="margin: 0.4rem 0 0.5rem 1.2rem; padding-left: 0; color: var(--text-main); font-size: 0.85rem; line-height: 1.6;">
+                <li>
+                  앱의 AndroidX 계층이 
+                  <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/libs/WindowManager/Jetpack/src/androidx/window/extensions/WindowExtensionsProvider.java" target="_blank" style="color: var(--accent); font-family: var(--font-mono);">WindowExtensionsProvider.getWindowExtensions()</a>
+                  정적 팩토리를 호출하여 최상위 규격 인터페이스인 
+                  <a href="https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:window/extensions/extensions/src/main/java/androidx/window/extensions/WindowExtensions.java" target="_blank" style="color: var(--accent); font-family: var(--font-mono);">WindowExtensions</a>를 획득합니다.
+                </li>
+                <li>
+                  <code>getActivityEmbeddingComponent()</code>를 통해 분할 전용 계약 인터페이스인 
+                  <a href="https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:window/extensions/extensions/src/main/java/androidx/window/extensions/embedding/ActivityEmbeddingComponent.java" target="_blank" style="color: var(--accent); font-family: var(--font-mono);">ActivityEmbeddingComponent</a>를 얻습니다.
+                </li>
+                <li>
+                  이 인터페이스 뒤에서 실제 동작하는 구현체는 기기 OS에 탑재된 싱글톤 
+                  <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/libs/WindowManager/Jetpack/src/androidx/window/extensions/embedding/SplitController.java" target="_blank" style="color: var(--accent); font-family: var(--font-mono);">SplitController</a>입니다 
+                  (<a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/libs/WindowManager/Jetpack/src/androidx/window/extensions/WindowExtensionsImpl.java" target="_blank" style="color: var(--accent); font-family: var(--font-mono);">WindowExtensionsImpl</a>이 인스턴스화하여 반환).
+                </li>
+              </ol>
+              <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.35rem; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 0.35rem;">
+                💡 <strong>왜 구체 클래스가 아닌 인터페이스인가?</strong> 단말 제조사(삼성 OneUI, 픽셀 등)가 기존 자사 멀티윈도우 프레임워크의 상속 계층을 온전히 유지하면서도, 규격 인터페이스(<code>implements ActivityEmbeddingComponent</code>)만 구현하여 자사 하드웨어에 최적화된 컨트롤러를 <strong>유연하게 플러그인(IoC)</strong>할 수 있도록 보장하기 위함입니다.
+              </div>
+            </div>
+
+            <div style="margin-top: 0.65rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); background: rgba(88, 166, 255, 0.06); border-left: 3px solid var(--accent); padding: 0.55rem 0.85rem; border-radius: 0 6px 6px 0;">
               <strong style="color: var(--text-heading);">규칙 캐싱 및 가로채기(Monitor) 잠복:</strong> 
-              <code>SplitController.setEmbeddingRules()</code>가 변환된 규칙들을 수신하여 <code>mSplitRules</code>에 캐싱합니다. 동시에 앱 프로세스 내부의 <code>Instrumentation</code>에 <code>ActivityStartMonitor</code>를 등록(<code>instrumentation.addMonitor(mActivityStartMonitor)</code>)하여, 향후 어디서든 <code>startActivity()</code>가 호출될 때 IPC 호출 직전에 가로챌 준비를 완료합니다.
+              앱의 <code>RuleController.setRules()</code>가 호출되면, IPC나 리플렉션 없이 동일 힙(Heap) 메모리 상의 <code>SplitController.setEmbeddingRules()</code>로 직통 전달되어 <code>mSplitRules</code>에 캐싱됩니다. 동시에 앱 프로세스 내부의 <code>Instrumentation</code>에 <code>ActivityStartMonitor</code>를 등록(<code>instrumentation.addMonitor(mActivityStartMonitor)</code>)하여, 향후 어디서든 <code>startActivity()</code>가 호출될 때 IPC 호출 직전에 가로챌 준비를 완료합니다.
             </div>
             <div class="arch-chips" style="margin-top: 0.75rem;">
-              <span class="chip">SplitController.java (setEmbeddingRules)</span>
+              <span class="chip">WindowExtensionsProvider.java</span>
+              <span class="chip">WindowExtensions.java</span>
+              <span class="chip">ActivityEmbeddingComponent.java</span>
+              <span class="chip">SplitController.java</span>
               <span class="chip">ActivityStartMonitor</span>
               <span class="chip">mSplitRules 캐시</span>
             </div>
@@ -955,7 +984,7 @@ RootWindowContainer
             Primary와 Secondary 액티비티가 모두 화면에 표시되어 <code>RESUMED</code> 상태(Multi-Resume)라 하더라도, WindowManager 내부 컨테이너 트리에서는 <strong>Secondary Activity가 항상 선형 Z-order 상위(Top)</strong>로 관리됩니다. 따라서 <code>singleTop</code> 플래그 호출 등의 동작 시 Secondary가 최상위로 평가됩니다.
           </p>
           <p style="font-size: 0.85rem; color: var(--accent); margin-bottom: 0;">
-            👉 <em>ATMS 자식 인덱스 탐색 알고리즘, singleTop/clearTop 상세 동작, AOSP 테스트 코드 검증은 <a href="#appendix-zorder" style="color: var(--accent); text-decoration: underline;">부록 B: Top Activity 판정과 Z-Order 심층 분석</a>을 참조하세요.</em>
+            👉 <em>ATMS 자식 인덱스 탐색 알고리즘, singleTop/clearTop 상세 동작, AOSP 테스트 코드 검증은 <a href="#appendix-zorder" style="color: var(--accent); text-decoration: underline;">부록 A: Top Activity 판정과 Z-Order 심층 분석</a>을 참조하세요.</em>
           </p>
         </div>
 
@@ -1076,314 +1105,8 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
       </section>
 
       <!-- Appendix A -->
-      <section id="appendix-ioc">
-        <h2>부록 A. 아키텍처의 비밀 — compileOnly 및 시스템 공유 라이브러리를 통한 IoC</h2>
-        <p>애플리케이션 APK 내부에 번들링된 비번들(Unbundled) Jetpack 라이브러리(<code>androidx.window:window</code>)가 런타임 크래시나 클래스 중복, 연간 OS 판올림 종속성 없이 어떻게 시스템 파티션에 위치한 기기 플랫폼 구현체(<code>SplitController</code>)와 동일 프로세스(In-process) 내에서 직접 통신할 수 있을까요?</p>
-        
-        <p>그 비밀은 <code>compileOnly</code> 의존성, <code>&lt;uses-library&gt;</code>, 그리고 동적 ClassLoader 마운트를 유기적으로 결합한 우아한 <strong>제어의 역전(Inversion of Control, IoC)</strong> 아키텍처 패턴에 있습니다.</p>
-
-        <div class="card" style="margin: 1.5rem 0;">
-          <div class="card-title">
-            <span>3계층 의존성 및 로딩 모델 (3-Tier Dependency & Loading Model)</span>
-            <span class="pill pill-purple">아키텍처</span>
-          </div>
-          <pre><code>┌─────────────────────────────────────────────────────────────────────────────┐
-│ Tier 1: 규격 명세 계약 (androidx.window:window-extensions)                  │
-│ - WindowExtensions 인터페이스 정의                                          │
-│ - ActivityEmbeddingComponent 인터페이스 정의                                │
-│ - 진입점 클래스 WindowExtensionsProvider 정의                                │
-└───────────────────────┬─────────────────────────────┬───────────────────────┘
-                        │ compileOnly                 │ static_libs
-                        ▼                             ▼
-┌──────────────────────────────────────┐   ┌──────────────────────────────────┐
-│ Tier 2: 앱 소비자 (App Consumer)      │   │ Tier 3: 플랫폼 / 기기 구현체      │
-│ (APK 내부의 androidx.window:window)  │   │ (/system_ext/framework/...)      │
-├──────────────────────────────────────┤   ├──────────────────────────────────┤
-│ - compileOnly(window-extensions)     │   │ - static_libs: [window-extensions]│
-│ - AndroidManifest.xml:               │   │ - WindowExtensionsImpl           │
-│   &lt;uses-library                      │   │   implements WindowExtensions    │
-│     name="androidx.window.extensions"│   │ - SplitController                │
-│     required="false" /&gt;              │   │   implements                     │
-│ - ExtensionEmbeddingBackend.kt       │   │   ActivityEmbeddingComponent     │
-│ - SafeActivityEmbeddingComponent-    │   │                                  │
-│   Provider.kt                        │   │                                  │
-└──────────────────────────────────────┘   └──────────────────────────────────┘</code></pre>
-        </div>
-
-        <h3>단계별 런타임 주입 흐름 (Runtime Injection Flow Step-by-Step)</h3>
-        <div class="flow-steps">
-          <div class="step-item">
-            <div class="step-number">1</div>
-            <div class="step-content">
-              <h4>프로세스 기동 및 ClassLoader 마운팅</h4>
-              <p>앱 프로세스가 Zygote로부터 포크(fork)될 때, <code>ApplicationLoaders</code>가 APK 매니페스트 내의 <code>&lt;uses-library android:name="androidx.window.extensions" android:required="false" /&gt;</code> 태그를 감지하고 기기의 <code>/system_ext/framework/androidx.window.extensions.jar</code>를 앱의 <code>PathClassLoader</code>에 추가 마운트합니다.</p>
-            </div>
-          </div>
-          <div class="step-item">
-            <div class="step-number">2</div>
-            <div class="step-content">
-              <h4>진입점 탐색 (Entry Point Discovery)</h4>
-              <p><code>ExtensionEmbeddingBackend</code>가 <code>EmbeddingCompat.isEmbeddingAvailable()</code>을 호출하고, 이는 기기 플랫폼 상의 <code>WindowExtensionsProvider.getWindowExtensions()</code>를 호출합니다.</p>
-            </div>
-          </div>
-          <div class="step-item">
-            <div class="step-number">3</div>
-            <div class="step-content">
-              <h4>WindowManager Extensions 컴포넌트 인스턴스화</h4>
-              <p><code>WindowExtensionsImpl.getActivityEmbeddingComponent()</code>가 기기 고유의 구체 클래스 인스턴스인 <code>mSplitController = new SplitController(...)</code>를 생성하고 이를 <code>ActivityEmbeddingComponent</code> 인터페이스 타입으로 반환합니다.</p>
-            </div>
-          </div>
-          <div class="step-item">
-            <div class="step-number">4</div>
-            <div class="step-content">
-              <h4>방어적 리플렉션 가드: 메서드 검증 (Defensive Reflection Guard)</h4>
-              <p>리플렉션의 실질적인 역할은 바인딩 메커니즘 자체가 아니라 <strong>안전성 검증 가드(Guard)</strong>입니다. <code>SafeActivityEmbeddingComponentProvider</code> 및 <code>ReflectionUtils</code>가 런타임에 리플렉션으로 객체를 조사하여 선언된 <code>vendorApiLevel</code>과 필수 메서드 시그니처가 실제로 온전히 존재하는지 사전 검증(Method Verification)함으로써, 비표준 기기 ROM 환경에서 <code>NoSuchMethodError</code>나 <code>ClassNotFoundException</code>으로 앱이 강제 종료되는 것을 방지합니다. 검증이 통과하면 이후 모든 호출은 리플렉션 오버헤드 없이 순수 Java 인터페이스 다형성으로 고속 디스패치됩니다.</p>
-            </div>
-          </div>
-          <div class="step-item">
-            <div class="step-number">5</div>
-            <div class="step-content">
-              <h4>IoC 주입 완료 (IoC Complete)</h4>
-              <p><code>EmbeddingCompat</code>이 검증된 <code>ActivityEmbeddingComponent</code>를 저장합니다. 이제 고수준 Jetpack 규칙 변경 호출이 메모리 상의 <code>SplitController</code> 싱글톤으로 직접 디스패치됩니다!</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Maven JAR vs Device JAR Comparison -->
-        <h3>핵심 의문 해소: Maven 배포 JAR vs 기기 속 시스템 JAR (Impl은 어디에 들어있는가?)</h3>
-        <p>개발자 입장에서 가장 혼란스러운 부분은 <strong>"동일한 패키지명(<code>androidx.window.extensions</code>)의 라이브러리가 Maven에도 있고 기기 시스템에도 존재한다"</strong>는 점입니다. 그렇다면 <code>WindowExtensionsImpl</code>이나 <code>SplitController</code> 같은 실제 구현체(Impl)는 어디에 들어있을까요?</p>
-
-        <div class="grid-2" style="margin: 1.5rem 0;">
-          <div class="card">
-            <div class="card-title">
-              <span>1. Maven 배포 JAR (Google Maven)</span>
-              <span class="pill pill-orange">컴파일 타임 전용 스텁 (Stub)</span>
-            </div>
-            <p style="font-size: 0.88rem; margin-top: 0.4rem;">
-              의존성: <code>androidx.window.extensions:extensions</code>
-            </p>
-            <ul style="font-size: 0.84rem; color: var(--text-main); margin: 0.5rem 0 0.8rem 1.2rem; line-height: 1.6;">
-              <li><strong>포함 내용:</strong> 순수 인터페이스 규격(<code>WindowExtensions</code>, <code>ActivityEmbeddingComponent</code> 등)과 <strong>API 스텁(Stub)</strong>만 포함.</li>
-              <li><strong>구현체 부재:</strong> <code>WindowExtensionsImpl</code>, <code>SplitController</code> 등의 <strong>구현체 클래스는 아예 존재하지 않음!</strong></li>
-              <li><strong>스텁 코드:</strong> Maven JAR 내부의 <code>WindowExtensionsProvider.java</code>를 열어보면 메서드 본문이 예외로 비워져 있습니다:</li>
-            </ul>
-            <pre style="font-size: 0.8rem; margin-top: 0.5rem;"><code>// Maven 라이브러리 내부의 실제 코드
-public static WindowExtensions getWindowExtensions() {
-    throw new UnsupportedOperationException(
-        "Stub, replace with implementation"
-    );
-}</code></pre>
-            <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.5rem;">
-              👉 앱 빌드 시 심볼 참조(컴파일)용으로만 사용되며, <code>compileOnly</code>로 인해 최종 APK에는 바이트코드가 포함되지 않습니다.
-            </p>
-          </div>
-
-          <div class="card">
-            <div class="card-title">
-              <span>2. 기기 속 시스템 JAR (AOSP / OEM ROM)</span>
-              <span class="pill pill-green">런타임 실제 구현체 (Shared Library)</span>
-            </div>
-            <p style="font-size: 0.88rem; margin-top: 0.4rem;">
-              경로: <code>/system_ext/framework/androidx.window.extensions.jar</code>
-            </p>
-            <ul style="font-size: 0.84rem; color: var(--text-main); margin: 0.5rem 0 0.8rem 1.2rem; line-height: 1.6;">
-              <li><strong>포함 내용:</strong> 인터페이스 규격 + <strong>실제 Provider 구현</strong> + <strong>핵심 구현체(<code>WindowExtensionsImpl</code>, <code>SplitController</code>, <code>SplitPresenter</code>)</strong>가 모두 단일 JAR에 번들링.</li>
-              <li><strong>빌드 주체:</strong> AOSP 빌드 시 <code>libs/WindowManager/Jetpack</code> 모듈이 컴파일되어 OS 시스템 파티션에 사전 탑재(Pre-installed).</li>
-              <li><strong>런타임 바인딩:</strong> 앱 기동 시 <code>ApplicationLoaders</code>가 앱의 <code>PathClassLoader</code>에 이 JAR를 마운트하므로 런타임에 실제 구현체가 실행됨.</li>
-            </ul>
-            <pre style="font-size: 0.8rem; margin-top: 0.5rem;"><code>// 기기 OS 시스템 라이브러리 내부의 실제 코드
-public class WindowExtensionsProvider {
-    private static final WindowExtensions sWindowExtensions =
-            new WindowExtensionsImpl();
-
-    public static WindowExtensions getWindowExtensions() {
-        return sWindowExtensions; // 실제 구현체 인스턴스 반환!
-    }
-}</code></pre>
-          </div>
-        </div>
-
-        <div class="callout callout-success">
-          <div class="callout-title">
-            <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>
-            핵심 요약: Impl은 Maven JAR가 아닌 '기기 속 시스템 JAR'에만 존재합니다!
-          </div>
-          <p>
-            Maven에 배포되는 <code>androidx.window.extensions</code>는 앱이 기기 플랫폼 규격을 알고 컴파일할 수 있도록 뼈대(인터페이스와 스텁)만 제공하는 <strong>개발자용 계약서</strong>입니다.
-            실제 동작하는 <strong><code>Impl</code> 클래스들은 전적으로 기기 시스템 파티션(<code>/system_ext/framework/androidx.window.extensions.jar</code>) 내부에만 존재</strong>하며, 런타임에 클래스로더를 통해 동적으로 주입(IoC)됩니다.
-          </p>
-        </div>
-
-        <!-- Code-Level Chain Analysis with cs.android.com Links -->
-        <h3>코드 레벨 심층 분석: WindowExtensionsProvider ➔ WindowExtensions ➔ Impl ➔ SplitController</h3>
-        <p>앱이 실행된 후 단말 기기 내부의 <code>SplitController</code>까지 연결되는 실제 4단계 호출 체인을 AOSP 및 AndroidX 공식 오픈소스 코드와 함께 살펴봅니다. (각 클래스명을 클릭하면 <a href="https://cs.android.com" target="_blank" style="color: var(--accent);">cs.android.com</a> 공식 소스로 바로 이동합니다):</p>
-
-        <div class="flow-steps" style="margin: 1.5rem 0;">
-          <!-- Step 1 -->
-          <div class="step-item">
-            <div class="step-number">1</div>
-            <div class="step-content">
-              <h4>
-                진입점 호출: 
-                <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/libs/WindowManager/Jetpack/src/androidx/window/extensions/WindowExtensionsProvider.java" target="_blank" style="color: var(--accent); font-family: var(--font-mono);">
-                  WindowExtensionsProvider.java
-                </a>
-              </h4>
-              <p>앱 계층(<code>ExtensionEmbeddingBackend</code>)은 가장 먼저 정적 팩토리 메서드 <code>WindowExtensionsProvider.getWindowExtensions()</code>를 호출합니다. 기기 플랫폼 JAR 내부에는 다음과 같이 싱글톤 <code>WindowExtensionsImpl</code> 인스턴스를 반환하도록 구현되어 있습니다:</p>
-              <pre><code>// frameworks/base/libs/WindowManager/Jetpack/src/androidx/window/extensions/WindowExtensionsProvider.java
-package androidx.window.extensions;
-
-public class WindowExtensionsProvider {
-    private static final WindowExtensions sWindowExtensions = new WindowExtensionsImpl();
-
-    @NonNull
-    public static WindowExtensions getWindowExtensions() {
-        return sWindowExtensions;
-    }
-}</code></pre>
-              <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.35rem;">
-                🔗 비교: AndroidX 저장소의 <a href="https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:window/extensions/extensions/src/main/java/androidx/window/extensions/WindowExtensionsProvider.java" target="_blank" style="color: var(--accent);">WindowExtensionsProvider.java (AndroidX Stub)</a>는 <code>throw new UnsupportedOperationException("Stub, replace with implementation")</code>으로 선언되어 있으나, 기기 OS 빌드 시 위 AOSP 구현체로 교체되어 빌드됩니다.
-              </p>
-            </div>
-          </div>
-
-          <!-- Step 2 -->
-          <div class="step-item">
-            <div class="step-number">2</div>
-            <div class="step-content">
-              <h4>
-                규격 명세 인터페이스: 
-                <a href="https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:window/extensions/extensions/src/main/java/androidx/window/extensions/WindowExtensions.java" target="_blank" style="color: var(--accent); font-family: var(--font-mono);">
-                  WindowExtensions.java
-                </a>
-              </h4>
-              <p>반환된 객체의 타입은 AndroidX 규격 인터페이스인 <code>WindowExtensions</code>입니다. 이 인터페이스는 벤더 API 레벨과 액티비티 임베딩 컴포넌트 접근자를 정의합니다:</p>
-              <pre><code>// window/extensions/extensions/.../androidx/window/extensions/WindowExtensions.java
-package androidx.window.extensions;
-
-public interface WindowExtensions {
-    default int getVendorApiLevel() {
-        return 1;
-    }
-
-    @Nullable
-    default ActivityEmbeddingComponent getActivityEmbeddingComponent() {
-        return null;
-    }
-
-    @Nullable
-    default WindowLayoutComponent getWindowLayoutComponent() {
-        return null;
-    }
-}</code></pre>
-            </div>
-          </div>
-
-          <!-- Step 3 -->
-          <div class="step-item">
-            <div class="step-number">3</div>
-            <div class="step-content">
-              <h4>
-                플랫폼 구현체 바인딩: 
-                <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/libs/WindowManager/Jetpack/src/androidx/window/extensions/WindowExtensionsImpl.java" target="_blank" style="color: var(--accent); font-family: var(--font-mono);">
-                  WindowExtensionsImpl.java
-                </a>
-              </h4>
-              <p>기기 OS 시스템 라이브러리에 존재하는 <code>WindowExtensionsImpl</code> 클래스는 <code>WindowExtensions</code> 인터페이스를 실제로 구현(implements)합니다. <code>getActivityEmbeddingComponent()</code>가 호출되면 지연 초기화(Double-Checked Locking) 방식으로 <code>SplitController</code> 인스턴스를 생성하여 반환합니다:</p>
-              <pre><code>// frameworks/base/libs/WindowManager/Jetpack/src/androidx/window/extensions/WindowExtensionsImpl.java
-package androidx.window.extensions;
-
-public class WindowExtensionsImpl implements WindowExtensions {
-    private final Object mLock = new Object();
-    private volatile ActivityEmbeddingComponent mActivityEmbeddingComponent;
-
-    @Override
-    public ActivityEmbeddingComponent getActivityEmbeddingComponent() {
-        if (mActivityEmbeddingComponent == null) {
-            synchronized (mLock) {
-                if (mActivityEmbeddingComponent == null) {
-                    // 기기 플랫폼의 분할 총괄 컨트롤러 인스턴스 획득
-                    mActivityEmbeddingComponent = SplitController.getInstance();
-                }
-            }
-        }
-        return mActivityEmbeddingComponent;
-    }
-}</code></pre>
-            </div>
-          </div>
-
-          <!-- Step 4 -->
-          <div class="step-item">
-            <div class="step-number">4</div>
-            <div class="step-content">
-              <h4>
-                분할 로직 총괄: 
-                <a href="https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:window/extensions/extensions/src/main/java/androidx/window/extensions/embedding/ActivityEmbeddingComponent.java" target="_blank" style="color: var(--accent); font-family: var(--font-mono);">
-                  ActivityEmbeddingComponent.java
-                </a> 
-                (규격) &amp; 
-                <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/libs/WindowManager/Jetpack/src/androidx/window/extensions/embedding/SplitController.java" target="_blank" style="color: var(--accent); font-family: var(--font-mono);">
-                  SplitController.java
-                </a> 
-                (구현체)
-              </h4>
-              <p>앱 프로세스가 획득한 <code>ActivityEmbeddingComponent</code>의 실체는 기기 플랫폼의 싱글톤 <strong><code>SplitController</code></strong>입니다. 이 클래스는 분할 규칙을 프로세스 내 메모리에 보관하고, 향후 액티비티 실행 시 시스템 서버(ATMS)와 통신하여 윈도우 분할을 지휘합니다:</p>
-              <pre><code>// frameworks/base/libs/WindowManager/Jetpack/src/androidx/window/extensions/embedding/SplitController.java
-package androidx.window.extensions.embedding;
-
-public class SplitController implements ActivityEmbeddingComponent {
-    private static volatile SplitController sInstance;
-    private final Set&lt;EmbeddingRule&gt; mSplitRules = new ArraySet&lt;&gt;();
-    private final SplitPresenter mPresenter;
-
-    @Override
-    public void setEmbeddingRules(@NonNull Set&lt;EmbeddingRule&gt; rules) {
-        synchronized (mLock) {
-            mSplitRules.clear();
-            mSplitRules.addAll(rules);
-            // 등록된 새 규칙에 맞춰 기존 화면 분할 상태 재평가 및 업데이트 트랜잭션 전송
-            updateCallbackIfNecessary();
-        }
-    }
-
-    @Override
-    public void setSplitInfoCallback(Consumer&lt;List&lt;SplitInfo&gt;&gt; callback) {
-        // 분할 상태 변경 시 앱(AndroidX) 리스너로 알림 전달
-    }
-}</code></pre>
-              <p style="font-size: 0.88rem; color: var(--text-main); margin-top: 0.5rem;">
-                🎯 <strong>인프로세스(In-process) 직통 바인딩의 완성:</strong><br>
-                앱의 <code>ExtensionEmbeddingBackend</code>는 이 <code>SplitController</code> 인스턴스를 <code>ActivityEmbeddingComponent</code> 인터페이스 타입으로 직접 들고 있습니다. 따라서 개발자가 <code>RuleController.getInstance().setRules(...)</code>를 호출하면, <strong>IPC 통신이나 리플렉션 오버헤드 없이 동일 프로세스 힙(Heap) 메모리 상의 <code>SplitController.setEmbeddingRules()</code>가 직접 고속 실행</strong>됩니다!
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <h3>android.*는 수정할 수 없는데 왜 androidx.window.extensions는 커스터마이징이 가능할까?</h3>
-        <p>인터페이스 자체는 AndroidX(<code>platform/frameworks/support</code>)의 <a href="https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:window/extensions/extensions/src/main/java/androidx/window/extensions/WindowExtensions.java" target="_blank" style="color: var(--accent);"><code>WindowExtensions.java</code></a>에 선언되어 있으며, 사전 빌드된 정적 라이브러리(<code>androidx.window.extensions_extensions-nodeps</code>) 형태로 AOSP에 임포트됩니다.</p>
-
-        <div class="grid-2">
-          <div class="card">
-            <div class="card-title">
-              <span>android.* (엄격한 불변성)</span>
-              <span class="pill pill-orange">공개 Android SDK</span>
-            </div>
-            <p><strong>Android 호환성 정의 문서(CDD)</strong>와 <strong>CTS(호환성 테스트 슈트)</strong>에 의해 보호됩니다. 기기 제조사는 <code>android.*</code> 패키지 내부의 메서드 시그니처를 임의로 수정하거나 확장하는 것이 엄격히 금지됩니다. 이를 위반하면 CTS 인증에 실패하여 GMS(Google Play 스토어 등) 탑재가 불가능해집니다.</p>
-          </div>
-          <div class="card">
-            <div class="card-title">
-              <span>androidx.window.extensions.* (WindowManager Extensions)</span>
-              <span class="pill pill-green">벤더 확장 계약</span>
-            </div>
-            <p>처음부터 하드웨어 특화 플러그인 인터페이스로 의도되어 설계되었습니다. 제조사(삼성, 픽셀, 원플러스 등)마다 물리적 힌지 구조, 폴딩 각도 임계값, 멀티윈도우 UI 정책이 모두 다릅니다. 따라서 제조사는 인터페이스 규격을 준수하고 <code>CtsWindowManagerJetpackTestCases</code>를 통과하기만 하면, 자사 하드웨어 요구에 맞춰 <code>SplitController</code>의 내부 구현을 자유롭게 최적화할 수 있습니다.</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- Appendix B -->
       <section id="appendix-zorder">
-        <h2>부록 B. Multi-Resume 환경에서의 Top Activity 판정과 Z-Order 심층 분석</h2>
+        <h2>부록 A. Multi-Resume 환경에서의 Top Activity 판정과 Z-Order 심층 분석</h2>
         <p>Android 10부터 도입된 <strong>멀티-리쥼(Multi-Resume)</strong> 환경에서는 분할된 두 화면(Primary와 Secondary)의 액티비티가 <strong>동시에 화면에 보이고 모두 <code>RESUMED</code> 생명주기 상태</strong>를 유지합니다. 그렇다면 시스템 레벨(ATMS)에서 "현재 태스크의 최상위 액티비티(Top Activity)는 누구인가?"를 판단할 때 어떤 원칙이 적용될까요? AOSP 소스 레벨에서 컨테이너 순서와 Intent 플래그 동작 원리를 상세히 분석합니다.</p>
 
         <div class="card" style="margin: 1.5rem 0;">
@@ -1439,9 +1162,9 @@ assertEquals(activity1, taskContainer.getTopNonFinishingActivity(true));
 // activity1(보조 액티비티)이 항상 getTopNonFinishingActivity의 결과로 반환됨을 검증</code></pre>
       </section>
 
-      <!-- Appendix C -->
+      <!-- Appendix B -->
       <section id="appendix-sources">
-        <h2>부록 C. 업스트림 AOSP / AndroidX 소스 코드 탐색 가이드</h2>
+        <h2>부록 B. 업스트림 AOSP / AndroidX 소스 코드 레퍼런스</h2>
         <p>Activity Embedding은 <a href="https://cs.android.com" target="_blank" style="color: var(--accent);">cs.android.com</a>의 두 가지 주요 Google 업스트림 소스 트리에 걸쳐 구현되어 있습니다. 공식 구현체 코드를 직접 탐색해 보세요:</p>
 
         <table>
