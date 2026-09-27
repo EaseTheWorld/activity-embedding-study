@@ -822,6 +822,9 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
           <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6; margin-top: 0.35rem; margin-bottom: 0;">
             규칙 등록 단계에서는 시스템 서버(ATMS)와의 IPC 통신이 일절 발생하지 않으며, 시스템 서버는 SplitRule의 존재 자체를 모릅니다. 규칙의 해석과 규격 변환, 메모리 캐싱, 감시자(Monitor) 등록까지의 모든 절차가 <strong>앱 프로세스 내부(AndroidX 계층 &rarr; Extensions 계층)</strong>에서 즉시 처리되므로 앱 시작 성능에 오버헤드를 주지 않습니다.
           </p>
+          <p style="font-size: 0.84rem; color: var(--accent); margin-top: 0.65rem; margin-bottom: 0;">
+            👉 <em>AndroidX 및 WindowManager Extensions의 공식 소스 트리 경로와 핵심 클래스 파일 목록은 <a href="#appendix-sources" style="color: var(--accent); text-decoration: underline;">부록 A: 업스트림 소스 코드 탐색 가이드</a>를 참조하세요.</em>
+          </p>
         </div>
       </section>
 
@@ -849,6 +852,9 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
           </div>
           <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0;">
             <strong>Task</strong>가 '앱 전체 작업 단위'이고 <strong>Activity</strong>가 '실제 사용자가 조작하는 개별 UI 화면 단위'라면, <strong>TaskFragment</strong>는 <em>"화면을 좌/우로 분할한 특정 구획(Pane)의 크기(Bounds)를 잡고, 그 구획 안에서 액티비티들이 독립적으로 쌓이도록 관리하는 서브 스택(Sub-stack) 컨테이너"</em>입니다. 이제 아래에서 <strong>Extensions &rarr; Frameworks &rarr; System Server 3개 계층</strong>이 <code>startActivity()</code> 시점에 어떻게 이 <code>TaskFragment</code>를 생성하고 배치하는지 살펴보겠습니다.
+          </p>
+          <p style="font-size: 0.84rem; color: var(--accent); margin-top: 0.65rem; margin-bottom: 0;">
+            👉 <em>Task와 TaskFragment의 상세 상속 계층과 Composite 패턴 설계는 <a href="#backward-compatibility" style="color: var(--accent); text-decoration: underline;">4. 하위 호환성 설계</a> 및 <a href="#appendix-platform-internals" style="color: var(--accent); text-decoration: underline;">부록 D: 플랫폼 엔지니어링 심층 분석 (패턴 1)</a>을 참조하세요.</em>
           </p>
         </div>
 
@@ -978,6 +984,9 @@ RootWindowContainer
                      └── ActivityRecord (예: DetailActivity)</code></pre>
 
         <p><code>Task</code>가 <code>TaskFragment</code>를 상속하기 때문에, 외부 시스템 서비스들(Launcher, Recents, ATMS)은 여전히 Task를 단일 단위로 취급합니다. 내부적으로는 <code>TaskFragment</code>가 개별 액티비티 스택과 멀티페인 바운드를 독립적으로 관리합니다. 기존의 단일 창 앱들은 기본 <code>TaskFragment</code> 안에서 아무런 동작 변경이나 호환성 문제 없이 그대로 실행됩니다.</p>
+        <p style="font-size: 0.84rem; color: var(--accent); margin-top: 0.5rem;">
+          👉 <em>AOSP `Task.java` 소스 레벨의 Composite 패턴 구현과 레거시 호환성 설계는 <a href="#appendix-platform-internals" style="color: var(--accent); text-decoration: underline;">부록 D: Frameworks &amp; System Server 심층 분석 (패턴 1)</a>을 참조하세요.</em>
+        </p>
 
         <!-- Brief Note: Top Activity in Split Layout -->
         <div class="callout" style="margin-top: 1.25rem;">
@@ -1046,6 +1055,9 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
               <span class="pill pill-orange">정밀한 제어</span>
             </div>
             <p>선언적 <code>FinishBehavior</code> (<code>FINISH_ALWAYS</code>, <code>FINISH_ADJACENT</code>, <code>FINISH_NEVER</code>) 설정을 통해 분할 컨테이너 간의 예측 가능한 뒤로 가기 내비게이션을 보장합니다.</p>
+            <p style="font-size: 0.82rem; color: var(--accent); margin-top: 0.5rem; margin-bottom: 0;">
+              👉 <em>각 모드별 상세 동작과 4계층 연쇄 종료 IPC 파이프라인은 <a href="#appendix-finish" style="color: var(--accent); text-decoration: underline;">부록 C: Activity Finish 및 연쇄 종료 플로우</a>를 참조하세요.</em>
+            </p>
           </div>
         </div>
       </section>
@@ -1106,6 +1118,19 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
               </p>
             </div>
           </div>
+        </div>
+
+        <div class="callout" style="margin-top: 1.25rem;">
+          <div class="callout-title" style="display: flex; align-items: center; justify-content: space-between;">
+            <span>💡 보안 검증의 실행 주체: 시스템 서버 (ATMS)</span>
+            <span class="pill pill-green">커널/시스템 레벨 검증</span>
+          </div>
+          <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6; margin-top: 0.35rem; margin-bottom: 0;">
+            앱 프로세스가 임의로 <code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>을 조작하더라도, 시스템 서버의 <code>ActivityStarter</code>와 <code>TaskFragment.isAllowedToEmbedActivity()</code>가 호출 패키지의 서명 인증서와 UID를 실시간으로 직접 대조하여 권한 없는 임베딩을 즉각 차단합니다.
+          </p>
+          <p style="font-size: 0.84rem; color: var(--accent); margin-top: 0.5rem; margin-bottom: 0;">
+            👉 <em>ATMS의 라우팅 가로채기와 실시간 인증서 검증 메커니즘은 <a href="#appendix-platform-internals" style="color: var(--accent); text-decoration: underline;">부록 D: Frameworks &amp; System Server 심층 분석 (패턴 4)</a>에서, 관련 AOSP 소스 경로는 <a href="#appendix-sources" style="color: var(--accent); text-decoration: underline;">부록 A: 업스트림 소스 코드 레퍼런스</a>에서 확인하실 수 있습니다.</em>
+          </p>
         </div>
       </section>
 
