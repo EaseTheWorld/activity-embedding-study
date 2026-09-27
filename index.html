@@ -862,19 +862,15 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
         <!-- Comparison Note: Multi-Window vs Activity Embedding -->
         <div class="card" style="margin: 1rem 0 1.5rem; background: rgba(13, 17, 23, 0.5); border: 1px solid var(--border-subtle);">
           <div class="card-title" style="font-size: 0.95rem;">
-            <span>💡 기존 분할 화면(Multi-Window)과의 차이 및 WCT의 확장</span>
+            <span>💡 기존 분할 화면(Multi-Window)과의 결정적 차이</span>
             <span class="pill pill-purple" style="font-size: 0.7rem;">Task vs TaskFragment</span>
           </div>
           <p style="font-size: 0.85rem; color: var(--text-main); line-height: 1.6; margin: 0.4rem 0;">
-            Android 7.0~11의 <strong>전통적 Multi-Window</strong>가 OS와 사용자가 주도하여 <em>서로 다른 앱(Task A ⬌ Task B)을 나란히 배치</em>하는 방식이라면, 
-            <strong>Activity Embedding</strong>은 앱의 비즈니스 규칙에 따라 <em>오직 단일 Task 내부를 멀티페인으로 분할</em>하며 최근 앱(Recents)에서도 <strong>하나의 통합 타일</strong>로 유지됩니다.
-          </p>
-          <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0.4rem;">
-            또한 Android 11에 도입되었던 원자적 트랜잭션 인프라인 <code>WindowContainerTransaction (WCT)</code>을 그대로 계승하되, 
-            <code>createTaskFragment()</code>, <code>setRelativeBounds()</code> 등 <strong>TaskFragment 전용 오퍼레이션을 추가·확장</strong>하여 화면 깜빡임 없는 단일 레이아웃 패스를 완성했습니다.
+            Android 7.0~11의 <strong>전통적 Multi-Window</strong>가 OS와 사용자가 주도하여 <em>서로 다른 앱(Task A ⬌ Task B)을 나란히 배치</em>하는 멀티태스킹 기능이라면, 
+            <strong>Activity Embedding</strong>은 앱의 비즈니스 규칙에 따라 <em>오직 단일 Task 내부를 멀티페인으로 분할</em>하며 최근 앱(Recents)에서도 <strong>하나의 통합 타일</strong>로 유지되는 모듈식 UI 아키텍처입니다.
           </p>
           <p style="font-size: 0.82rem; color: var(--accent); margin-top: 0.5rem; margin-bottom: 0;">
-            👉 <em>컨테이너 단위, Recents 타일, 생명주기(FinishBehavior), WCT 확장 API 등 상세 비교는 <a href="#appendix-multiwindow" style="color: var(--accent); text-decoration: underline;">부록 E: 전통적 Multi-Window vs Activity Embedding 심층 비교</a>를 참조하세요.</em>
+            👉 <em>컨테이너 분할 단위, 제어 주체, Recents 타일, 생명주기(FinishBehavior) 등 상세 비교는 <a href="#appendix-multiwindow" style="color: var(--accent); text-decoration: underline;">부록 E: 전통적 Multi-Window vs Activity Embedding 심층 비교</a>를 참조하세요.</em>
           </p>
         </div>
 
@@ -918,7 +914,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             </div>
             <p><strong>원자적 트랜잭션 패키징:</strong> Extensions 계층이 결정한 컨테이너 조작 명령들을 바인더 IPC로 전송 가능한 원자적 단위로 묶어냅니다.</p>
             <div style="margin-top: 0.65rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); background: rgba(210, 153, 34, 0.06); border-left: 3px solid var(--accent-orange); padding: 0.55rem 0.85rem; border-radius: 0 6px 6px 0;">
-              <code>TaskFragmentOrganizer</code>가 Extensions 계층의 <code>TaskFragment</code> 생성, 상대적 바운드 설정 등의 작업들을 원자적 <code>WindowContainerTransaction (WCT)</code> 및 <code>TaskFragmentTransaction</code>으로 패키징하여 시스템 서버로 전송할 준비를 합니다.
+              <code>TaskFragmentOrganizer</code>가 Extensions 계층의 <code>TaskFragment</code> 생성(<code>createTaskFragment</code>), 상대적 바운드 설정(<code>setRelativeBounds</code>) 등의 작업들을 원자적 <code>WindowContainerTransaction (WCT)</code> 및 <code>TaskFragmentTransaction</code>으로 패키징하여 시스템 서버로 전송할 준비를 합니다. (Android 11 WCT 인프라를 계승하고 TaskFragment 전용 오퍼레이션을 확장하여 단 1회의 IPC로 일괄 전송)
             </div>
             <div class="arch-chips" style="margin-top: 0.75rem;">
               <span class="chip">TaskFragmentOrganizer.java</span>
@@ -1498,6 +1494,9 @@ assertEquals(activity1, taskContainer.getTopNonFinishingActivity(true));
               </p>
             </div>
           </div>
+          <div style="font-size: 0.84rem; color: var(--text-muted); margin-top: 0.75rem; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 0.5rem; line-height: 1.6;">
+            💡 <strong>WCT의 기원과 확장:</strong> WCT는 Android 11(WM Shell)에서 SystemUI가 <code>Task</code> 단위의 윈도우를 제어하기 위해 처음 도입된 플랫폼 인프라였습니다. Android 12L의 Activity Embedding은 이 검증된 배치 엔진을 그대로 계승하면서, <code>createTaskFragment()</code>, <code>deleteTaskFragment()</code>, <code>setRelativeBounds()</code>, <code>setAdjacentTaskFragments()</code>, <code>reparentActivityToTaskFragment()</code> 등 <strong>TaskFragment 전용 오퍼레이션을 추가·확장(Overload)</strong>하여 단일 레이아웃 패스 안에서 서브 컨테이너를 원자적으로 제어할 수 있게 했습니다.
+          </div>
         </div>
 
         <!-- Pattern 2 -->
@@ -1580,11 +1579,11 @@ public static final String KEY_LAUNCH_TASK_FRAGMENT_TOKEN =
 
       <!-- Appendix E -->
       <section id="appendix-multiwindow">
-        <h2>부록 E. 전통적 Multi-Window vs Activity Embedding 비교 및 WCT 확장 분석</h2>
+        <h2>부록 E. 전통적 Multi-Window vs Activity Embedding 심층 비교</h2>
         <p>
           Android 생태계에는 화면에 여러 액티비티를 동시에 띄우는 두 가지 핵심 기술이 존재합니다.
           Android 7.0(Nougat) 및 Android 11(WM Shell)을 거치며 발전한 <strong>전통적 Multi-Window(Split-Screen, Freeform, Picture-in-Picture)</strong>와, Android 12L(API 32)에서 도입된 <strong>Activity Embedding</strong>입니다.
-          겉모습은 화면 분할로 유사해 보이지만, <strong>컨테이너 계층, 제어 주체, 생명주기 결합도, 그리고 기반 인프라인 WCT의 확장 방식</strong>에서 결정적인 차이가 있습니다.
+          겉모습은 화면 분할로 유사해 보이지만, <strong>컨테이너 계층, 제어 주체, 생명주기 결합도, 사용자 경험</strong>에서 결정적인 차이가 있습니다.
         </p>
 
         <!-- Comparison Table -->
@@ -1696,25 +1695,7 @@ public static final String KEY_LAUNCH_TASK_FRAGMENT_TOKEN =
           </li>
         </ul>
 
-        <!-- WCT Evolution & Extensions -->
-        <h3 style="margin-top: 2rem;">3. WCT(WindowContainerTransaction)의 진화: Android 11 ➔ Android 12L+</h3>
-        <p style="font-size: 0.88rem; line-height: 1.6;">
-          <code>WindowContainerTransaction</code>은 원래 <strong>Android 11(WM Shell 프로젝트)</strong>에서 SystemUI가 <code>Task</code> 단위의 분할 화면(Split-Screen)과 PIP를 <code>system_server</code> 외부에서 원자적으로 제어하기 위해 고안된 인프라였습니다.
-          Android 12L의 Activity Embedding은 이 검증된 트랜잭션 엔진을 그대로 계승하면서, <strong><code>TaskFragment</code> 전용 오퍼레이션을 추가·확장(Overload)</strong>했습니다:
-        </p>
-
-        <div style="background: var(--code-bg); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 1rem 1.2rem; margin-top: 0.8rem;">
-          <strong style="color: var(--accent); font-size: 0.9rem;">Activity Embedding을 위해 WCT에 확장된 핵심 오퍼레이션 API:</strong>
-          <ul style="margin: 0.5rem 0 0 1.2rem; font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.8; color: var(--text-heading);">
-            <li><span style="color: var(--accent-green);">createTaskFragment</span>(TaskFragmentCreationParams params): 부모 Task 하위에 새 TaskFragment 컨테이너 생성</li>
-            <li><span style="color: var(--accent-orange);">deleteTaskFragment</span>(IBinder fragmentToken): 서브 컨테이너 제거 및 관련 서피스 정리</li>
-            <li><span style="color: var(--accent-hover);">setRelativeBounds</span>(IBinder fragmentToken, Rect bounds): 부모 Task 기준 상대적 분할 바운드(좌/우 좌표) 지정</li>
-            <li><span style="color: var(--accent-purple);">setAdjacentTaskFragments</span>(IBinder token1, IBinder token2, AdjacentParams params): 두 TaskFragment를 인접한 페어로 바인딩</li>
-            <li><span style="color: var(--text-main);">reparentActivityToTaskFragment</span>(IBinder fragmentToken, IBinder activityToken): 액티비티를 지정된 TaskFragment 내부로 이동</li>
-          </ul>
-        </div>
-
-        <div class="callout" style="margin-top: 1.25rem;">
+        <div class="callout" style="margin-top: 1.5rem;">
           <div class="callout-title" style="color: var(--accent-green); display: flex; align-items: center; justify-content: space-between;">
             <span>💡 아키텍처 결론: Multi-Window vs Activity Embedding</span>
             <span class="pill pill-green">설계 의도 요약</span>
