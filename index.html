@@ -854,7 +854,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             <strong>Task</strong>가 '앱 전체 작업 단위'이고 <strong>Activity</strong>가 '실제 사용자가 조작하는 개별 UI 화면 단위'라면, <strong>TaskFragment</strong>는 <em>"화면을 좌/우로 분할한 특정 구획(Pane)의 크기(Bounds)를 잡고, 그 구획 안에서 액티비티들이 독립적으로 쌓이도록 관리하는 서브 스택(Sub-stack) 컨테이너"</em>입니다. 이제 아래에서 <strong>Extensions &rarr; Frameworks &rarr; System Server 3개 계층</strong>이 <code>startActivity()</code> 시점에 어떻게 이 <code>TaskFragment</code>를 생성하고 배치하는지 살펴보겠습니다.
           </p>
           <p style="font-size: 0.84rem; color: var(--accent); margin-top: 0.65rem; margin-bottom: 0;">
-            👉 <em>Task와 TaskFragment의 상세 상속 계층과 Composite 패턴 설계는 <a href="#backward-compatibility" style="color: var(--accent); text-decoration: underline;">4. 하위 호환성 설계</a> 및 <a href="#appendix-platform-internals" style="color: var(--accent); text-decoration: underline;">부록 D: 플랫폼 엔지니어링 심층 분석 (패턴 1)</a>을 참조하세요.</em>
+            👉 <em>Task와 TaskFragment의 상세 상속 계층과 Composite 패턴 설계는 <a href="#backward-compatibility" style="color: var(--accent); text-decoration: underline;">4. 하위 호환성 설계</a>를 참조하세요.</em>
           </p>
         </div>
 
@@ -926,7 +926,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
               <ol style="margin-left: 1.2rem;">
                 <li><code>TaskFragmentOrganizerController</code>가 수신된 WCT를 실행하여 시스템 창 트리에 실제 <code>TaskFragment</code> 노드를 생성하고 바운드를 적용합니다.</li>
                 <li><code>ActivityStarter</code>가 <code>options.getLaunchTaskFragmentToken()</code>을 확인하고 UID 임베딩 보안을 검증한 후, 새 <code>ActivityRecord</code>를 해당 <code>TaskFragment</code> 내부로 직접 라우팅합니다.</li>
-                <li>SurfaceFlinger가 두 액티비티의 서피스를 깜빡임 없이 나란히 합성(Composite)하여 화면에 렌더링합니다.</li>
+                <li>SurfaceFlinger가 두 액티비티의 서피스를 깜빡임 없이 나란히 합성(Composite)하여 화면에 렌더링합니다. (분할 화면에서의 선형 Z-order 및 최상위 판정 원리는 <a href="#appendix-zorder" style="color: var(--accent); text-decoration: underline;">부록 B</a> 참조)</li>
               </ol>
             </div>
             <div class="arch-chips" style="margin-top: 0.75rem;">
@@ -953,7 +953,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             <li><strong>Frameworks 계층 &amp; System Server 계층</strong>이 계산된 결과를 WCT 트랜잭션으로 원자적으로 실행하여, 액티비티 재시작 없이 서피스만 부드럽게 재배치합니다.</li>
           </ul>
           <p style="font-size: 0.84rem; color: var(--accent); margin-top: 0.65rem; margin-bottom: 0;">
-            👉 <em>WCT 원자적 배치, Task extends TaskFragment 상속 구조, Binder 토큰 원격 제어 등 프레임워크 이하 5대 핵심 패턴은 <a href="#appendix-platform-internals" style="color: var(--accent); text-decoration: underline;">부록 D: Frameworks &amp; System Server 플랫폼 엔지니어링 심층 분석</a>을 참조하세요.</em>
+            👉 <em>WCT 원자적 배치, Binder 토큰 기반 Organizer, ActivityStarter 하이재킹 등 프레임워크 이하 4대 핵심 패턴은 <a href="#appendix-platform-internals" style="color: var(--accent); text-decoration: underline;">부록 D: Frameworks &amp; System Server 플랫폼 엔지니어링 심층 분석</a>을 참조하세요.</em>
           </p>
         </div>
       </section>
@@ -963,13 +963,13 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
         <h2>4. 하위 호환성 설계: 계층 구조의 진화 및 규칙 기반 모델</h2>
         <p>WindowManager 계층 구조의 재설계와 규칙(Rule) 기반 임베딩 시스템은 한 가지 근본적인 아키텍처 목표를 공유합니다. 바로 <strong>완벽한 하위 호환성(Absolute Backward Compatibility)</strong>입니다. 기존의 멀티 액티비티 앱들은 코드 수정 없이 그대로 실행되며, Android OS는 기존의 표준 생명주기 계약에 따라 일관되게 태스크를 관리합니다.</p>
 
-        <h3>1. 계층 구조의 진화: Task extends TaskFragment</h3>
-        <p>레거시 Android에서 OS의 기본 계약은 <code>Task</code>가 <code>ActivityRecord</code>들을 직접 포함하며, 최근 앱(Recents) 타일과 1:1로 대응된다고 가정했습니다. 최상위 레벨에 기존 호환성을 깨뜨리는 새로운 컨테이너 타입을 도입하는 대신, Android 12L은 상속 계층 트리를 리팩터링했습니다:</p>
+        <h3>1. 계층 구조의 진화: Task extends TaskFragment (Composite 패턴)</h3>
+        <p>레거시 Android에서 OS의 기본 계약은 <code>Task</code>가 <code>ActivityRecord</code>들을 직접 포함하며, 최근 앱(Recents) 타일과 1:1로 대응된다고 가정했습니다. 수많은 ATMS 내부 로직이 <code>Task ──▶ ActivityRecord</code> 전제 위에 결합되어 있었기 때문에, 최상위 레벨에 새로운 컨테이너 타입을 추가하면 기존 호환성이 크게 깨질 위험이 있었습니다. 구글은 상속 계층 트리를 리팩터링하여 이를 우아하게 해결했습니다:</p>
 
         <pre><code>// Android 11 및 이전:
 class Task extends WindowContainer&lt;ActivityRecord&gt; { ... }
 
-// Android 12L 및 이후:
+// Android 12L 및 이후 (frameworks/base/services/core/java/com/android/server/wm/Task.java):
 class TaskFragment extends WindowContainer&lt;WindowContainer&gt; { ... }
 class Task extends TaskFragment { ... }</code></pre>
 
@@ -983,9 +983,15 @@ RootWindowContainer
                 └── TaskFragment 2 (우측 / 보조 창)
                      └── ActivityRecord (예: DetailActivity)</code></pre>
 
-        <p><code>Task</code>가 <code>TaskFragment</code>를 상속하기 때문에, 외부 시스템 서비스들(Launcher, Recents, ATMS)은 여전히 Task를 단일 단위로 취급합니다. 내부적으로는 <code>TaskFragment</code>가 개별 액티비티 스택과 멀티페인 바운드를 독립적으로 관리합니다. 기존의 단일 창 앱들은 기본 <code>TaskFragment</code> 안에서 아무런 동작 변경이나 호환성 문제 없이 그대로 실행됩니다.</p>
-        <p style="font-size: 0.84rem; color: var(--accent); margin-top: 0.5rem;">
-          👉 <em>AOSP `Task.java` 소스 레벨의 Composite 패턴 구현과 레거시 호환성 설계는 <a href="#appendix-platform-internals" style="color: var(--accent); text-decoration: underline;">부록 D: Frameworks &amp; System Server 심층 분석 (패턴 1)</a>을 참조하세요.</em>
+        <p>
+          구글은 <code>Task</code>를 완전히 뜯어고치는 대신, 새 컨테이너 단위인 <code>TaskFragment</code>를 정의하고 <code><a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/services/core/java/com/android/server/wm/Task.java" target="_blank" style="color: var(--accent);">Task</a></code>가 <code>TaskFragment</code>를 상속받도록(<code>extends</code>) 설계하는 <strong>Composite 패턴</strong>을 채택했습니다.
+        </p>
+        <ul style="margin-left: 1.2rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); margin-bottom: 0.8rem;">
+          <li><strong>Activity Embedding 사용 시:</strong> <code>Task</code>가 부모 컨테이너가 되고, 자식으로 2개 이상의 <code>TaskFragment</code>가 들어갑니다.</li>
+          <li><strong>레거시 일반 앱 실행 시:</strong> <code>Task</code> 자체가 곧 하나의 <code>TaskFragment</code>로서 <code>ActivityRecord</code>를 직접 담습니다.</li>
+        </ul>
+        <p>
+          따라서 외부 시스템 서비스들(Launcher, Recents, ATMS)은 여전히 Task를 단일 단위로 취급하며, 기존의 포커스 관리나 최근 앱 타일 매핑, z-order 계산 로직을 단 한 줄도 손상시키지 않고 <strong>100% 무손실 하위 호환성</strong>을 완벽히 달성했습니다.
         </p>
 
         <!-- Brief Note: Top Activity in Split Layout -->
@@ -1129,7 +1135,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             앱 프로세스가 임의로 <code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>을 조작하더라도, 시스템 서버의 <code>ActivityStarter</code>와 <code>TaskFragment.isAllowedToEmbedActivity()</code>가 호출 패키지의 서명 인증서와 UID를 실시간으로 직접 대조하여 권한 없는 임베딩을 즉각 차단합니다.
           </p>
           <p style="font-size: 0.84rem; color: var(--accent); margin-top: 0.5rem; margin-bottom: 0;">
-            👉 <em>ATMS의 라우팅 가로채기와 실시간 인증서 검증 메커니즘은 <a href="#appendix-platform-internals" style="color: var(--accent); text-decoration: underline;">부록 D: Frameworks &amp; System Server 심층 분석 (패턴 4)</a>에서, 관련 AOSP 소스 경로는 <a href="#appendix-sources" style="color: var(--accent); text-decoration: underline;">부록 A: 업스트림 소스 코드 레퍼런스</a>에서 확인하실 수 있습니다.</em>
+            👉 <em>ATMS의 라우팅 가로채기와 실시간 인증서 검증 메커니즘은 <a href="#appendix-platform-internals" style="color: var(--accent); text-decoration: underline;">부록 D: Frameworks &amp; System Server 심층 분석 (패턴 3)</a>에서, 관련 AOSP 소스 경로는 <a href="#appendix-sources" style="color: var(--accent); text-decoration: underline;">부록 A: 업스트림 소스 코드 레퍼런스</a>에서 확인하실 수 있습니다.</em>
           </p>
         </div>
       </section>
@@ -1443,42 +1449,16 @@ assertEquals(activity1, taskContainer.getTopNonFinishingActivity(true));
 
       <!-- Appendix D -->
       <section id="appendix-platform-internals">
-        <h2>부록 D. Frameworks &amp; System Server 플랫폼 엔지니어링 심층 분석 (5대 핵심 아키텍처 패턴)</h2>
+        <h2>부록 D. Frameworks &amp; System Server 플랫폼 엔지니어링 심층 분석 (4대 핵심 아키텍처 패턴)</h2>
         <p>
           AndroidX 고수준 라이브러리 뒤편에는, 10년 이상 축적된 수백만 줄의 AOSP WindowManager 코어 시스템이 자리 잡고 있습니다.
-          구글 플랫폼 아키텍트들이 기존 레거시 아키텍처를 망가뜨리지 않으면서, 어떻게 <strong>화면 깜빡임 없는 원자적 레이아웃</strong>과 <strong>엄격한 샌드박스 보안</strong>, 그리고 <strong>동적 적응성</strong>을 달성했는지 5대 핵심 설계 패턴을 AOSP 소스 레벨에서 상세히 분석합니다.
+          구글 플랫폼 아키텍트들이 기존 레거시 아키텍처를 망가뜨리지 않으면서, 어떻게 <strong>화면 깜빡임 없는 원자적 레이아웃</strong>과 <strong>엄격한 샌드박스 보안</strong>, 그리고 <strong>동적 적응성</strong>을 달성했는지 4대 핵심 설계 패턴을 AOSP 소스 레벨에서 상세히 분석합니다.
         </p>
 
         <!-- Pattern 1 -->
         <div class="card" style="margin: 1.5rem 0;">
           <div class="card-title">
-            <span>패턴 1. Task extends TaskFragment — 레거시를 살린 Composite 패턴의 극치</span>
-            <span class="pill pill-purple">상속 계층 리팩토링</span>
-          </div>
-          <p style="font-size: 0.88rem; line-height: 1.6; margin-top: 0.4rem;">
-            Android 12 이전까지 시스템 윈도우 계층 구조에서 <code>Task</code>는 <code>ActivityRecord</code>들을 직접 품는 1:1 컨테이너였습니다. 수많은 ATMS 내부 로직이 <code>Task ──▶ ActivityRecord</code> 전제 위에 결합되어 있었습니다.
-          </p>
-          <pre style="font-size: 0.82rem; margin: 0.5rem 0;"><code>// frameworks/base/services/core/java/com/android/server/wm/Task.java
-class Task extends TaskFragment { ... }</code></pre>
-          <ul style="margin-left: 1.2rem; font-size: 0.85rem; line-height: 1.7; color: var(--text-main); margin-top: 0.4rem;">
-            <li>
-              <strong>Composite 패턴의 우아함:</strong> 구글은 <code>Task</code>를 완전히 뜯어고치는 대신, 새 컨테이너 단위인 <code>TaskFragment</code>를 정의하고 <code>Task</code>가 <code>TaskFragment</code>를 상속받도록(<code>extends</code>) 설계했습니다.
-            </li>
-            <li>
-              <strong>100% 하위 호환성 보장:</strong> 
-              <br>• <strong>Activity Embedding 사용 시:</strong> <code>Task</code>가 부모 컨테이너가 되고, 자식으로 2개 이상의 <code>TaskFragment</code>가 들어갑니다.
-              <br>• <strong>레거시 일반 앱 실행 시:</strong> <code>Task</code> 자체가 곧 하나의 <code>TaskFragment</code>로서 <code>ActivityRecord</code>를 직접 담습니다.
-            </li>
-            <li>
-              결과적으로 기존의 포커스 관리, 최근 앱(Recents) 타일 매핑, z-order 계산 로직을 단 한 줄도 손상시키지 않고 계층 구조를 확장했습니다.
-            </li>
-          </ul>
-        </div>
-
-        <!-- Pattern 2 -->
-        <div class="card" style="margin: 1.5rem 0;">
-          <div class="card-title">
-            <span>패턴 2. WindowContainerTransaction (WCT) — 화면 깜빡임(Tearing/Flickering) 원천 차단</span>
+            <span>패턴 1. WindowContainerTransaction (WCT) — 화면 깜빡임(Tearing/Flickering) 원천 차단</span>
             <span class="pill pill-orange">원자적 배치(Batching)</span>
           </div>
           <p style="font-size: 0.88rem; line-height: 1.6; margin-top: 0.4rem;">
@@ -1500,10 +1480,10 @@ class Task extends TaskFragment { ... }</code></pre>
           </div>
         </div>
 
-        <!-- Pattern 3 -->
+        <!-- Pattern 2 -->
         <div class="card" style="margin: 1.5rem 0;">
           <div class="card-title">
-            <span>패턴 3. TaskFragmentOrganizer — 불투명한 Binder 토큰 기반 원격 보안 핸들 제어</span>
+            <span>패턴 2. TaskFragmentOrganizer — 불투명한 Binder 토큰 기반 원격 보안 핸들 제어</span>
             <span class="pill pill-blue">Organizer 패턴</span>
           </div>
           <p style="font-size: 0.88rem; line-height: 1.6; margin-top: 0.4rem;">
@@ -1522,10 +1502,10 @@ class Task extends TaskFragment { ... }</code></pre>
           </ul>
         </div>
 
-        <!-- Pattern 4 -->
+        <!-- Pattern 3 -->
         <div class="card" style="margin: 1.5rem 0;">
           <div class="card-title">
-            <span>패턴 4. ActivityStarter의 컨테이너 하이재킹: KEY_LAUNCH_TASK_FRAGMENT_TOKEN</span>
+            <span>패턴 3. ActivityStarter의 컨테이너 하이재킹: KEY_LAUNCH_TASK_FRAGMENT_TOKEN</span>
             <span class="pill pill-green">라우팅 가로채기</span>
           </div>
           <p style="font-size: 0.88rem; line-height: 1.6; margin-top: 0.4rem;">
@@ -1547,10 +1527,10 @@ public static final String KEY_LAUNCH_TASK_FRAGMENT_TOKEN =
           </ul>
         </div>
 
-        <!-- Pattern 5 -->
+        <!-- Pattern 4 -->
         <div class="card" style="margin: 1.5rem 0;">
           <div class="card-title">
-            <span>패턴 5. TaskFragmentParentInfo — 관찰(Observe)과 판단(Decide)의 역방향 피드백 루프</span>
+            <span>패턴 4. TaskFragmentParentInfo — 관찰(Observe)과 판단(Decide)의 역방향 피드백 루프</span>
             <span class="pill pill-purple">관심사 분리(SoC)</span>
           </div>
           <p style="font-size: 0.88rem; line-height: 1.6; margin-top: 0.4rem;">
