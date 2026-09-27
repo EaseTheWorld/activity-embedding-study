@@ -717,7 +717,7 @@
         <p>
           Activity Embedding을 적용할 때 가장 먼저 일어나는 일은 <strong>앱 시작 시점에 분할 규칙(Rule)을 등록</strong>하는 것입니다.
           기존의 <code>startActivity()</code> 호출 코드를 단 한 줄도 수정하지 않고 대화면 분할을 적용할 수 있는 비결이 바로 이 준비 단계에 있습니다.
-          <strong>핵심적인 아키텍처 특징은, 이 단계에서는 System Server 계층이 전혀 관여하지 않으며 앱 프로세스 내부의 AndroidX 계층과 Extensions 계층만 협력하여 완결된다는 점</strong>입니다. (System Server는 SplitRule의 존재 자체를 모릅니다.)
+          앱 프로세스 내부의 <strong>AndroidX 계층</strong>과 <strong>Extensions 계층</strong>이 협력하여 고수준 규칙을 플랫폼 규격으로 변환하고 런타임 감시 체계를 수립하는 과정을 살펴봅니다.
         </p>
 
         <!-- Code Example for Rule Registration -->
@@ -819,7 +819,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             <span class="pill pill-green">인프로세스 완결</span>
           </div>
           <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6; margin-top: 0.35rem; margin-bottom: 0;">
-            규칙 등록 단계에서는 시스템 서버(ATMS)와의 IPC 통신이 일절 발생하지 않습니다. 규칙의 해석과 캐싱, 감시자 등록까지의 모든 절차가 <strong>앱 프로세스 내부(AndroidX 계층 &rarr; Extensions 계층)</strong>에서 즉시 처리되므로 앱 시작 성능에 오버헤드를 주지 않습니다.
+            규칙 등록 단계에서는 시스템 서버(ATMS)와의 IPC 통신이 일절 발생하지 않으며, 시스템 서버는 SplitRule의 존재 자체를 모릅니다. 규칙의 해석과 규격 변환, 메모리 캐싱, 감시자(Monitor) 등록까지의 모든 절차가 <strong>앱 프로세스 내부(AndroidX 계층 &rarr; Extensions 계층)</strong>에서 즉시 처리되므로 앱 시작 성능에 오버헤드를 주지 않습니다.
           </p>
         </div>
       </section>
