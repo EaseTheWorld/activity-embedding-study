@@ -748,9 +748,9 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
       <section id="execution-flow">
         <h2>3. [2단계: 실행] startActivity 가로채기와 윈도우 분할 (Extensions &rarr; Frameworks &rarr; System Server)</h2>
         <p>
-          규칙이 캐싱되고 감시자가 잠복한 상태에서, 실제 화면 전환이 일어날 때의 실행 흐름입니다.
-          기본적인 <strong>선언적 규칙 기반(Rule-based)</strong> 환경에서는 개발자가 평소대로 표준 <code>startActivity(intent)</code>를 호출하며 <strong>이 런타임 분기 결정 과정에서 AndroidX 계층은 개입하지 않습니다.</strong> 사전에 등록된 규칙을 바탕으로 Extensions 계층이 호출을 가로채어 스스로 평가하기 때문입니다.
-          반면 <strong>Window 1.4+</strong>부터 지원되는 <strong>명령형 스택 지정(Imperative Target-Stack)</strong> 방식에서는 개발자가 AndroidX API(<code>ActivityEmbeddingOptions#setLaunchingActivityStack</code>)를 통해 <code>Bundle</code>에 타깃 스택 토큰을 직접 주입하며, Extensions 계층은 규칙 평가를 완전히 건너뛰고(Bypass) 지정된 스택으로 직행합니다.
+          규칙이 등록된 상태에서 실제 화면 전환이 일어날 때의 실행 흐름입니다.
+          평소처럼 <code>startActivity(intent)</code>만 호출하면, 사전에 등록된 <code>SplitRule</code>을 바탕으로 Extensions 계층이 알아서 화면 분할을 결정하므로 <strong>이 실행 과정에서 AndroidX 계층은 개입하지 않습니다.</strong>
+          반면 <strong>Window 1.4+</strong>에서 추가된 <code>setLaunchingActivityStack</code>처럼 개발자가 <strong>특정 스택을 직접 지정</strong>하여 호출하는 경우에는, AndroidX가 <code>Bundle</code>에 타깃 스택 정보를 담아 전달하며 Extensions 계층은 규칙 평가를 건너뛰고(Bypass) 지정된 스택으로 곧바로 띄웁니다.
         </p>
 
         <!-- Conceptual Bridge: TaskFragment container & Multi-Window distinction -->
@@ -782,8 +782,8 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             <div style="margin-top: 0.65rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); background: rgba(188, 140, 255, 0.06); border-left: 3px solid var(--accent-purple); padding: 0.55rem 0.85rem; border-radius: 0 6px 6px 0;">
               <ol style="margin-left: 1.2rem;">
                 <li><code>Instrumentation.execStartActivity()</code> 직전, Extensions의 <code>ActivityStartMonitor.onStartActivity()</code>가 호출을 가로챕니다.</li>
-                <li><strong>[명령형 분기: Window 1.4+]</strong> <code>options</code> Bundle에 <code>KEY_ACTIVITY_STACK_TOKEN</code>이 담겨있다면, raw 토큰을 플랫폼 키(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>)로 변환한 뒤 <strong>SplitRule 평가를 완전히 건너뛰고 즉시 조기 반환(Early Return)</strong>합니다.</li>
-                <li><strong>[선언적 규칙 분기: 기본 동작]</strong> 명시적 토큰이 없을 때만 <code>SplitController</code>가 호출 Intent를 등록된 <code>mSplitRules</code>와 대조하고, <code>SplitPresenter</code>가 현재 윈도우 너비(&ge; <code>minWidthDp</code>) 및 디바이스 폴딩 상태를 실시간 평가합니다.</li>
+                <li><strong>[타깃 스택을 직접 지정한 경우 (Window 1.4+)]</strong> <code>options</code> Bundle에 타깃 스택 정보(<code>KEY_ACTIVITY_STACK_TOKEN</code>)가 들어있다면, 플랫폼 키(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>)로 변환한 뒤 <strong>SplitRule 평가를 건너뛰고 즉시 조기 반환(Early Return)</strong>합니다.</li>
+                <li><strong>[스택을 지정하지 않은 경우 (기본 동작)]</strong> <code>SplitController</code>가 호출 Intent를 등록된 <code>mSplitRules</code>와 대조하고, <code>SplitPresenter</code>가 현재 윈도우 너비(&ge; <code>minWidthDp</code>) 및 디바이스 폴딩 상태를 실시간 평가합니다.</li>
                 <li>분할 조건이 충족되면 타깃 <code>TaskFragment</code> 컨테이너를 생성하고, 고유 바인더 토큰(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>)을 <code>ActivityOptions</code>에 주입합니다.</li>
               </ol>
             </div>
@@ -966,7 +966,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
               <span>조율된 생명주기 (Coordinated Lifecycles)</span>
               <span class="pill pill-orange">정밀한 제어</span>
             </div>
-            <p>선언적 <code>FinishBehavior</code> (<code>FINISH_ALWAYS</code>, <code>FINISH_ADJACENT</code>, <code>FINISH_NEVER</code>) 설정을 통해 분할 컨테이너 간의 예측 가능한 뒤로 가기 내비게이션을 보장합니다.</p>
+            <p><code>FinishBehavior</code> (<code>FINISH_ALWAYS</code>, <code>FINISH_ADJACENT</code>, <code>FINISH_NEVER</code>) 설정을 통해 분할 컨테이너 간의 예측 가능한 뒤로 가기 내비게이션을 보장합니다.</p>
             <p style="font-size: 0.82rem; color: var(--accent); margin-top: 0.5rem; margin-bottom: 0;">
               👉 <em>연쇄 종료 동작 및 실행 파이프라인은 <a href="#appendix-finish" style="color: var(--accent); text-decoration: underline;">부록 C. Activity Finish 플로우</a> 참조</em>
             </p>
@@ -1225,8 +1225,8 @@ assertEquals(activity1, taskContainer.getTopNonFinishingActivity(true));
           하지만 두 액티비티가 <strong>나란히 분할(Split) 표시되는 환경에서는 한쪽 화면이 종료될 때 인접한 다른 화면을 어떻게 처리할 것인가</strong>에 대한 정밀한 생명주기 조율이 필요합니다.
         </p>
 
-        <h3>1. 선언적 종료 정책: SplitRule.FinishBehavior 3가지 모드</h3>
-        <p>Jetpack WindowManager는 개발자가 규칙 등록 시 각 창의 종료 종속성을 선언할 수 있도록 세 가지 <code>FinishBehavior</code> 정책을 제공합니다:</p>
+        <h3>1. 화면 종료 연계 정책: SplitRule.FinishBehavior 3가지 모드</h3>
+        <p>Jetpack WindowManager는 개발자가 규칙 등록 시 각 창의 종료 종속성을 설정할 수 있도록 세 가지 <code>FinishBehavior</code> 정책을 제공합니다:</p>
 
         <div class="grid-2" style="margin: 1.5rem 0;">
           <div class="card">
