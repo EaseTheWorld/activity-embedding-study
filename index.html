@@ -749,8 +749,8 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
         <h2>3. [2단계: 실행] startActivity 가로채기와 윈도우 분할 (Extensions &rarr; Frameworks &rarr; System Server)</h2>
         <p>
           규칙이 캐싱되고 감시자가 잠복한 상태에서, 실제 화면 전환이 일어날 때의 실행 흐름입니다.
-          개발자는 평소대로 표준 <code>startActivity(intent)</code>를 호출할 뿐이며, <strong>이 실행 과정에서 AndroidX 계층은 전혀 개입하지 않습니다.</strong>
-          대신 Extensions 계층이 가로채어 규칙을 평가하고, Frameworks 계층을 통해 원자적 트랜잭션을 패키징하여, 프로세스 경계를 넘어 System Server 계층으로 전달해 분할 컨테이너(<code>TaskFragment</code>)를 생성합니다.
+          기본적인 <strong>선언적 규칙 기반(Rule-based)</strong> 환경에서는 개발자가 평소대로 표준 <code>startActivity(intent)</code>를 호출하며 <strong>이 런타임 분기 결정 과정에서 AndroidX 계층은 개입하지 않습니다.</strong> 사전에 등록된 규칙을 바탕으로 Extensions 계층이 호출을 가로채어 스스로 평가하기 때문입니다.
+          반면 <strong>Window 1.4+</strong>부터 지원되는 <strong>명령형 스택 지정(Imperative Target-Stack)</strong> 방식에서는 개발자가 AndroidX API(<code>ActivityEmbeddingOptions#setLaunchingActivityStack</code>)를 통해 <code>Bundle</code>에 타깃 스택 토큰을 직접 주입하며, Extensions 계층은 규칙 평가를 완전히 건너뛰고(Bypass) 지정된 스택으로 직행합니다.
         </p>
 
         <!-- Conceptual Bridge: TaskFragment container & Multi-Window distinction -->
@@ -778,19 +778,19 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
                 <span class="pill pill-green" style="font-size: 0.72rem;">런타임 두뇌</span>
               </div>
             </div>
-            <p><strong>가로채기(Intercept) 및 조건 평가:</strong> 표준 <code>startActivity()</code> 호출이 시스템 서버로 전송되기 직전에 이를 가로채 런타임 분할 결정을 내립니다.</p>
+            <p><strong>가로채기(Intercept) 및 라우팅 결정:</strong> 표준 <code>startActivity()</code> 호출이 시스템 서버로 전송되기 직전에 이를 가로채 런타임 분할 결정을 내립니다.</p>
             <div style="margin-top: 0.65rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); background: rgba(188, 140, 255, 0.06); border-left: 3px solid var(--accent-purple); padding: 0.55rem 0.85rem; border-radius: 0 6px 6px 0;">
               <ol style="margin-left: 1.2rem;">
-                <li><code>Instrumentation.execStartActivity()</code> 직전, <code>ActivityStartMonitor.onStartActivity()</code>가 호출을 가로챕니다.</li>
-                <li><code>SplitController</code>가 호출 주체와 Intent를 1단계에서 캐싱해 둔 <code>mSplitRules</code>와 대조합니다.</li>
-                <li><code>SplitPresenter</code>가 현재 윈도우 바운드(너비 &ge; <code>minWidthDp</code>) 및 디바이스 폴딩 상태를 실시간 평가합니다.</li>
-                <li>분할 조건이 충족되면 타겟 <code>TaskFragment</code> 컨테이너를 생성하고, 고유 바인더 토큰(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>)을 <code>ActivityOptions</code>에 주입합니다.</li>
+                <li><code>Instrumentation.execStartActivity()</code> 직전, Extensions의 <code>ActivityStartMonitor.onStartActivity()</code>가 호출을 가로챕니다.</li>
+                <li><strong>[명령형 분기: Window 1.4+]</strong> <code>options</code> Bundle에 <code>KEY_ACTIVITY_STACK_TOKEN</code>이 담겨있다면, raw 토큰을 플랫폼 키(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>)로 변환한 뒤 <strong>SplitRule 평가를 완전히 건너뛰고 즉시 조기 반환(Early Return)</strong>합니다.</li>
+                <li><strong>[선언적 규칙 분기: 기본 동작]</strong> 명시적 토큰이 없을 때만 <code>SplitController</code>가 호출 Intent를 등록된 <code>mSplitRules</code>와 대조하고, <code>SplitPresenter</code>가 현재 윈도우 너비(&ge; <code>minWidthDp</code>) 및 디바이스 폴딩 상태를 실시간 평가합니다.</li>
+                <li>분할 조건이 충족되면 타깃 <code>TaskFragment</code> 컨테이너를 생성하고, 고유 바인더 토큰(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>)을 <code>ActivityOptions</code>에 주입합니다.</li>
               </ol>
             </div>
             <div class="arch-chips" style="margin-top: 0.75rem;">
               <span class="chip">ActivityStartMonitor.onStartActivity()</span>
               <span class="chip">SplitController.java</span>
-              <span class="chip">SplitPresenter.java</span>
+              <span class="chip">KEY_ACTIVITY_STACK_TOKEN (Window 1.4+)</span>
               <span class="chip">KEY_LAUNCH_TASK_FRAGMENT_TOKEN</span>
             </div>
           </div>
