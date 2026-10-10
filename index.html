@@ -748,9 +748,9 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
       <section id="execution-flow">
         <h2>3. [2단계: 실행] startActivity 가로채기와 윈도우 분할 (Extensions &rarr; Frameworks &rarr; System Server)</h2>
         <p>
-          규칙이 등록된 상태에서 실제 화면 전환이 일어날 때의 실행 흐름입니다.
-          평소처럼 <code>startActivity(intent)</code>만 호출하면, 사전에 등록된 <code>SplitRule</code>을 바탕으로 Extensions 계층이 알아서 화면 분할을 결정하므로 <strong>이 실행 과정에서 AndroidX 계층은 개입하지 않습니다.</strong>
-          반면 <strong>Window 1.4+</strong>에서 추가된 <code>setLaunchingActivityStack</code>처럼 개발자가 <strong>특정 스택을 직접 지정</strong>하여 호출하는 경우에는, AndroidX가 <code>Bundle</code>에 타깃 스택 정보를 담아 전달하며 Extensions 계층은 규칙 평가를 건너뛰고(Bypass) 지정된 스택으로 곧바로 띄웁니다.
+          규칙이 캐싱되고 감시자가 잠복한 상태에서, 실제 화면 전환(<code>startActivity</code>)이 일어날 때의 실행 흐름입니다.
+          기본적으로 개발자는 평소대로 표준 <code>startActivity(intent)</code>를 호출할 뿐이며, <strong>사전에 등록된 규칙을 바탕으로 Extensions 계층이 호출을 가로채어 스스로 처리</strong>하므로 런타임 분기 결정 과정에서 AndroidX 계층은 개입하지 않습니다.
+          Extensions 계층이 규칙을 평가하고, Frameworks 계층을 통해 원자적 트랜잭션을 패키징하여, 프로세스 경계를 넘어 System Server 계층으로 전달해 분할 컨테이너(<code>TaskFragment</code>)를 생성합니다.
         </p>
 
         <!-- Conceptual Bridge: TaskFragment container & Multi-Window distinction -->
@@ -778,18 +778,39 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
                 <span class="pill pill-green" style="font-size: 0.72rem;">런타임 두뇌</span>
               </div>
             </div>
-            <p><strong>가로채기(Intercept) 및 라우팅 결정:</strong> 표준 <code>startActivity()</code> 호출이 시스템 서버로 전송되기 직전에 이를 가로채 런타임 분할 결정을 내립니다.</p>
+            <p><strong>가로채기(Intercept) 및 조건 평가:</strong> 표준 <code>startActivity()</code> 호출이 시스템 서버로 전송되기 직전에 이를 가로채 런타임 분할 결정을 내립니다.</p>
             <div style="margin-top: 0.65rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); background: rgba(188, 140, 255, 0.06); border-left: 3px solid var(--accent-purple); padding: 0.55rem 0.85rem; border-radius: 0 6px 6px 0;">
               <ol style="margin-left: 1.2rem;">
                 <li><code>Instrumentation.execStartActivity()</code> 직전, Extensions의 <code>ActivityStartMonitor.onStartActivity()</code>가 호출을 가로챕니다.</li>
-                <li><strong>[타깃 스택을 직접 지정한 경우 (Window 1.4+)]</strong> <code>options</code> Bundle에 타깃 스택 정보(<code>KEY_ACTIVITY_STACK_TOKEN</code>)가 들어있다면, 플랫폼 키(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>)로 변환한 뒤 <strong>SplitRule 평가를 건너뛰고 즉시 조기 반환(Early Return)</strong>합니다.</li>
-                <li><strong>[스택을 지정하지 않은 경우 (기본 동작)]</strong> <code>SplitController</code>가 호출 Intent를 등록된 <code>mSplitRules</code>와 대조하고, <code>SplitPresenter</code>가 현재 윈도우 너비(&ge; <code>minWidthDp</code>) 및 디바이스 폴딩 상태를 실시간 평가합니다.</li>
+                <li><code>SplitController</code>가 호출 Intent를 1단계에서 캐싱해 둔 <code>mSplitRules</code>와 대조합니다.</li>
+                <li><code>SplitPresenter</code>가 현재 윈도우 바운드(너비 &ge; <code>minWidthDp</code>) 및 디바이스 폴딩 상태를 실시간 평가합니다.</li>
                 <li>분할 조건이 충족되면 타깃 <code>TaskFragment</code> 컨테이너를 생성하고, 고유 바인더 토큰(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>)을 <code>ActivityOptions</code>에 주입합니다.</li>
               </ol>
             </div>
+
+            <!-- Window 1.4+ Target Stack Direct Launch -->
+            <div style="margin-top: 0.75rem; background: rgba(13, 17, 23, 0.6); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0.75rem 0.9rem;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+                <span style="font-size: 0.88rem; font-weight: 600; color: var(--accent-purple);">⚡ Window 1.4+ 확장: 타깃 스택 직접 지정 (setLaunchingActivityStack)</span>
+                <span class="pill pill-purple" style="font-size: 0.68rem;">Window 1.4+</span>
+              </div>
+              <p style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0.35rem;">
+                미리 정의된 규칙에 맡기지 않고 특정 <code>ActivityStack</code>에 액티비티를 직접 띄우고자 할 때는 <code>startActivity</code> 옵션에 타깃 스택을 명시할 수 있습니다. 이 경우 Extensions 계층은 <strong>등록된 SplitRule 평가를 건너뛰고(Bypass)</strong> 해당 스택으로 직행합니다:
+              </p>
+              <pre style="margin: 0.4rem 0; font-size: 0.8rem; padding: 0.55rem 0.75rem;"><code>// 타깃 ActivityStack을 ActivityOptions(Bundle)에 패키징하여 실행:
+val options = ActivityOptions.makeBasic().toBundle().apply {
+    setLaunchingActivityStack(context, targetActivityStack)
+}
+startActivity(intent, options)</code></pre>
+              <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.35rem; margin-bottom: 0; line-height: 1.5;">
+                👉 <code>ActivityStartMonitor.onStartActivity()</code>가 번들 내 <code>KEY_ACTIVITY_STACK_TOKEN</code>을 확인하여 플랫폼 키(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>)로 변환한 뒤, 규칙 평가 없이 <strong>즉시 조기 반환(Early Return)</strong>하여 시스템 서버로 넘깁니다.
+              </p>
+            </div>
+
             <div class="arch-chips" style="margin-top: 0.75rem;">
               <span class="chip">ActivityStartMonitor.onStartActivity()</span>
               <span class="chip">SplitController.java</span>
+              <span class="chip">SplitPresenter.java</span>
               <span class="chip">KEY_ACTIVITY_STACK_TOKEN (Window 1.4+)</span>
               <span class="chip">KEY_LAUNCH_TASK_FRAGMENT_TOKEN</span>
             </div>
