@@ -113,6 +113,14 @@
       flex-direction: column;
       flex-shrink: 0;
       overflow: hidden;
+      transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s ease, opacity 0.2s ease;
+    }
+
+    aside.collapsed {
+      width: 0 !important;
+      border-right: none !important;
+      opacity: 0;
+      pointer-events: none;
     }
 
     .toc-header {
@@ -513,7 +521,17 @@
     /* Responsive */
     @media (max-width: 900px) {
       aside {
-        display: none;
+        position: absolute;
+        top: 52px;
+        bottom: 0;
+        left: 0;
+        z-index: 50;
+        width: 320px;
+        box-shadow: 4px 0 24px rgba(0,0,0,0.6);
+      }
+      aside.collapsed {
+        width: 0 !important;
+        border: none !important;
       }
       .slide-viewport {
         padding: 1.5rem 1.25rem;
@@ -531,9 +549,14 @@
 
   <!-- Top Navigation Header -->
   <header>
-    <div class="header-title">
-      <span>Android Activity Embedding</span>
-      <span class="header-badge">Architecture Slides</span>
+    <div style="display: flex; align-items: center; gap: 0.85rem;">
+      <button class="btn-header" id="btn-toggle-toc" title="목차 접기/펼치기 (T)">
+        <span id="toc-toggle-icon">☰</span> <span id="toc-toggle-text">목차 숨기기</span>
+      </button>
+      <div class="header-title">
+        <span>Android Activity Embedding</span>
+        <span class="header-badge">Architecture Slides</span>
+      </div>
     </div>
     <div class="header-actions">
       <button class="btn-header" id="btn-fullscreen" title="전체화면 토글 (F)">
@@ -1257,6 +1280,7 @@ ATMS 탐색 알고리즘:
           <span class="key-badge">←</span>
           <span class="key-badge">→</span>
           <span class="key-badge">Space</span>
+          <span class="key-badge">T (목차)</span>
           <span class="key-badge">F (전체화면)</span>
         </div>
       </div>
@@ -1365,8 +1389,36 @@ ATMS 탐색 알고리즘:
         case 'F':
           toggleFullscreen();
           break;
+        case 't':
+        case 'T':
+          toggleToc();
+          break;
       }
     });
+
+    // TOC Toggle
+    const btnToggleToc = document.getElementById('btn-toggle-toc');
+    const tocAside = document.querySelector('aside');
+    const tocToggleText = document.getElementById('toc-toggle-text');
+
+    function toggleToc() {
+      const isCollapsed = tocAside.classList.toggle('collapsed');
+      if (isCollapsed) {
+        tocToggleText.textContent = '목차 보이기';
+        btnToggleToc.setAttribute('title', '목차 보이기 (T)');
+        btnToggleToc.style.background = 'rgba(88, 166, 255, 0.15)';
+        btnToggleToc.style.borderColor = 'var(--accent)';
+        btnToggleToc.style.color = 'var(--accent)';
+      } else {
+        tocToggleText.textContent = '목차 숨기기';
+        btnToggleToc.setAttribute('title', '목차 숨기기 (T)');
+        btnToggleToc.style.background = '';
+        btnToggleToc.style.borderColor = '';
+        btnToggleToc.style.color = '';
+      }
+    }
+
+    btnToggleToc.addEventListener('click', toggleToc);
 
     // Fullscreen Toggle
     function toggleFullscreen() {
