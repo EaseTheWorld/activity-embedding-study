@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Android Activity Embedding 아키텍처 슬라이드</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --sidebar-bg: #161b22;
+      --card-bg: #161b22;
+      --card-border: #30363d;
+      --accent: #58a6ff;
+      --accent-hover: #79c0ff;
+      --accent-green: #3fb950;
+      --accent-purple: #bc8cff;
+      --accent-orange: #d29922;
+      --accent-red: #f85149;
+      --text-main: #c9d1d9;
+      --text-heading: #f0f6fc;
+      --text-muted: #8b949e;
+      --code-bg: #1f242c;
+      --border-subtle: #21262d;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Bar */
+    header {
+      height: 52px;
+      background: var(--sidebar-bg);
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.25rem;
+      z-index: 100;
+      flex-shrink: 0;
+    }
+
+    .header-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-heading);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .header-badge {
+      background: rgba(88, 166, 255, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(88, 166, 255, 0.3);
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn-header {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.15s;
+    }
+
+    .btn-header:hover {
+      color: var(--text-heading);
+      border-color: var(--accent);
+      background: rgba(88, 166, 255, 0.08);
+    }
+
+    /* Workspace: Split Layout */
+    .app-body {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 52px);
+      overflow: hidden;
+    }
+
+    /* Left Sidebar: TOC & Progress */
+    aside {
+      width: 320px;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--card-border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .toc-header {
+      padding: 0.9rem 1.1rem 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .toc-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+    }
+
+    .toc-count {
+      font-size: 0.78rem;
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-weight: 600;
+    }
+
+    .toc-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.75rem 0.6rem;
+    }
+
+    .part-group {
+      margin-bottom: 1rem;
+    }
+
+    .part-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      padding: 0.35rem 0.6rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .slide-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.45rem 0.65rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.83rem;
+      color: var(--text-muted);
+      transition: all 0.12s;
+      border-left: 2px solid transparent;
+      user-select: none;
+    }
+
+    .slide-item:hover {
+      color: var(--text-heading);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .slide-item.active {
+      color: var(--accent);
+      background: rgba(88, 166, 255, 0.1);
+      border-left-color: var(--accent);
+      font-weight: 600;
+    }
+
+    .slide-num {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: inherit;
+      opacity: 0.8;
+      min-width: 1.5rem;
+    }
+
+    .toc-footer {
+      padding: 0.75rem 1.1rem;
+      border-top: 1px solid var(--border-subtle);
+      background: rgba(13, 17, 23, 0.5);
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 4px;
+      background: var(--border-subtle);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 0.4rem;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.2s ease;
+    }
+
+    .progress-text {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    /* Right: Slide Presentation Canvas */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slide-viewport {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2.2rem 3rem 1.5rem;
+      display: flex;
+      justify-content: center;
+    }
+
+    .slide-content-wrapper {
+      max-width: 1080px;
+      width: 100%;
+      margin: auto 0;
+    }
+
+    .slide-card {
+      display: none;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    .slide-card.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Slide Card Anatomy */
+    .slide-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .pill {
+      font-size: 0.72rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .pill-blue { background: rgba(88, 166, 255, 0.15); color: var(--accent); border: 1px solid rgba(88, 166, 255, 0.3); }
+    .pill-green { background: rgba(63, 185, 80, 0.15); color: var(--accent-green); border: 1px solid rgba(63, 185, 80, 0.3); }
+    .pill-purple { background: rgba(188, 140, 255, 0.15); color: var(--accent-purple); border: 1px solid rgba(188, 140, 255, 0.3); }
+    .pill-orange { background: rgba(210, 153, 34, 0.15); color: var(--accent-orange); border: 1px solid rgba(210, 153, 34, 0.3); }
+    .pill-red { background: rgba(248, 81, 73, 0.15); color: var(--accent-red); border: 1px solid rgba(248, 81, 73, 0.3); }
+
+    .slide-title {
+      font-size: 1.85rem;
+      font-weight: 700;
+      color: var(--text-heading);
+      line-height: 1.35;
+      margin-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 0.85rem;
+    }
+
+    .slide-body {
+      font-size: 1rem;
+      line-height: 1.7;
+      color: var(--text-main);
+    }
+
+    .slide-body p {
+      margin-bottom: 1rem;
+    }
+
+    .slide-body ul, .slide-body ol {
+      margin-left: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .slide-body li {
+      margin-bottom: 0.45rem;
+    }
+
+    /* Components in Slides */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.25rem;
+      margin: 1.25rem 0;
+    }
+
+    .card-box {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 1.15rem 1.3rem;
+    }
+
+    .card-box-header {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text-heading);
+      margin-bottom: 0.6rem;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 0.85rem 1rem;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 0.84rem;
+      line-height: 1.55;
+      color: #e6edf3;
+      margin: 0.85rem 0;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.88em;
+      background: rgba(110, 118, 129, 0.2);
+      padding: 0.15rem 0.35rem;
+      border-radius: 4px;
+      color: #f0f6fc;
+    }
+
+    pre code {
+      background: transparent;
+      padding: 0;
+      color: inherit;
+    }
+
+    .callout {
+      border-left: 4px solid var(--accent);
+      background: rgba(88, 166, 255, 0.08);
+      padding: 0.85rem 1.1rem;
+      border-radius: 0 6px 6px 0;
+      margin: 1.15rem 0;
+      font-size: 0.92rem;
+    }
+
+    .callout-purple { border-left-color: var(--accent-purple); background: rgba(188, 140, 255, 0.08); }
+    .callout-green { border-left-color: var(--accent-green); background: rgba(63, 185, 80, 0.08); }
+    .callout-orange { border-left-color: var(--accent-orange); background: rgba(210, 153, 34, 0.08); }
+
+    .table-container {
+      overflow-x: auto;
+      margin: 1.15rem 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    th, td {
+      padding: 0.65rem 0.9rem;
+      border: 1px solid var(--border-subtle);
+      text-align: left;
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-heading);
+      font-weight: 600;
+    }
+
+    .ascii-diagram {
+      background: #090d13;
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      padding: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: var(--accent);
+      white-space: pre;
+      overflow-x: auto;
+      margin: 1rem 0;
+    }
+
+    .chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 0.75rem;
+    }
+
+    .chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+    }
+
+    /* Bottom Control Bar */
+    .slide-control-bar {
+      height: 56px;
+      background: var(--sidebar-bg);
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      flex-shrink: 0;
+    }
+
+    .nav-buttons {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn-nav {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-heading);
+      padding: 0.4rem 0.9rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.15s;
+      user-select: none;
+    }
+
+    .btn-nav:hover:not(:disabled) {
+      background: rgba(88, 166, 255, 0.15);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .btn-nav:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0d1117;
+      border: 1px solid var(--accent);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      color: #0d1117;
+    }
+
+    .slide-indicator {
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-heading);
+    }
+
+    .shortcut-hint {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .key-badge {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--card-border);
+      padding: 0.1rem 0.35rem;
+      border-radius: 3px;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      aside {
+        display: none;
+      }
+      .slide-viewport {
+        padding: 1.5rem 1.25rem;
+      }
+      .slide-control-bar {
+        padding: 0 1rem;
+      }
+      .shortcut-hint {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="header-title">
+      <span>Android Activity Embedding</span>
+      <span class="header-badge">Architecture Slides</span>
+    </div>
+    <div class="header-actions">
+      <button class="btn-header" id="btn-fullscreen" title="전체화면 토글 (F)">
+        <span>⛶</span> <span>전체화면</span>
+      </button>
+      <a href="index.html" class="btn-header" title="전체 상세 기술문서 열기">
+        <span>📖</span> <span>상세 문서 보기 ↗</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Split Body Layout -->
+  <div class="app-body">
+    <!-- Left Sidebar: TOC -->
+    <aside>
+      <div class="toc-header">
+        <span class="toc-title">Slide Index</span>
+        <span class="toc-count" id="toc-slide-count">01 / 17</span>
+      </div>
+      <div class="toc-scroll" id="toc-scroll-list">
+        <!-- Part 1 -->
+        <div class="part-group">
+          <div class="part-title">Part 1. 개요 및 도입 배경</div>
+          <div class="slide-item active" data-slide="0"><span class="slide-num">01</span><span>아키텍처 심층 분석 개요</span></div>
+          <div class="slide-item" data-slide="1"><span class="slide-num">02</span><span>대화면과 관심사 분리(SoC)</span></div>
+          <div class="slide-item" data-slide="2"><span class="slide-num">03</span><span>TaskFragment의 탄생</span></div>
+        </div>
+
+        <!-- Part 2 -->
+        <div class="part-group">
+          <div class="part-title">Part 2. 3계층 아키텍처 및 준비</div>
+          <div class="slide-item" data-slide="3"><span class="slide-num">04</span><span>Activity Embedding 3계층 구조</span></div>
+          <div class="slide-item" data-slide="4"><span class="slide-num">05</span><span>규칙(Rule) 등록과 1회성 바인딩</span></div>
+        </div>
+
+        <!-- Part 3 -->
+        <div class="part-group">
+          <div class="part-title">Part 3. 실행 흐름 및 런타임 제어</div>
+          <div class="slide-item" data-slide="5"><span class="slide-num">06</span><span>startActivity 4단계 파이프라인</span></div>
+          <div class="slide-item" data-slide="6"><span class="slide-num">07</span><span>타깃 스택 직접 지정</span></div>
+          <div class="slide-item" data-slide="7"><span class="slide-num">08</span><span>Overlay TaskFragment 플로팅</span></div>
+          <div class="slide-item" data-slide="8"><span class="slide-num">09</span><span>WCT 트랜잭션과 ATMS 계층 트리</span></div>
+        </div>
+
+        <!-- Part 4 -->
+        <div class="part-group">
+          <div class="part-title">Part 4. 플랫폼 엔지니어링 패턴</div>
+          <div class="slide-item" data-slide="9"><span class="slide-num">10</span><span>하위 호환성: Composite 패턴</span></div>
+          <div class="slide-item" data-slide="10"><span class="slide-num">11</span><span>플랫폼 4대 핵심 아키텍처 패턴</span></div>
+        </div>
+
+        <!-- Part 5 -->
+        <div class="part-group">
+          <div class="part-title">Part 5. 생명주기 및 화면 제어</div>
+          <div class="slide-item" data-slide="11"><span class="slide-num">12</span><span>Z-Order 및 Top Activity 판정</span></div>
+          <div class="slide-item" data-slide="12"><span class="slide-num">13</span><span>FinishBehavior 3가지 연쇄 종료</span></div>
+        </div>
+
+        <!-- Part 6 -->
+        <div class="part-group">
+          <div class="part-title">Part 6. 생태계 진화 및 비교</div>
+          <div class="slide-item" data-slide="13"><span class="slide-num">14</span><span>Extension 8 · 9 · 10 신규 기능</span></div>
+          <div class="slide-item" data-slide="14"><span class="slide-num">15</span><span>전통적 Multi-Window vs 임베딩</span></div>
+          <div class="slide-item" data-slide="15"><span class="slide-num">16</span><span>보안 및 Cross-UID 신뢰 경계</span></div>
+        </div>
+
+        <!-- Part 7 -->
+        <div class="part-group">
+          <div class="part-title">Part 7. 결론 및 실무 가이드</div>
+          <div class="slide-item" data-slide="16"><span class="slide-num">17</span><span>종합 요약 및 대화면 UI 가이드</span></div>
+        </div>
+      </div>
+
+      <div class="toc-footer">
+        <div class="progress-bar-container">
+          <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <div class="progress-text">
+          <span>Progress</span>
+          <span id="progress-percent">6%</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Right: Slide Deck -->
+    <main>
+      <div class="slide-viewport" id="slide-viewport">
+        <div class="slide-content-wrapper">
+
+          <!-- SLIDE 01 -->
+          <div class="slide-card active" data-index="0">
+            <div class="slide-meta">
+              <span class="pill pill-blue">Part 1. Intro</span>
+              <span class="pill pill-purple">Android 12L+ / API 32~35</span>
+              <span class="pill pill-green">androidx.window 1.4+</span>
+            </div>
+            <h1 class="slide-title">Android Activity Embedding<br>내부 아키텍처 심층 분석</h1>
+            <div class="slide-body">
+              <p style="font-size: 1.15rem; color: var(--text-heading); margin-bottom: 1.5rem;">
+                단일 태스크(Task) 내에서 여러 Activity를 분할(Split) 및 오버레이(Overlay) 배치하여 호스팅하는 안드로이드 OS 플랫폼과 Jetpack WindowManager의 통합 내부 동작 원리를 탐구합니다.
+              </p>
+              <div class="grid-2">
+                <div class="card-box">
+                  <div class="card-box-header" style="color: var(--accent);">🎯 핵심 탐구 주제</div>
+                  <ul style="margin-left: 1.2rem; font-size: 0.9rem; line-height: 1.8;">
+                    <li><strong>SoC (관심사 분리)</strong>: 모놀리식 단일 액티비티를 탈피한 독립 모듈화</li>
+                    <li><strong>TaskFragment</strong>: 단일 Task 내 독립 창 컨테이너 인프라</li>
+                    <li><strong>3계층 파이프라인</strong>: AndroidX ➔ Extensions ➔ Frameworks ➔ ATMS</li>
+                    <li><strong>1.4 런타임 제어</strong>: 타깃 스택 지정 & Overlay TaskFragment (Ext 8)</li>
+                  </ul>
+                </div>
+                <div class="card-box">
+                  <div class="card-box-header" style="color: var(--accent-green);">🏗️ 플랫폼 엔지니어링 패턴</div>
+                  <ul style="margin-left: 1.2rem; font-size: 0.9rem; line-height: 1.8;">
+                    <li><strong>Composite 패턴</strong>: <code>Task extends TaskFragment</code>의 하위 호환성</li>
+                    <li><strong>원자적 트랜잭션</strong>: <code>WindowContainerTransaction (WCT)</code></li>
+                    <li><strong>Z-Order & Multi-Resume</strong>: <code>pairedPosition + 1</code> 판정</li>
+                    <li><strong>보안 경계</strong>: Cross-UID 인증서 샌드박싱</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SLIDE 02 -->
+          <div class="slide-card" data-index="1">
+            <div class="slide-meta">
+              <span class="pill pill-blue">Part 1. Background</span>
+              <span class="pill pill-orange">문제의식 및 철학</span>
+            </div>
+            <h2 class="slide-title">대화면과 관심사 분리(SoC)의 필요성</h2>
+            <div class="slide-body">
+              <p>폴더블, 태블릿, 크롬북 및 자동차(AAOS) 등 와이드 디스플레이가 대중화되면서, 전통적인 스마트폰 1화면-1액티비티 모델의 한계가 명확해졌습니다.</p>
+              
+              <div class="grid-2">
+                <div class="card-box" style="border-left: 3px solid var(--accent-red);">
+                  <div class="card-box-header" style="color: var(--accent-red);">❌ 기존 방식의 문제점: Fragment 거대화</div>
+                  <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6;">
+                    하나의 액티비티 안에 ListFragment와 DetailFragment를 우겨넣는 방식은 액티비티가 수많은 뷰모델, 콜백, 네비게이션 책임을 홀로 떠안아 **모놀리식 God Object**로 전락하게 만듭니다. 독립적인 기능 모듈화가 불가능해집니다.
+                  </p>
+                </div>
+                <div class="card-box" style="border-left: 3px solid var(--accent-green);">
+                  <div class="card-box-header" style="color: var(--accent-green);">✅ Activity Embedding의 해법: 관심사 분리(SoC)</div>
+                  <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6;">
+                    목록(List)과 상세(Detail)를 <strong>완전한 독립 Activity</strong>로 분리하고 각자의 생명주기, ViewModel, Intent 인터페이스를 보존합니다. OS가 두 액티비티를 1개 화면 안에 나란히 호스팅해 줍니다.
+                  </p>
+                </div>
+              </div>
+
+              <div class="callout callout-green">
+                <strong>💡 모듈형 아키텍처의 완성:</strong><br>
+                개발자는 기존 폰용 액티비티 코드와 매니페스트를 1줄도 수정하지 않고, 외부에서 선언한 <strong>규칙(SplitRule)</strong>만으로 대화면 멀티페인 레이아웃을 완성할 수 있습니다.
+              </div>
+            </div>
+          </div>
+
+          <!-- SLIDE 03 -->
+          <div class="slide-card" data-index="2">
+            <div class="slide-meta">
+              <span class="pill pill-blue">Part 1. Core Concept</span>
+              <span class="pill pill-purple">Android 12L 혁신</span>
+            </div>
+            <h2 class="slide-title">TaskFragment의 탄생: 단일 Task 내 독립 창 컨테이너</h2>
+            <div class="slide-body">
+              <p>안드로이드 역사상 가장 큰 윈도우 관리 인프라의 변화는 Android 12L(API 32)의 <strong>TaskFragment</strong> 도입입니다.</p>
+
+              <div class="ascii-diagram">
+[기존 Android 1.0 ~ 12]              [Android 12L+ Activity Embedding]
+Task (1개 창 = 전체화면)               Task (단일 최근 앱 카드, 단일 TaskId)
+ └── ActivityRecord                     ├── TaskFragment A [Bounds: 좌측 40%]
+                                        │    └── ActivityRecord (ListActivity)
+                                        └── TaskFragment B [Bounds: 우측 60%]
+                                             └── ActivityRecord (DetailActivity)
+              </div>
+
+              <div class="grid-2">
+                <div class="card-box">
+                  <div class="card-box-header">🔒 사용자 경험의 통일성</div>
+                  <p style="font-size: 0.88rem; color: var(--text-muted);">
+                    사용자 입장에서 두 화면은 분리된 창이 아니라 <strong>단 하나의 앱 카드(Recent Task)</strong>로 동작합니다. 앱 전환기에서 1개로 묶여 이동합니다.
+                  </p>
+                </div>
+                <div class="card-box">
+                  <div class="card-box-header">📐 독립적인 창 컨테이너</div>
+                  <p style="font-size: 0.88rem; color: var(--text-muted);">
+                    OS 내부적으로는 각 <code>TaskFragment</code>가 독립된 Bounds, Configuration(화면 방향/크기), WindowContainer 계층을 가져 액티비티가 독립적으로 렌더링됩니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SLIDE 04 -->
+          <div class="slide-card" data-index="3">
+            <div class="slide-meta">
+              <span class="pill pill-purple">Part 2. Architecture</span>
+              <span class="pill pill-blue">3-Tier Stack</span>
+            </div>
+            <h2 class="slide-title">Activity Embedding 3계층 아키텍처</h2>
+            <div class="slide-body">
+              <p>Activity Embedding은 개발자 라이브러리부터 OS 시스템 서버까지 <strong>명확하게 분리된 3계층</strong>을 통해 동작합니다.</p>
+
+              <div class="card-box" style="margin-bottom: 0.75rem; border-left: 4px solid var(--accent);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                  <strong style="color: var(--accent);">1. AndroidX 계층 (앱 프로세스)</strong>
+                  <code>androidx.window.embedding</code>
+                </div>
+                <p style="font-size: 0.86rem; color: var(--text-muted);">
+                  개발자 대면 API(<code>RuleController</code>, <code>OverlayController</code>). 고수준 규칙을 정의하고 하위 계층으로 전달합니다.
+                </p>
+              </div>
+
+              <div class="card-box" style="margin-bottom: 0.75rem; border-left: 4px solid var(--accent-purple);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                  <strong style="color: var(--accent-purple);">2. Extensions 계층: WindowManager Extensions (앱 프로세스)</strong>
+                  <code>androidx.window.extensions.embedding</code>
+                </div>
+                <p style="font-size: 0.86rem; color: var(--text-muted);">
+                  <strong>"런타임 두뇌"</strong>: OEM이 기기 폼팩터에 맞춰 플랫폼 라이브러리로 제공. <code>startActivity</code>를 가로채 실시간 분할 조건을 판정합니다.
+                </p>
+              </div>
+
+              <div class="card-box" style="border-left: 4px solid var(--accent-orange);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                  <strong style="color: var(--accent-orange);">3. Frameworks 계층: Framework Core Client (앱 프로세스)</strong>
+                  <code>android.window</code>
+                </div>
+                <p style="font-size: 0.86rem; color: var(--text-muted);">
+                  <code>TaskFragmentOrganizer</code>가 컨테이너 조작 명령들을 원자적 <code>WindowContainerTransaction (WCT)</code>으로 패키징하여 시스템 서버(ATMS)로 IPC 전송합니다.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- SLIDE 05 -->
+          <div class="slide-card" data-index="4">
+            <div class="slide-meta">
+              <span class="pill pill-purple">Part 2. Preparation</span>
+              <span class="pill pill-green">IPC 최적화</span>
+            </div>
+            <h2 class="slide-title">[1단계: 준비] 규칙(Rule) 등록과 1회성 바인딩</h2>
+            <div class="slide-body">
+              <p>앱 시작 시 <code>RuleController</code>를 통해 어떤 액티비티 쌍을 어떻게 쪼갤지 선언적으로 등록합니다.</p>
+
+              <pre><code>val splitPairRule = SplitPairRule.Builder(filterSet)
+    .setMinWidthDp(600)                        // 화면 폭 600dp 이상일 때만 분할
+    .setDefaultSplitAttributes(
+        SplitAttributes.Builder()
+            .setSplitType(SplitAttributes.SplitType.ratio(0.4f)) // 4:6 분할
+            .setLayoutDirection(SplitAttributes.LayoutDirection.LEFT_TO_RIGHT)
+            .build()
+    )
+    .setFinishPrimaryWithSecondary(SplitRule.FinishBehavior.NEVER)
+    .build()
+
+RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
+
+              <div class="callout callout-purple">
+                <strong>⚡ 핵심 IPC 최적화 원리:</strong><br>
+                규칙 등록은 `startActivity` 호출마다 일어나는 것이 아닙니다. 앱 초기화 시점에 <code>EmbeddingBackend</code>가 Extensions 계층으로 <strong>단 1회만 전달하여 메모리에 캐싱(mSplitRules)</strong>합니다. 따라서 이후의 액티비티 실행 시 불필요한 IPC 오버헤드가 전혀 발생하지 않습니다.
+              </div>
+            </div>
+          </div>
+
+          <!-- SLIDE 06 -->
+          <div class="slide-card" data-index="5">
+            <div class="slide-meta">
+              <span class="pill pill-green">Part 3. Execution Pipeline</span>
+              <span class="pill pill-blue">런타임 흐름</span>
+            </div>
+            <h2 class="slide-title">[2단계: 실행] startActivity 4단계 파이프라인</h2>
+            <div class="slide-body">
+              <p>개발자는 평소대로 표준 <code>startActivity(intent)</code>를 호출할 뿐이지만, 내부에서는 정교한 4단계 가로채기가 발생합니다.</p>
+
+              <div class="ascii-diagram">
+[Step 1. App Call]         개발자가 startActivity(intent) 호출 (AndroidX 개입 없음)
+        │
+[Step 2. Intercept]        Extensions의 ActivityStartMonitor.onStartActivity() 가로채기
+                           ➔ SplitController가 캐싱된 mSplitRules 대조
+                           ➔ SplitPresenter가 현재 윈도우 크기(minWidthDp) 실시간 평가
+        │
+[Step 3. Packaging]        TaskFragmentOrganizer가 조작 명령들을
+                           원자적 WindowContainerTransaction(WCT)으로 묶음
+        │
+[Step 4. Execution]        ATMS(ActivityTaskManagerService)로 1회 일괄 전송
+                           ➔ 단일 트랜잭션 내에서 TaskFragment 생성 및 배치 완료!
+              </div>
+
+              <div class="callout callout-green">
+                <strong>👉 무간섭 원칙 (Transparency):</strong> 기존 앱 코드에는 WindowManager 전용 옵션이나 특수 API 호출이 들어가지 않으므로 일반 폰과 대화면 기기에서 완벽한 바이너리 호환성을 가집니다.
+              </div>
+            </div>
+          </div>
+
+          <!-- SLIDE 07 -->
+          <div class="slide-card" data-index="6">
+            <div class="slide-meta">
+              <span class="pill pill-green">Part 3. Runtime Control</span>
+              <span class="pill pill-purple">Window 1.4+ / Ext 8</span>
+            </div>
+            <h2 class="slide-title">타깃 스택 직접 지정 (setLaunchingActivityStack)</h2>
+            <div class="slide-body">
+              <p>Window 1.4부터는 사전 등록된 SplitRule에 의존하지 않고, <strong>개발자가 런타임에 직접 타깃 컨테이너를 지정하여 분기</strong>할 수 있는 명령형 API가 추가되었습니다.</p>
+
+              <pre><code>// 타깃 ActivityStack을 ActivityOptions(Bundle)에 패키징하여 실행:
+val options = ActivityOptions.makeBasic().toBundle().apply {
+    setLaunchingActivityStack(context, targetActivityStack)
+}
+startActivity(intent, options)</code></pre>
+
+              <div class="grid-2">
+                <div class="card-box">
+                  <div class="card-box-header">⚡ SplitRule 평가 우회 (Bypass)</div>
+                  <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6;">
+                    번들에 <code>KEY_ACTIVITY_STACK_TOKEN</code>이 들어있으면, Extensions 계층은 <strong>등록된 SplitRule 평가를 아예 건너뛰고</strong> 해당 스택으로 직행합니다.
+                  </p>
+                </div>
+                <div class="card-box">
+                  <div class="card-box-header">🚀 조기 반환 (Early Return)</div>
+                  <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6;">
+                    <code>ActivityStartMonitor</code>가 플랫폼 키(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>)로 즉시 변환한 뒤 시스템 서버로 조기 반환하여 넘깁니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SLIDE 08 -->
+          <div class="slide-card" data-index="7">
+            <div class="slide-meta">
+              <span class="pill pill-green">Part 3. Runtime Control</span>
+              <span class="pill pill-purple">Window 1.4+ / Ext 8</span>
+              <span class="pill pill-orange">신규 핵심 기능</span>
+            </div>
+            <h2 class="slide-title">Overlay TaskFragment 플로팅 (setOverlayCreateParams)</h2>
+            <div class="slide-body">
+              <p>Extension 8의 가장 혁신적인 변화는 <strong>기존 Split 화면을 리사이즈하지 않고 그 위에 최상단 Z-Order로 드로어/모달을 띄우는 기능</strong>입니다.</p>
+
+              <pre><code>val overlayParams = OverlayCreateParams.Builder()
+    .setTag("NAV_DRAWER_TAG")
+    .setOverlayAttributes(
+        OverlayAttributes.Builder()
+            .setBounds(EmbeddingBounds(Alignment.LEFT, Dimension.ratio(0.75f), Dimension.DIMENSION_EXPANDED))
+            .build()
+    )
+    .setAssociateLaunchingActivity(true) // 부모 액티비티 종료 시 오버레이 자동 정리
+    .build()
+
+val options = ActivityOptions.makeBasic().toBundle().apply {
+    ActivityEmbeddingOptions.setOverlayCreateParams(this, overlayParams)
+}
+startActivity(intent, options)</code></pre>
+
+              <div class="callout callout-purple">
+                <strong>동작 메커니즘 (SplitController.java):</strong><br>
+                <code>KEY_OVERLAY_TAG</code>가 감지되면 <code>createOrUpdateOverlayTaskFragmentIfNeeded()</code>가 실행되어 기존 동일 태그 컨테이너를 재사용하거나 최상단 레이어에 새 오버레이 TaskFragment를 원자적으로 생성합니다.
+              </div>
+            </div>
+          </div>
+
+          <!-- SLIDE 09 -->
+          <div class="slide-card" data-index="8">
+            <div class="slide-meta">
+              <span class="pill pill-green">Part 3. System Server</span>
+              <span class="pill pill-blue">플랫폼 내부</span>
+            </div>
+            <h2 class="slide-title">WCT 트랜잭션과 ATMS 계층 트리 배치</h2>
+            <div class="slide-body">
+              <p>System Server(<code>ActivityTaskManagerService</code>)는 WCT를 수신하여 단 하나의 렌더링 패스 내에서 컨테이너 계층 트리를 구성합니다.</p>
+
+              <div class="ascii-diagram">
+DisplayContent (물리 디스플레이)
+ └── TaskDisplayArea
+      └── Task (단일 최근 앱 엔트리)
+           ├── TaskFragment 1 (Primary)   [Bounds: (0,0) - (800,1600)]
+           │    └── ActivityRecord (ListActivity)
+           └── TaskFragment 2 (Secondary) [Bounds: (800,0) - (2000,1600)]
+                └── ActivityRecord (DetailActivity)
+              </div>
+
+              <div class="grid-2">
+                <div class="card-box">
+                  <div class="card-box-header">⚡ 원자적 WCT (Atomic Transaction)</div>
+                  <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6;">
+                    생성, 상대적 Bounds 설정, 인접 관계(adjacent) 설정이 <strong>1회의 바인더 호출</strong>로 처리되므로 중간 상태 노출이나 화면 깜빡임(Flicker)이 원천 차단됩니다.
+                  </p>
+                </div>
+                <div class="card-box">
+                  <div class="card-box-header">🔄 TaskOrganizer와의 조화</div>
+                  <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6;">
+                    시스템의 전체 윈도우 관리(SysUI)와 앱 내부의 창 분할(TaskFragmentOrganizer)이 서로 간섭 없이 완벽한 계층 분리를 달성합니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SLIDE 10 -->
+          <div class="slide-card" data-index="9">
+            <div class="slide-meta">
+              <span class="pill pill-orange">Part 4. Engineering</span>
+              <span class="pill pill-purple">Composite Pattern</span>
+            </div>
+            <h2 class="slide-title">하위 호환성의 비밀: Composite 패턴</h2>
+            <div class="slide-body">
+              <p>안드로이드 프레임워크가 10년 넘게 축적된 시스템 코드를 깨뜨리지 않고 어떻게 TaskFragment를 도입했을까요?</p>
+
+              <div class="ascii-diagram">
+WindowContainer (추상 기본 클래스)
+ └── TaskFragment (창 경계 및 액티비티 호스팅 단위)
+      ├── Task (TaskFragment를 상속! - Composite 패턴)
+      │    └── TaskFragment 1, TaskFragment 2 ...
+      └── TaskFragment (일반 임베딩 컨테이너)
+           └── ActivityRecord
+              </div>
+
+              <div class="callout callout-orange">
+                <strong>구조적 다형성 (Structural Polymorphism):</strong><br>
+                <code>public class Task extends TaskFragment</code> 구조 덕분에, ATMS 내부의 기존 코드(포커스 탐색, 백스택 탐색, 트랜지션 처리)는 대상을 <code>TaskFragment</code> 인터페이스로 동일하게 취급할 수 있습니다. 수십만 줄의 기존 시스템 코드를 수정하지 않고도 완벽한 하위 호환성을 달성했습니다.
+              </div>
+            </div>
+          </div>
+
+          <!-- SLIDE 11 -->
+          <div class="slide-card" data-index="10">
+            <div class="slide-meta">
+              <span class="pill pill-orange">Part 4. Engineering</span>
+              <span class="pill pill-blue">핵심 설계 원칙</span>
+            </div>
+            <h2 class="slide-title">플랫폼 4대 핵심 아키텍처 패턴</h2>
+            <div class="slide-body">
+              <div class="grid-2">
+                <div class="card-box">
+                  <div class="card-box-header">1. Organizer 패턴 (TaskFragmentOrganizer)</div>
+                  <p style="font-size: 0.86rem; color: var(--text-muted); line-height: 1.6;">
+                    시스템 서버에 갇혀 있던 윈도우 레이아웃 제어권을 시스템 권한 없이도 클라이언트 프로세스에 안전하게 위임(Delegation)합니다.
+                  </p>
+                </div>
+                <div class="card-box">
+                  <div class="card-box-header">2. 원자적 트랜잭션 패턴 (WCT)</div>
+                  <p style="font-size: 0.86rem; color: var(--text-muted); line-height: 1.6;">
+                    여러 컨테이너 변경 연산을 단일 IPC로 일괄 전송(Batching)하여 IPC 지연을 줄이고 화면 찢어짐/깜빡임을 방지합니다.
+                  </p>
+                </div>
+                <div class="card-box">
+                  <div class="card-box-header">3. Composite 패턴 (Task extends TaskFragment)</div>
+                  <p style="font-size: 0.86rem; color: var(--text-muted); line-height: 1.6;">
+                    단일 노드(TaskFragment)와 복합체(Task)를 동일한 추상화로 다루어 시스템 서버 전반의 호환성을 보장합니다.
+                  </p>
+                </div>
+                <div class="card-box">
+                  <div class="card-box-header">4. 프록시 / 어댑터 패턴 (Extensions)</div>
+                  <p style="font-size: 0.86rem; color: var(--text-muted); line-height: 1.6;">
+                    기기 제조사(OEM)별 하드웨어 특수성과 구글 Jetpack 라이브러리 간의 결합도를 낮추고 모듈식 업데이트를 가능하게 합니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SLIDE 12 -->
+          <div class="slide-card" data-index="11">
+            <div class="slide-meta">
+              <span class="pill pill-blue">Part 5. Lifecycle</span>
+              <span class="pill pill-purple">Multi-Resume & Z-Order</span>
+            </div>
+            <h2 class="slide-title">Z-Order 및 Top Activity 역순 탐색 알고리즘</h2>
+            <div class="slide-body">
+              <p>분할 화면에서는 좌우 두 액티비티가 <strong>모두 RESUMED 상태(Multi-Resume)</strong>입니다. 그렇다면 시스템은 어느 액티비티를 '진짜 최상위(Top)'로 판정할까요?</p>
+
+              <div class="ascii-diagram">
+Task mChildren 컨테이너 리스트:
+ Index 0: [ TaskFragment Primary (List) ]
+ Index 1: [ TaskFragment Secondary (Detail) ]  <-- pairedPosition + 1 로 삽입됨 (Top)
+
+ATMS 탐색 알고리즘:
+ for (int i = mChildren.size() - 1; i >= 0; --i) {   <-- 역순 탐색 (Top-Down Search)
+     // 가장 먼저 발견되는 Secondary(Detail)가 시스템의 공식 Top Activity로 확정!
+ }
+              </div>
+
+              <div class="callout callout-purple">
+                <strong>Intent Flag 영향:</strong><br>
+                Task 레벨에서 <code>FLAG_ACTIVITY_SINGLE_TOP</code> 호출 시, 시스템은 역순 탐색으로 발견된 Secondary(Detail)를 Top Activity로 판단하여 <code>onNewIntent()</code>를 전달합니다.
+              </div>
+            </div>
+          </div>
+
+          <!-- SLIDE 13 -->
+          <div class="slide-card" data-index="12">
+            <div class="slide-meta">
+              <span class="pill pill-blue">Part 5. Lifecycle</span>
+              <span class="pill pill-orange">연쇄 종료</span>
+            </div>
+            <h2 class="slide-title">FinishBehavior 3가지 연쇄 종료 정책</h2>
+            <div class="slide-body">
+              <p>한쪽 액티비티가 <code>finish()</code>될 때 반대편 액티비티를 어떻게 처리할지는 <code>SplitRule.FinishBehavior</code>로 제어합니다.</p>
+
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>정책 (FinishBehavior)</th>
+                      <th>동작 방식</th>
+                      <th>대표 권장 시나리오</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong style="color: var(--accent-green);">FINISH_NEVER</strong></td>
+                      <td>자신만 종료되고 상대방 컨테이너는 유지됨</td>
+                      <td>상세 창을 닫아도 목록(List)은 계속 유지되어야 할 때 (기본값)</td>
+                    </tr>
+                    <tr>
+                      <td><strong style="color: var(--accent-red);">FINISH_ALWAYS</strong></td>
+                      <td>자신이 종료되면 인접한 상대방도 무조건 함께 종료</td>
+                      <td>로그인 세션 종료, 결제 완료 등 두 화면이 완전히 한 몸일 때</td>
+                    </tr>
+                    <tr>
+                      <td><strong style="color: var(--accent-orange);">FINISH_ADJACENT</strong></td>
+                      <td>자신이 종료될 때 인접 컨테이너가 살아있을 때만 연쇄 종료</td>
+                      <td>단독 전체화면으로 전환된 경우에는 상대방을 닫지 않아야 할 때</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="callout callout-green">
+                <strong>파이프라인:</strong> App <code>finish()</code> ➔ Extensions <code>onTaskFragmentVanished()</code> ➔ WCT 연쇄 트랜잭션 ➔ ATMS 일괄 정리.
+              </div>
+            </div>
+          </div>
+
+          <!-- SLIDE 14 -->
+          <div class="slide-card" data-index="13">
+            <div class="slide-meta">
+              <span class="pill pill-purple">Part 6. Evolution</span>
+              <span class="pill pill-blue">Extensions 8 · 9 · 10</span>
+            </div>
+            <h2 class="slide-title">Window SDK Extension 8 · 9 · 10 신규 기능</h2>
+            <div class="slide-body">
+              <p>구글은 안드로이드 14 QPR, 안드로이드 15, 16 릴리즈와 발맞추어 Extensions API 레벨을 빠르게 확장하고 있습니다.</p>
+
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Extension 버전</th>
+                      <th>대상 플랫폼 / 라이브러리</th>
+                      <th>핵심 신규 기능 요약</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong style="color: var(--accent-purple);">Extension 8</strong></td>
+                      <td>Android 14 QPR2<br>AndroidX Window 1.4</td>
+                      <td>
+                        • <strong>Overlay TaskFragment</strong> (플로팅/드로어 컨테이너)<br>
+                        • <strong>상태 자동 저장/복원</strong> (<code>setAutoSaveEmbeddingState</code>)<br>
+                        • <strong>타깃 스택 지정</strong> (<code>setLaunchingActivityStack</code>)
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong style="color: var(--accent-green);">Extension 9</strong></td>
+                      <td>Android 15<br>AndroidX Window 1.4~1.5</td>
+                      <td>
+                        • <strong>동기식 WindowLayoutInfo 조회</strong> (<code>getCurrentWindowLayoutInfo</code>)<br>
+                        • Flow 없이 초기 렌더링 시점에 힌지/폴딩 상태 즉시 확인<br>
+                        • <code>@UiContext</code> (WindowContext) 트래킹 공식 지원
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong style="color: var(--accent-orange);">Extension 10</strong></td>
+                      <td>Android 15 QPR / 16<br>최신 개발 트랙</td>
+                      <td>
+                        • <strong>Window Area API 고도화</strong> (후면 디스플레이, 듀얼 스크린 세션)<br>
+                        • <strong>PiP ↔ Split 상호 전환 최적화</strong> (동영상 PiP 이탈 시 자동 전체화면)
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- SLIDE 15 -->
+          <div class="slide-card" data-index="14">
+            <div class="slide-meta">
+              <span class="pill pill-purple">Part 6. Comparison</span>
+              <span class="pill pill-blue">아키텍처 비교</span>
+            </div>
+            <h2 class="slide-title">전통적 Multi-Window vs Activity Embedding</h2>
+            <div class="slide-body">
+              <p>두 기술은 모두 화면을 분할하지만, 설계 목표와 태스크 경계(Task Boundary)가 근본적으로 다릅니다.</p>
+
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>비교 항목</th>
+                      <th>전통적 Multi-Window (Split-Screen)</th>
+                      <th>Activity Embedding</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>태스크(Task) 경계</strong></td>
+                      <td>2개의 독립된 Task (서로 다른 최근 앱 카드)</td>
+                      <td><strong style="color: var(--accent-green);">단일 Task 내부 분할 (단일 앱 카드)</strong></td>
+                    </tr>
+                    <tr>
+                      <td><strong>주요 목적</strong></td>
+                      <td>서로 다른 두 앱 간의 멀티태스킹 (e.g. 유튜브 + 카톡)</td>
+                      <td><strong style="color: var(--accent-green);">단일 앱 내부의 대화면 레이아웃 최적화 (List-Detail)</strong></td>
+                    </tr>
+                    <tr>
+                      <td><strong>제어권 주체</strong></td>
+                      <td>사용자 및 시스템 SystemUI (OS 주도)</td>
+                      <td><strong style="color: var(--accent-green);">앱 프로세스 및 개발자 (App 주도)</strong></td>
+                    </tr>
+                    <tr>
+                      <td><strong>내비게이션</strong></td>
+                      <td>각 창마다 독립 백스택, 개별 뒤로가기</td>
+                      <td><strong style="color: var(--accent-green);">통합 백스택 및 FinishBehavior 연계</strong></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="callout callout-green">
+                <strong>결론:</strong> Activity Embedding은 다중 앱 멀티태스킹이 아니라, <strong>"단일 앱의 모듈식 대화면 UX 구현 도구"</strong>입니다.
+              </div>
+            </div>
+          </div>
+
+          <!-- SLIDE 16 -->
+          <div class="slide-card" data-index="15">
+            <div class="slide-meta">
+              <span class="pill pill-red">Part 6. Security</span>
+              <span class="pill pill-blue">Trust Boundary</span>
+            </div>
+            <h2 class="slide-title">보안 및 Cross-UID 신뢰 경계 (Security & Sandbox)</h2>
+            <div class="slide-body">
+              <p>임의의 앱이 다른 앱의 액티비티를 마음대로 창 안에 임베딩할 수 있다면 클릭재킹(Clickjacking)과 피싱 등 심각한 보안 취약점이 발생합니다.</p>
+
+              <div class="grid-2">
+                <div class="card-box" style="border-left: 3px solid var(--accent-red);">
+                  <div class="card-box-header" style="color: var(--accent-red);">🛡️ 기본 원칙: Same-UID 샌드박싱</div>
+                  <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6;">
+                    OS는 기본적으로 **동일한 UID(동일 앱/동일 서명)**를 가진 액티비티만 동일 TaskFragment 내 분할을 허용합니다. 권한 없는 외부 앱의 임베딩 시도는 차단됩니다.
+                  </p>
+                </div>
+                <div class="card-box" style="border-left: 3px solid var(--accent-green);">
+                  <div class="card-box-header" style="color: var(--accent-green);">🤝 Cross-UID 신뢰 임베딩 조건</div>
+                  <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6;">
+                    서로 다른 앱 간 임베딩이 필요한 경우(e.g. 결제 모듈, SDK), 호스트 앱의 인증서 SHA-256을 타깃 앱의 매니페스트에 <code>knownActivityEmbeddingCerts</code>로 명시해야만 허용됩니다.
+                  </p>
+                </div>
+              </div>
+
+              <div class="callout callout-purple">
+                <strong>신뢰 경계:</strong> 시스템 서버(ATMS)는 액티비티가 TaskFragment에 attach될 때마다 인증서 일치 여부를 원자적으로 검증합니다.
+              </div>
+            </div>
+          </div>
+
+          <!-- SLIDE 17 -->
+          <div class="slide-card" data-index="16">
+            <div class="slide-meta">
+              <span class="pill pill-green">Part 7. Summary</span>
+              <span class="pill pill-blue">Best Practices</span>
+            </div>
+            <h2 class="slide-title">종합 요약 및 대화면 UI 아키텍처 권장 가이드</h2>
+            <div class="slide-body">
+              <div class="grid-2">
+                <div class="card-box">
+                  <div class="card-box-header" style="color: var(--accent);">📌 핵심 테이크어웨이 (Takeaways)</div>
+                  <ul style="margin-left: 1.2rem; font-size: 0.88rem; line-height: 1.7;">
+                    <li><strong>TaskFragment</strong>는 단일 Task 내 독립 컨테이너를 제공하는 안드로이드 윈도우의 혁신입니다.</li>
+                    <li><strong>3계층 아키텍처</strong>로 무간섭(Zero-touch) 표준 startActivity 실행을 보장합니다.</li>
+                    <li><strong>Window 1.4 / Ext 8</strong>부터 타깃 스택 지정과 Overlay TaskFragment로 반응형 드로어 UX가 가능해졌습니다.</li>
+                    <li><strong>Composite 패턴</strong>을 통해 기존 10년 안드로이드 프레임워크와의 완벽한 하위 호환성을 이뤄냈습니다.</li>
+                  </ul>
+                </div>
+                <div class="card-box">
+                  <div class="card-box-header" style="color: var(--accent-green);">💡 실무 아키텍처 의사결정 기준</div>
+                  <ul style="margin-left: 1.2rem; font-size: 0.88rem; line-height: 1.7;">
+                    <li><strong>레거시 멀티 액티비티 앱</strong>: 코드 재작성 없이 Activity Embedding으로 대화면 대응.</li>
+                    <li><strong>신규 앱 / Jetpack Compose</strong>: 단일 Activity + Compose <code>Adaptive</code> (Canonical Layouts) 권장.</li>
+                    <li><strong>반응형 드로어 UX</strong>: 좁은 화면(Detail 단독 시작) + 대화면(List-Detail 고정 Split) 구조 설계.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="callout callout-green" style="text-align: center; margin-top: 1.5rem;">
+                🎉 <strong>수고하셨습니다!</strong> 더 깊은 소스 코드 탐색과 세부 파이프라인은 상단의 <strong>[상세 문서 보기 ↗]</strong>를 참고해 주세요.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Bottom Control Bar -->
+      <div class="slide-control-bar">
+        <div class="nav-buttons">
+          <button class="btn-nav" id="btn-prev" title="이전 슬라이드 (Left Arrow / PageUp)">
+            <span>◀</span> <span>이전</span>
+          </button>
+          <button class="btn-nav btn-primary" id="btn-next" title="다음 슬라이드 (Right Arrow / Space / PageDown)">
+            <span>다음</span> <span>▶</span>
+          </button>
+        </div>
+
+        <div class="slide-indicator" id="slide-indicator">
+          01 / 17
+        </div>
+
+        <div class="shortcut-hint">
+          <span>단축키:</span>
+          <span class="key-badge">←</span>
+          <span class="key-badge">→</span>
+          <span class="key-badge">Space</span>
+          <span class="key-badge">F (전체화면)</span>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // State
+    const totalSlides = 17;
+    let currentSlide = 0;
+
+    // Elements
+    const slideCards = document.querySelectorAll('.slide-card');
+    const tocItems = document.querySelectorAll('.slide-item');
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    const slideIndicator = document.getElementById('slide-indicator');
+    const tocSlideCount = document.getElementById('toc-slide-count');
+    const progressBar = document.getElementById('progress-bar');
+    const progressPercent = document.getElementById('progress-percent');
+    const btnFullscreen = document.getElementById('btn-fullscreen');
+    const slideViewport = document.getElementById('slide-viewport');
+
+    function updateSlide(index) {
+      if (index < 0 || index >= totalSlides) return;
+      currentSlide = index;
+
+      // Update Slides Visibility
+      slideCards.forEach((card, idx) => {
+        if (idx === currentSlide) {
+          card.classList.add('active');
+        } else {
+          card.classList.remove('active');
+        }
+      });
+
+      // Update TOC Active State
+      tocItems.forEach((item, idx) => {
+        if (idx === currentSlide) {
+          item.classList.add('active');
+          item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        } else {
+          item.classList.remove('active');
+        }
+      });
+
+      // Update Counter & Progress
+      const formattedCur = String(currentSlide + 1).padStart(2, '0');
+      const formattedTotal = String(totalSlides).padStart(2, '0');
+      const countText = `${formattedCur} / ${formattedTotal}`;
+      slideIndicator.textContent = countText;
+      tocSlideCount.textContent = countText;
+
+      const pct = Math.round(((currentSlide + 1) / totalSlides) * 100);
+      progressBar.style.width = `${pct}%`;
+      progressPercent.textContent = `${pct}%`;
+
+      // Update Button States
+      btnPrev.disabled = (currentSlide === 0);
+      btnNext.disabled = (currentSlide === totalSlides - 1);
+
+      // Scroll slide viewport to top
+      slideViewport.scrollTop = 0;
+
+      // Update URL hash
+      window.location.hash = `slide-${currentSlide + 1}`;
+    }
+
+    // Event Listeners for Nav Buttons
+    btnPrev.addEventListener('click', () => updateSlide(currentSlide - 1));
+    btnNext.addEventListener('click', () => updateSlide(currentSlide + 1));
+
+    // TOC Item Click
+    tocItems.forEach(item => {
+      item.addEventListener('click', () => {
+        const slideIdx = parseInt(item.getAttribute('data-slide'), 10);
+        updateSlide(slideIdx);
+      });
+    });
+
+    // Keyboard Navigation
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      switch(e.key) {
+        case 'ArrowRight':
+        case 'PageDown':
+        case ' ':
+          e.preventDefault();
+          updateSlide(currentSlide + 1);
+          break;
+        case 'ArrowLeft':
+        case 'PageUp':
+          e.preventDefault();
+          updateSlide(currentSlide - 1);
+          break;
+        case 'Home':
+          e.preventDefault();
+          updateSlide(0);
+          break;
+        case 'End':
+          e.preventDefault();
+          updateSlide(totalSlides - 1);
+          break;
+        case 'f':
+        case 'F':
+          toggleFullscreen();
+          break;
+      }
+    });
+
+    // Fullscreen Toggle
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    btnFullscreen.addEventListener('click', toggleFullscreen);
+
+    // Initial slide from URL Hash (e.g. #slide-5)
+    function initFromHash() {
+      const hash = window.location.hash;
+      if (hash && hash.startsWith('#slide-')) {
+        const num = parseInt(hash.replace('#slide-', ''), 10);
+        if (!isNaN(num) && num >= 1 && num <= totalSlides) {
+          updateSlide(num - 1);
+          return;
+        }
+      }
+      updateSlide(0);
+    }
+
+    initFromHash();
+  </script>
+</body>
+</html>
