@@ -532,11 +532,11 @@
         <li><a href="#backward-compatibility">4. 하위 호환성 설계</a></li>
         <li><a href="#security">5. 보안 및 신뢰 모델</a></li>
         <li style="margin-top: 0.8rem; border-top: 1px solid var(--border-subtle); padding-top: 0.5rem;"><span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">부록 및 레퍼런스</span></li>
-        <li><a href="#appendix-sources">부록 A. 업스트림 소스 코드 레퍼런스</a></li>
+        <li><a href="#appendix-multiwindow">부록 A. 전통적 Multi-Window vs Activity Embedding</a></li>
         <li><a href="#appendix-zorder">부록 B. Top Activity &amp; Z-Order 심층 분석</a></li>
         <li><a href="#appendix-finish">부록 C. Activity Finish 및 연쇄 종료 플로우</a></li>
         <li><a href="#appendix-platform-internals">부록 D. Frameworks &amp; System Server 심층 분석</a></li>
-        <li><a href="#appendix-multiwindow">부록 E. Multi-Window vs Activity Embedding</a></li>
+        <li><a href="#appendix-sources">부록 E. 업스트림 소스 코드 레퍼런스 &amp; 최신 진화</a></li>
       </ul>
     </aside>
 
@@ -745,7 +745,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             규칙 등록 단계에서는 시스템 서버(ATMS)와의 IPC 통신이 일절 발생하지 않으며, 시스템 서버는 SplitRule의 존재 자체를 모릅니다. 규칙의 해석과 규격 변환, 메모리 캐싱, 감시자(Monitor) 등록까지의 모든 절차가 <strong>앱 프로세스 내부(AndroidX 계층 &rarr; Extensions 계층)</strong>에서 즉시 처리되므로 앱 시작 성능에 오버헤드를 주지 않습니다.
           </p>
           <p style="font-size: 0.84rem; color: var(--accent); margin-top: 0.65rem; margin-bottom: 0;">
-            👉 <em>관련 공식 소스 코드는 <a href="#appendix-sources" style="color: var(--accent); text-decoration: underline;">부록 A. 업스트림 소스 코드 레퍼런스</a> 참조</em>
+            👉 <em>관련 공식 소스 코드는 <a href="#appendix-sources" style="color: var(--accent); text-decoration: underline;">부록 E. 업스트림 소스 코드 레퍼런스</a> 참조</em>
           </p>
         </div>
       </section>
@@ -770,7 +770,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             전통적 Multi-Window가 서로 다른 Task 간 분할(2개 타일)인 것과 달리, <strong>단일 Task 내부를 쪼개어 쓰므로 최근 앱(Recents)에서도 1개의 통합 타일</strong>로 유지됩니다.
           </p>
           <p style="font-size: 0.84rem; color: var(--accent); margin-top: 0.5rem; margin-bottom: 0;">
-            👉 <em>상세 상속 계층 트리는 <a href="#backward-compatibility" style="color: var(--accent); text-decoration: underline;">4. 하위 호환성 설계</a>, 다중 창 비교는 <a href="#appendix-multiwindow" style="color: var(--accent); text-decoration: underline;">부록 E. Multi-Window 비교</a> 참조</em>
+            👉 <em>상세 상속 계층 트리는 <a href="#backward-compatibility" style="color: var(--accent); text-decoration: underline;">4. 하위 호환성 설계</a>, 다중 창 비교는 <a href="#appendix-multiwindow" style="color: var(--accent); text-decoration: underline;">부록 A. Multi-Window 비교</a> 참조</em>
           </p>
         </div>
 
@@ -1102,122 +1102,140 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             앱 프로세스가 임의로 <code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>을 조작하더라도, 시스템 서버의 <code>ActivityStarter</code>와 <code>TaskFragment.isAllowedToEmbedActivity()</code>가 호출 패키지의 서명 인증서와 UID를 실시간으로 직접 대조하여 권한 없는 임베딩을 즉각 차단합니다.
           </p>
           <p style="font-size: 0.84rem; color: var(--accent); margin-top: 0.5rem; margin-bottom: 0;">
-            👉 <em><a href="#appendix-platform-internals" style="color: var(--accent); text-decoration: underline;">부록 D (패턴 3. ActivityStarter 검증)</a> 및 <a href="#appendix-sources" style="color: var(--accent); text-decoration: underline;">부록 A (소스 레퍼런스)</a> 참조</em>
+            👉 <em><a href="#appendix-platform-internals" style="color: var(--accent); text-decoration: underline;">부록 D (패턴 3. ActivityStarter 검증)</a> 및 <a href="#appendix-sources" style="color: var(--accent); text-decoration: underline;">부록 E (소스 레퍼런스)</a> 참조</em>
           </p>
         </div>
       </section>
 
       <!-- Appendix A -->
-      <section id="appendix-sources">
-        <h2>부록 A. 업스트림 AOSP / AndroidX 소스 코드 탐색 가이드</h2>
-        <p>Activity Embedding은 <a href="https://cs.android.com" target="_blank" style="color: var(--accent);">cs.android.com</a>의 두 가지 주요 Google 업스트림 소스 트리에 걸쳐 구현되어 있습니다. 공식 구현체 코드를 직접 탐색해 보세요:</p>
+      <section id="appendix-multiwindow">
+        <h2>부록 A. 전통적 Multi-Window vs Activity Embedding 심층 비교</h2>
+        <p>
+          Android 생태계에는 화면에 여러 액티비티를 동시에 띄우는 두 가지 핵심 기술이 존재합니다.
+          Android 7.0(Nougat) 및 Android 11(WM Shell)을 거치며 발전한 <strong>전통적 Multi-Window(Split-Screen, Freeform, Picture-in-Picture)</strong>와, Android 12L(API 32)에서 도입된 <strong>Activity Embedding</strong>입니다.
+          겉모습은 화면 분할로 유사해 보이지만, <strong>컨테이너 계층, 제어 주체, 생명주기 결합도, 사용자 경험</strong>에서 결정적인 차이가 있습니다.
+        </p>
 
-        <table>
+        <!-- Comparison Table -->
+        <table style="margin: 1.5rem 0;">
           <thead>
             <tr>
-              <th style="width: 30%;">저장소 / 계층</th>
-              <th>업스트림 코드 및 주요 컴포넌트</th>
+              <th style="width: 22%;">비교 항목</th>
+              <th style="width: 39%;">전통적 Multi-Window (Split-Screen / Freeform)</th>
+              <th style="width: 39%;">Activity Embedding (Split Layout)</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td>
-                <strong>AndroidX Window</strong><br>
-                <span class="pill pill-blue" style="font-size: 0.7rem;">platform/frameworks/support</span>
-              </td>
-              <td>
-                <div style="margin-bottom: 0.35rem;">
-                  <a href="https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:window/window/src/main/java/androidx/window/embedding/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
-                    window/window/.../embedding/
-                  </a>
-                </div>
-                <div style="font-size: 0.88rem; color: var(--text-main);">
-                  공개 개발자 API: <code>SplitController.kt</code>, <code>RuleController.kt</code>, <code>SplitPairRule.kt</code>, <code>EmbeddingAdapter.kt</code>
-                </div>
-              </td>
+              <td><strong>도입 시점</strong></td>
+              <td>Android 7.0 (API 24) ~ Android 11 (WM Shell 개편)</td>
+              <td>Android 12L (API 32) ~ Android 13+</td>
             </tr>
             <tr>
-              <td>
-                <strong>WindowManager Extensions 규격 명세 (AndroidX Spec)</strong><br>
-                <span class="pill pill-blue" style="font-size: 0.7rem;">platform/frameworks/support</span>
-              </td>
-              <td>
-                <div style="margin-bottom: 0.35rem;">
-                  <a href="https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:window/extensions/extensions/src/main/java/androidx/window/extensions/embedding/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
-                    window/extensions/.../embedding/
-                  </a>
-                </div>
-                <div style="font-size: 0.88rem; color: var(--text-main);">
-                  계약 명세 인터페이스: <code>ActivityEmbeddingComponent.java</code>, <code>SplitInfo.java</code>, <code>SplitAttributes.java</code>
-                </div>
-              </td>
+              <td><strong>컨테이너 분할 단위</strong></td>
+              <td><span class="pill pill-orange">Task 단위 분할</span> (Task A ⬌ Task B)</td>
+              <td><span class="pill pill-green">TaskFragment 단위 분할</span> (단일 Task 내부 구획)</td>
             </tr>
             <tr>
-              <td>
-                <strong>공식 데모 (Official Demos)</strong><br>
-                <span class="pill pill-blue" style="font-size: 0.7rem;">platform/frameworks/support</span>
-              </td>
-              <td>
-                <div style="margin-bottom: 0.35rem;">
-                  <a href="https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:window/window-demos/demo/src/main/java/androidx/window/demo/embedding/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
-                    window-demos/.../embedding/
-                  </a>
-                </div>
-                <div style="font-size: 0.88rem; color: var(--text-main);">
-                  공식 샘플 구현체: <code>SplitActivityBase.java</code>, <code>ExampleWindowInitializer.kt</code>
-                </div>
-              </td>
+              <td><strong>제어 주체</strong></td>
+              <td><strong>시스템 / 사용자</strong> (SystemUI, 제스처, 분할선 드래그)</td>
+              <td><strong>앱 자체</strong> (AndroidX RuleController / SplitRule)</td>
             </tr>
             <tr>
-              <td>
-                <strong>WindowManager Extensions 플랫폼 구현체 (AOSP/Platform Impl)</strong><br>
-                <span class="pill pill-purple" style="font-size: 0.7rem;">platform/frameworks/base</span>
-              </td>
-              <td>
-                <div style="margin-bottom: 0.35rem;">
-                  <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/libs/WindowManager/Jetpack/src/androidx/window/extensions/embedding/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
-                    libs/WindowManager/Jetpack/.../embedding/
-                  </a>
-                </div>
-                <div style="font-size: 0.88rem; color: var(--text-main);">
-                  플랫폼 런타임 백엔드: <code>SplitController.java</code>, <code>SplitPresenter.java</code>, <code>JetpackTaskFragmentOrganizer.java</code>
-                </div>
-              </td>
+              <td><strong>최근 앱(Recents) 타일</strong></td>
+              <td><strong>2개의 개별 타일</strong> (또는 OS가 묶은 Split Pair 타일)</td>
+              <td><strong>단 1개의 통합 앱 타일</strong> (완전한 단일 앱 취급)</td>
             </tr>
             <tr>
-              <td>
-                <strong>프레임워크 클라이언트 코어 (Framework Client Core)</strong><br>
-                <span class="pill pill-orange" style="font-size: 0.7rem;">platform/frameworks/base</span>
-              </td>
-              <td>
-                <div style="margin-bottom: 0.35rem;">
-                  <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/core/java/android/window/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
-                    core/java/android/window/
-                  </a>
-                </div>
-                <div style="font-size: 0.88rem; color: var(--text-main);">
-                  클라이언트 측 IPC 계약: <code>TaskFragmentOrganizer.java</code>, <code>TaskFragmentTransaction.java</code>, <code>TaskFragmentOperation.java</code>
-                </div>
-              </td>
+              <td><strong>백스택 및 생명주기</strong></td>
+              <td>각 Task별 독립적인 백스택 (한쪽이 닫혀도 다른 쪽 무영향)</td>
+              <td><code>FinishBehavior</code>로 조율된 연쇄 종료 및 부드러운 전체화면 확장</td>
             </tr>
             <tr>
-              <td>
-                <strong>시스템 서버 (ATMS)</strong><br>
-                <span class="pill pill-green" style="font-size: 0.7rem;">platform/frameworks/base</span>
-              </td>
-              <td>
-                <div style="margin-bottom: 0.35rem;">
-                  <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/services/core/java/com/android/server/wm/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
-                    services/core/java/com/android/server/wm/
-                  </a>
-                </div>
-                <div style="font-size: 0.88rem; color: var(--text-main);">
-                  WindowManager 코어: <code>TaskFragmentOrganizerController.java</code>, <code>TaskFragment.java</code>, <code>Task.java</code>
-                </div>
-              </td>
+              <td><strong>주요 목적</strong></td>
+              <td>서로 다른 앱 간의 멀티태스킹 (예: 동영상 + 메신저)</td>
+              <td>단일 앱의 대화면/폴더블 최적화 (마스터-디테일 UI 모듈화)</td>
+            </tr>
+            <tr>
+              <td><strong>보안 검증</strong></td>
+              <td>표준 Intent 필터 및 <code>android:exported</code> 검증</td>
+              <td><code>allowUntrustedActivityEmbedding</code> 및 SHA-256 서명 인증서 화이트리스트</td>
             </tr>
           </tbody>
         </table>
+
+        <!-- 3 Core Commonalities -->
+        <h3>1. 공통 메커니즘 (공통점)</h3>
+        <div class="grid-2" style="margin-top: 1rem;">
+          <div class="card">
+            <div class="card-title">
+              <span>Multi-Resume 생명주기 모델</span>
+              <span class="pill pill-blue">Android 10+</span>
+            </div>
+            <p style="font-size: 0.85rem; line-height: 1.6; color: var(--text-muted); margin-top: 0.4rem;">
+              두 방식 모두 분할되어 화면에 보이는 모든 액티비티가 <code>PAUSED</code> 상태로 떨어지지 않고, <strong>동시에 <code>RESUMED</code> 상태</strong>를 유지합니다. 따라서 영상 재생이나 실시간 UI 갱신이 양쪽에서 끊김 없이 동시에 동작합니다.
+            </p>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span>SurfaceFlinger 하드웨어 합성</span>
+              <span class="pill pill-green">렌더링</span>
+            </div>
+            <p style="font-size: 0.85rem; line-height: 1.6; color: var(--text-muted); margin-top: 0.4rem;">
+              각 액티비티는 자신만의 독립적인 서피스(Surface)를 소유합니다. WindowManager가 계산한 바운드와 레이어 계층에 맞춰 <strong>SurfaceFlinger가 GPU VSYNC 타이밍에 단일 프레임으로 두 화면을 나란히 합성(Composite)</strong>합니다.
+            </p>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span>WindowOrganizer &amp; WCT 기반</span>
+              <span class="pill pill-purple">원자적 IPC</span>
+            </div>
+            <p style="font-size: 0.85rem; line-height: 1.6; color: var(--text-muted); margin-top: 0.4rem;">
+              클라이언트(SystemUI 또는 앱 프로세스)가 계산한 컨테이너 조작 명령을 <code>WindowContainerTransaction (WCT)</code>에 일괄 배치하여 시스템 서버(ATMS)로 원자적으로 전송함으로써 화면 티어링(Tearing)을 원천 차단합니다.
+            </p>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span>동적 디스플레이 크기 적응</span>
+              <span class="pill pill-orange">반응형</span>
+            </div>
+            <p style="font-size: 0.85rem; line-height: 1.6; color: var(--text-muted); margin-top: 0.4rem;">
+              기기 화면 회전, 폴더블 접힘/펼침, 윈도우 크기 변경 시 시스템 이벤트(Configuration Change / ParentInfo)를 수신하여 레이아웃 비율을 실시간으로 재배치합니다.
+            </p>
+          </div>
+        </div>
+
+        <!-- 3 Core Differences -->
+        <h3 style="margin-top: 2rem;">2. 결정적인 아키텍처 차이점</h3>
+        <ul style="margin-left: 1.2rem; font-size: 0.88rem; line-height: 1.7; color: var(--text-main); margin-top: 0.5rem;">
+          <li>
+            <strong>Task 레벨 vs Sub-Task(TaskFragment) 레벨:</strong> 
+            Multi-Window는 OS 입장에서 완전히 독립된 <code>Task</code> 단위의 병렬 실행입니다. 반면 Activity Embedding은 <strong>단 하나의 부모 <code>Task</code></strong> 안에서 공간만 좌/우 <code>TaskFragment</code>로 격리하여 사용하므로, 시스템이나 사용자 관점에서는 단일 앱의 멀티페인 레이아웃으로 인식됩니다.
+          </li>
+          <li>
+            <strong>OS/사용자 주도 vs 앱 비즈니스 규칙 주도:</strong>
+            Multi-Window는 사용자가 제스처를 사용하거나 앱 아이콘을 끌어다 놓아야 분할이 실행됩니다. 반면 Activity Embedding은 사용자의 개입 없이, 앱 개발자가 선언한 <code>SplitPairRule</code>의 조건(화면 너비 600dp 이상 등)에 부합하면 <code>startActivity()</code> 호출 시 즉시 자동 분할됩니다.
+          </li>
+          <li>
+            <strong>단일 앱 경험과 조율된 내비게이션(FinishBehavior):</strong>
+            Multi-Window는 한쪽 창이 닫혀도 다른 쪽 앱에 아무런 영향을 주지 않습니다. 반면 Activity Embedding은 마스터 액티비티가 닫힐 때 디테일도 함께 닫히거나(<code>FINISH_ALWAYS</code>), 디테일이 닫히면 마스터가 부드럽게 전체 화면으로 확장되는 등 단일 애플리케이션으로서의 긴밀한 상호작용을 보장합니다.
+          </li>
+        </ul>
+
+        <div class="callout" style="margin-top: 1.5rem;">
+          <div class="callout-title" style="color: var(--accent-green); display: flex; align-items: center; justify-content: space-between;">
+            <span>💡 아키텍처 결론: Multi-Window vs Activity Embedding</span>
+            <span class="pill pill-green">설계 의도 요약</span>
+          </div>
+          <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6; margin-top: 0.35rem; margin-bottom: 0;">
+            <strong>Multi-Window</strong>가 OS 레벨에서 <em>"서로 다른 앱(Task)들을 나란히 배치하는 멀티태스킹 기능"</em>이라면, 
+            <strong>Activity Embedding</strong>은 앱 프로세스 레벨에서 <em>"자신의 단일 작업(Task) 내부를 멀티페인 화면으로 구조화하는 모듈식 UI 아키텍처"</em>입니다.
+            구글은 이 두 시스템의 밑바탕에 공통으로 <code>WindowOrganizer</code>와 <code>WindowContainerTransaction</code>이라는 원자적 배치 인프라를 일관되게 적용했습니다.
+          </p>
+        </div>
       </section>
 
       <!-- Appendix B -->
@@ -1529,133 +1547,142 @@ public static final String KEY_LAUNCH_TASK_FRAGMENT_TOKEN =
       </section>
 
       <!-- Appendix E -->
-      <section id="appendix-multiwindow">
-        <h2>부록 E. 전통적 Multi-Window vs Activity Embedding 심층 비교</h2>
-        <p>
-          Android 생태계에는 화면에 여러 액티비티를 동시에 띄우는 두 가지 핵심 기술이 존재합니다.
-          Android 7.0(Nougat) 및 Android 11(WM Shell)을 거치며 발전한 <strong>전통적 Multi-Window(Split-Screen, Freeform, Picture-in-Picture)</strong>와, Android 12L(API 32)에서 도입된 <strong>Activity Embedding</strong>입니다.
-          겉모습은 화면 분할로 유사해 보이지만, <strong>컨테이너 계층, 제어 주체, 생명주기 결합도, 사용자 경험</strong>에서 결정적인 차이가 있습니다.
-        </p>
+      <section id="appendix-sources">
+        <h2>부록 E. 업스트림 AOSP / AndroidX 소스 코드 탐색 가이드 &amp; 최신 진화</h2>
+        <p>Activity Embedding은 <a href="https://cs.android.com" target="_blank" style="color: var(--accent);">cs.android.com</a>의 두 가지 주요 Google 업스트림 소스 트리에 걸쳐 구현되어 있습니다. 공식 구현체 코드를 직접 탐색해 보세요:</p>
 
-        <!-- Comparison Table -->
-        <table style="margin: 1.5rem 0;">
+        <table>
           <thead>
             <tr>
-              <th style="width: 22%;">비교 항목</th>
-              <th style="width: 39%;">전통적 Multi-Window (Split-Screen / Freeform)</th>
-              <th style="width: 39%;">Activity Embedding (Split Layout)</th>
+              <th style="width: 30%;">저장소 / 계층</th>
+              <th>업스트림 코드 및 주요 컴포넌트</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td><strong>도입 시점</strong></td>
-              <td>Android 7.0 (API 24) ~ Android 11 (WM Shell 개편)</td>
-              <td>Android 12L (API 32) ~ Android 13+</td>
+              <td>
+                <strong>AndroidX Window</strong><br>
+                <span class="pill pill-blue" style="font-size: 0.7rem;">platform/frameworks/support</span>
+              </td>
+              <td>
+                <div style="margin-bottom: 0.35rem;">
+                  <a href="https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:window/window/src/main/java/androidx/window/embedding/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
+                    window/window/.../embedding/
+                  </a>
+                </div>
+                <div style="font-size: 0.88rem; color: var(--text-main);">
+                  공개 개발자 API: <code>SplitController.kt</code>, <code>RuleController.kt</code>, <code>SplitPairRule.kt</code>, <code>EmbeddingAdapter.kt</code>
+                </div>
+              </td>
             </tr>
             <tr>
-              <td><strong>컨테이너 분할 단위</strong></td>
-              <td><span class="pill pill-orange">Task 단위 분할</span> (Task A ⬌ Task B)</td>
-              <td><span class="pill pill-green">TaskFragment 단위 분할</span> (단일 Task 내부 구획)</td>
+              <td>
+                <strong>WindowManager Extensions 규격 명세 (AndroidX Spec)</strong><br>
+                <span class="pill pill-blue" style="font-size: 0.7rem;">platform/frameworks/support</span>
+              </td>
+              <td>
+                <div style="margin-bottom: 0.35rem;">
+                  <a href="https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:window/extensions/extensions/src/main/java/androidx/window/extensions/embedding/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
+                    window/extensions/.../embedding/
+                  </a>
+                </div>
+                <div style="font-size: 0.88rem; color: var(--text-main);">
+                  계약 명세 인터페이스: <code>ActivityEmbeddingComponent.java</code>, <code>SplitInfo.java</code>, <code>SplitAttributes.java</code>
+                </div>
+              </td>
             </tr>
             <tr>
-              <td><strong>제어 주체</strong></td>
-              <td><strong>시스템 / 사용자</strong> (SystemUI, 제스처, 분할선 드래그)</td>
-              <td><strong>앱 자체</strong> (AndroidX RuleController / SplitRule)</td>
+              <td>
+                <strong>공식 데모 (Official Demos)</strong><br>
+                <span class="pill pill-blue" style="font-size: 0.7rem;">platform/frameworks/support</span>
+              </td>
+              <td>
+                <div style="margin-bottom: 0.35rem;">
+                  <a href="https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:window/window-demos/demo/src/main/java/androidx/window/demo/embedding/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
+                    window-demos/.../embedding/
+                  </a>
+                </div>
+                <div style="font-size: 0.88rem; color: var(--text-main);">
+                  공식 샘플 구현체: <code>SplitActivityBase.java</code>, <code>ExampleWindowInitializer.kt</code>
+                </div>
+              </td>
             </tr>
             <tr>
-              <td><strong>최근 앱(Recents) 타일</strong></td>
-              <td><strong>2개의 개별 타일</strong> (또는 OS가 묶은 Split Pair 타일)</td>
-              <td><strong>단 1개의 통합 앱 타일</strong> (완전한 단일 앱 취급)</td>
+              <td>
+                <strong>WindowManager Extensions 플랫폼 구현체 (AOSP/Platform Impl)</strong><br>
+                <span class="pill pill-purple" style="font-size: 0.7rem;">platform/frameworks/base</span>
+              </td>
+              <td>
+                <div style="margin-bottom: 0.35rem;">
+                  <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/libs/WindowManager/Jetpack/src/androidx/window/extensions/embedding/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
+                    libs/WindowManager/Jetpack/.../embedding/
+                  </a>
+                </div>
+                <div style="font-size: 0.88rem; color: var(--text-main);">
+                  플랫폼 런타임 백엔드: <code>SplitController.java</code>, <code>SplitPresenter.java</code>, <code>JetpackTaskFragmentOrganizer.java</code>
+                </div>
+              </td>
             </tr>
             <tr>
-              <td><strong>백스택 및 생명주기</strong></td>
-              <td>각 Task별 독립적인 백스택 (한쪽이 닫혀도 다른 쪽 무영향)</td>
-              <td><code>FinishBehavior</code>로 조율된 연쇄 종료 및 부드러운 전체화면 확장</td>
+              <td>
+                <strong>프레임워크 클라이언트 코어 (Framework Client Core)</strong><br>
+                <span class="pill pill-orange" style="font-size: 0.7rem;">platform/frameworks/base</span>
+              </td>
+              <td>
+                <div style="margin-bottom: 0.35rem;">
+                  <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/core/java/android/window/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
+                    core/java/android/window/
+                  </a>
+                </div>
+                <div style="font-size: 0.88rem; color: var(--text-main);">
+                  클라이언트 측 IPC 계약: <code>TaskFragmentOrganizer.java</code>, <code>TaskFragmentTransaction.java</code>, <code>TaskFragmentOperation.java</code>
+                </div>
+              </td>
             </tr>
             <tr>
-              <td><strong>주요 목적</strong></td>
-              <td>서로 다른 앱 간의 멀티태스킹 (예: 동영상 + 메신저)</td>
-              <td>단일 앱의 대화면/폴더블 최적화 (마스터-디테일 UI 모듈화)</td>
-            </tr>
-            <tr>
-              <td><strong>보안 검증</strong></td>
-              <td>표준 Intent 필터 및 <code>android:exported</code> 검증</td>
-              <td><code>allowUntrustedActivityEmbedding</code> 및 SHA-256 서명 인증서 화이트리스트</td>
+              <td>
+                <strong>시스템 서버 (ATMS)</strong><br>
+                <span class="pill pill-green" style="font-size: 0.7rem;">platform/frameworks/base</span>
+              </td>
+              <td>
+                <div style="margin-bottom: 0.35rem;">
+                  <a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/services/core/java/com/android/server/wm/" target="_blank" style="color: var(--accent); font-family: var(--font-mono); font-size: 0.85rem;">
+                    services/core/java/com/android/server/wm/
+                  </a>
+                </div>
+                <div style="font-size: 0.88rem; color: var(--text-main);">
+                  WindowManager 코어: <code>TaskFragmentOrganizerController.java</code>, <code>TaskFragment.java</code>, <code>Task.java</code>
+                </div>
+              </td>
             </tr>
           </tbody>
         </table>
 
-        <!-- 3 Core Commonalities -->
-        <h3>1. 공통 메커니즘 (공통점)</h3>
+        <!-- Window SDK Extensions Evolution -->
+        <h3 style="margin-top: 2rem;">Window SDK Extension 최신 진화 로드맵</h3>
         <div class="grid-2" style="margin-top: 1rem;">
           <div class="card">
             <div class="card-title">
-              <span>Multi-Resume 생명주기 모델</span>
-              <span class="pill pill-blue">Android 10+</span>
+              <span>Extension 8 (Window 1.4 / Android 14 QPR2+)</span>
+              <span class="pill pill-purple">Ext 8</span>
             </div>
-            <p style="font-size: 0.85rem; line-height: 1.6; color: var(--text-muted); margin-top: 0.4rem;">
-              두 방식 모두 분할되어 화면에 보이는 모든 액티비티가 <code>PAUSED</code> 상태로 떨어지지 않고, <strong>동시에 <code>RESUMED</code> 상태</strong>를 유지합니다. 따라서 영상 재생이나 실시간 UI 갱신이 양쪽에서 끊김 없이 동시에 동작합니다.
-            </p>
+            <ul style="margin-left: 1.2rem; font-size: 0.85rem; line-height: 1.6; color: var(--text-muted); margin-top: 0.4rem;">
+              <li><strong>Overlay TaskFragment:</strong> 기존 Split 레이아웃을 유지하면서 최상단에 플로팅 모달/드로어 뷰 지원 (<code>OverlayCreateParams</code>)</li>
+              <li><strong>ActivityStack 상태 자동 저장:</strong> <code>setAutoSaveEmbeddingState</code> 및 <code>KEY_SAVED_ACTIVITY_STACK_TOKEN</code></li>
+              <li><strong>타깃 스택 직접 지정:</strong> <code>setLaunchingActivityStack</code>을 통한 규칙 바이패스 직행</li>
+            </ul>
           </div>
 
           <div class="card">
             <div class="card-title">
-              <span>SurfaceFlinger 하드웨어 합성</span>
-              <span class="pill pill-green">렌더링</span>
+              <span>Extension 9 &amp; 10 (Android 15 / Android 16+)</span>
+              <span class="pill pill-green">Ext 9~10</span>
             </div>
-            <p style="font-size: 0.85rem; line-height: 1.6; color: var(--text-muted); margin-top: 0.4rem;">
-              각 액티비티는 자신만의 독립적인 서피스(Surface)를 소유합니다. WindowManager가 계산한 바운드와 레이어 계층에 맞춰 <strong>SurfaceFlinger가 GPU VSYNC 타이밍에 단일 프레임으로 두 화면을 나란히 합성(Composite)</strong>합니다.
-            </p>
+            <ul style="margin-left: 1.2rem; font-size: 0.85rem; line-height: 1.6; color: var(--text-muted); margin-top: 0.4rem;">
+              <li><strong>Ext 9 (Android 15):</strong> 동기식 <code>getCurrentWindowLayoutInfo()</code> 조회, <code>@UiContext</code> 바인딩 안정화</li>
+              <li><strong>Ext 10 (Android 16+):</strong> Window Area(후면 화면 디스플레이) 세션 고도화 및 PiP-Split 상호 전환 최적화</li>
+            </ul>
           </div>
-
-          <div class="card">
-            <div class="card-title">
-              <span>WindowOrganizer &amp; WCT 기반</span>
-              <span class="pill pill-purple">원자적 IPC</span>
-            </div>
-            <p style="font-size: 0.85rem; line-height: 1.6; color: var(--text-muted); margin-top: 0.4rem;">
-              클라이언트(SystemUI 또는 앱 프로세스)가 계산한 컨테이너 조작 명령을 <code>WindowContainerTransaction (WCT)</code>에 일괄 배치하여 시스템 서버(ATMS)로 원자적으로 전송함으로써 화면 티어링(Tearing)을 원천 차단합니다.
-            </p>
-          </div>
-
-          <div class="card">
-            <div class="card-title">
-              <span>동적 디스플레이 크기 적응</span>
-              <span class="pill pill-orange">반응형</span>
-            </div>
-            <p style="font-size: 0.85rem; line-height: 1.6; color: var(--text-muted); margin-top: 0.4rem;">
-              기기 화면 회전, 폴더블 접힘/펼침, 윈도우 크기 변경 시 시스템 이벤트(Configuration Change / ParentInfo)를 수신하여 레이아웃 비율을 실시간으로 재배치합니다.
-            </p>
-          </div>
-        </div>
-
-        <!-- 3 Core Differences -->
-        <h3 style="margin-top: 2rem;">2. 결정적인 아키텍처 차이점</h3>
-        <ul style="margin-left: 1.2rem; font-size: 0.88rem; line-height: 1.7; color: var(--text-main); margin-top: 0.5rem;">
-          <li>
-            <strong>Task 레벨 vs Sub-Task(TaskFragment) 레벨:</strong> 
-            Multi-Window는 OS 입장에서 완전히 독립된 <code>Task</code> 단위의 병렬 실행입니다. 반면 Activity Embedding은 <strong>단 하나의 부모 <code>Task</code></strong> 안에서 공간만 좌/우 <code>TaskFragment</code>로 격리하여 사용하므로, 시스템이나 사용자 관점에서는 단일 앱의 멀티페인 레이아웃으로 인식됩니다.
-          </li>
-          <li>
-            <strong>OS/사용자 주도 vs 앱 비즈니스 규칙 주도:</strong>
-            Multi-Window는 사용자가 제스처를 사용하거나 앱 아이콘을 끌어다 놓아야 분할이 실행됩니다. 반면 Activity Embedding은 사용자의 개입 없이, 앱 개발자가 선언한 <code>SplitPairRule</code>의 조건(화면 너비 600dp 이상 등)에 부합하면 <code>startActivity()</code> 호출 시 즉시 자동 분할됩니다.
-          </li>
-          <li>
-            <strong>단일 앱 경험과 조율된 내비게이션(FinishBehavior):</strong>
-            Multi-Window는 한쪽 창이 닫혀도 다른 쪽 앱에 아무런 영향을 주지 않습니다. 반면 Activity Embedding은 마스터 액티비티가 닫힐 때 디테일도 함께 닫히거나(<code>FINISH_ALWAYS</code>), 디테일이 닫히면 마스터가 부드럽게 전체 화면으로 확장되는 등 단일 애플리케이션으로서의 긴밀한 상호작용을 보장합니다.
-          </li>
-        </ul>
-
-        <div class="callout" style="margin-top: 1.5rem;">
-          <div class="callout-title" style="color: var(--accent-green); display: flex; align-items: center; justify-content: space-between;">
-            <span>💡 아키텍처 결론: Multi-Window vs Activity Embedding</span>
-            <span class="pill pill-green">설계 의도 요약</span>
-          </div>
-          <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6; margin-top: 0.35rem; margin-bottom: 0;">
-            <strong>Multi-Window</strong>가 OS 레벨에서 <em>"서로 다른 앱(Task)들을 나란히 배치하는 멀티태스킹 기능"</em>이라면, 
-            <strong>Activity Embedding</strong>은 앱 프로세스 레벨에서 <em>"자신의 단일 작업(Task) 내부를 멀티페인 화면으로 구조화하는 모듈식 UI 아키텍처"</em>입니다.
-            구글은 이 두 시스템의 밑바탕에 공통으로 <code>WindowOrganizer</code>와 <code>WindowContainerTransaction</code>이라는 원자적 배치 인프라를 일관되게 적용했습니다.
-          </p>
         </div>
       </section>
     </main>
