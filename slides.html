@@ -935,29 +935,49 @@ DisplayContent (물리 디스플레이)
             </div>
           </div>
 
-          <!-- SLIDE 09: Section 4 Structural Polymorphism -->
+          <!-- SLIDE 09: Section 4 Structural Polymorphism & Backward Compatibility -->
           <div class="slide-card" data-index="8">
             <div class="slide-meta">
               <span class="pill pill-orange">Section 4</span>
               <span class="pill pill-purple">하위 호환성 설계</span>
               <span class="pill pill-blue">구조적 다형성</span>
             </div>
-            <h2 class="slide-title">4. 계층 구조의 진화: Task extends TaskFragment (구조적 다형성)</h2>
+            <h2 class="slide-title">4. 계층 구조의 진화: Task extends TaskFragment (하위 호환성과 다형성)</h2>
             <div class="slide-body">
-              <p>기존 안드로이드 프레임워크는 모든 액티비티가 Task의 직접 자식으로 존재한다고 가정하고 수십만 줄의 코드가 작성되어 있었습니다. Google은 이를 깨뜨리지 않고 어떻게 해결했을까요?</p>
+              <p>기존 안드로이드는 수십만 줄의 코드가 <code>Task ──▶ ActivityRecord</code> 직접 포함 관계를 전제했습니다. Google은 기존 계약을 깨지 않고 하위 호환성을 유지하기 위해 클래스 상속 계층을 우아하게 리팩터링했습니다.</p>
 
-              <div class="ascii-diagram">
-WindowContainer (추상 기본 클래스)
- └── TaskFragment (창 경계 및 액티비티 호스팅 단위)
-      ├── Task (TaskFragment를 상속! - 스스로 TaskFragment로 동작)
-      │    └── TaskFragment 1, TaskFragment 2 ...
-      └── TaskFragment (일반 임베딩 컨테이너)
-           └── ActivityRecord
+              <pre style="margin: 0.5rem 0 0.75rem; font-size: 0.82rem; line-height: 1.45;"><code>// Android 11 및 이전: Task가 오직 ActivityRecord만 직접 자식으로 수납
+class Task extends WindowContainer&lt;ActivityRecord&gt; { ... }
+
+// Android 12L 및 이후 (frameworks/base/services/core/java/com/android/server/wm/Task.java):
+class TaskFragment extends WindowContainer&lt;WindowContainer&gt; { ... }
+class Task extends TaskFragment { ... }</code></pre>
+
+              <div class="ascii-diagram" style="margin: 0.5rem 0 0.75rem; font-size: 0.75rem; line-height: 1.45; padding: 0.65rem 0.95rem;">
+[레거시 일반 앱: 분할 미사용]              [Activity Embedding 앱: 대화면 분할]
+Task (스스로 하나의 TaskFragment로 동작)      Task (TaskFragment이되 다른 TaskFragment들을 품음)
+ └── ActivityRecord (직접 호스팅)             ├── TaskFragment 1 (Primary)   ──▶ ActivityRecord
+                                              └── TaskFragment 2 (Secondary) ──▶ ActivityRecord
               </div>
 
-              <div class="callout callout-orange">
-                <strong>구조적 다형성 (Polymorphism)과 하위 호환성:</strong><br>
-                <code>public class Task extends TaskFragment</code> 구조 덕분에, 시스템 서버(ATMS)의 윈도우 관리 코드는 대상이 최상위 <code>Task</code>든 쪼개진 서브 창(<code>TaskFragment</code>)이든 분기문(<code>if-else</code>) 없이 모두 <strong>동일한 TaskFragment 타입</strong>으로 일관되게 다룹니다. 분할을 쓰지 않는 기존 일반 앱에서도 <code>Task</code> 자신이 곧 <code>TaskFragment</code>로 취급되어, 기존 코드의 재작성 없이 완벽한 하위 호환성을 달성했습니다.
+              <div class="grid-2" style="margin-top: 0.75rem;">
+                <div class="card-box" style="border-left: 3px solid var(--accent); padding: 0.75rem 0.95rem;">
+                  <div style="font-weight: 600; color: var(--accent); font-size: 0.88rem; margin-bottom: 0.35rem;">
+                    1. Task도 TaskFragment이다 (IS-A 상속 &amp; 하위 호환)
+                  </div>
+                  <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; margin: 0;">
+                    <code>Task</code> 자신이 곧 <code>TaskFragment</code>이므로, 임베딩을 쓰지 않는 기존 앱에서도 가짜 래퍼 객체 없이 <code>Task</code> 스스로 단일 <code>TaskFragment</code>로 동작합니다 (<code>activity.getTaskFragment() == task</code>). 코드 수정 0줄로 <strong>100% 하위 호환성</strong>을 유지합니다.
+                  </p>
+                </div>
+
+                <div class="card-box" style="border-left: 3px solid var(--accent-green); padding: 0.75rem 0.95rem;">
+                  <div style="font-weight: 600; color: var(--accent-green); font-size: 0.88rem; margin-bottom: 0.35rem;">
+                    2. Task가 다른 TaskFragment를 품는다 (자식 수납 &amp; 다형성)
+                  </div>
+                  <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; margin: 0;">
+                    자식 타입이 <code>WindowContainer&lt;WindowContainer&gt;</code>로 일반화되어, <code>Task</code>는 내부에 여러 자식 <code>TaskFragment</code>를 품을 수 있습니다. 시스템(ATMS)은 최상위 전체 창이든 서브 분할 창이든 <code>if-else</code> 분기 없이 <strong>동일한 TaskFragment 타입</strong>으로 일관되게 제어합니다.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -1168,7 +1188,7 @@ ATMS 최상위 탐색 알고리즘:
                 <div class="card-box">
                   <div class="card-box-header">3. 구조적 다형성 (Task extends TaskFragment)</div>
                   <p style="font-size: 0.86rem; color: var(--text-muted); line-height: 1.6;">
-                    단일 창(TaskFragment)과 상위 컨테이너(Task)를 동일한 부모 타입으로 다루어 시스템 서버 전반의 분기문을 없애고 하위 호환성을 보장합니다.
+                    Task도 TaskFragment이면서 다른 TaskFragment를 품는 구조를 통해, 시스템 서버 전반의 분기문을 없애고 100% 하위 호환성을 보장합니다.
                   </p>
                 </div>
                 <div class="card-box">

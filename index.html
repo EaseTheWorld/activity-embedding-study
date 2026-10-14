@@ -993,11 +993,11 @@ RootWindowContainer
                      └── ActivityRecord (예: DetailActivity)</code></pre>
 
         <p>
-          구글은 <code>Task</code>를 완전히 뜯어고치는 대신, 새 컨테이너 단위인 <code>TaskFragment</code>를 정의하고 <code><a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/services/core/java/com/android/server/wm/Task.java" target="_blank" style="color: var(--accent);">Task</a></code>가 <code>TaskFragment</code>를 상속받도록(<code>extends</code>) 설계하여 <strong>객체지향의 핵심인 구조적 다형성(Polymorphism)</strong>을 극대화했습니다.
+          구글은 <code>Task</code>를 완전히 뜯어고치는 대신, 새 컨테이너 단위인 <code>TaskFragment</code>를 정의하고 <code><a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/services/core/java/com/android/server/wm/Task.java" target="_blank" style="color: var(--accent);">Task</a></code>가 <code>TaskFragment</code>를 상속받도록(<code>extends</code>) 설계하여 <strong>"Task도 TaskFragment이되(IS-A 상속), 다른 TaskFragment를 품을 수 있는(자식 수납)"</strong> 유연한 구조를 완성했습니다:
         </p>
         <ul style="margin-left: 1.2rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); margin-bottom: 0.8rem;">
-          <li><strong>Activity Embedding 분할 앱:</strong> <code>Task</code>가 최상위 부모 컨테이너가 되고, 자식으로 2개 이상의 <code>TaskFragment</code>를 포함합니다.</li>
-          <li><strong>기존 레거시 일반 앱 (분할 X):</strong> <code>Task</code> 자체가 이미 <code>TaskFragment</code>를 상속받았으므로, 가짜 래퍼 객체 없이 <code>Task</code> 스스로 하나의 <code>TaskFragment</code>로 동작하며 <code>ActivityRecord</code>를 직접 담습니다.</li>
+          <li><strong>1. Task도 TaskFragment이다 (IS-A 상속 &amp; 하위 호환성):</strong> <code>Task</code> 자체가 이미 <code>TaskFragment</code>를 상속받았으므로, 분할을 쓰지 않는 기존 레거시 앱에서도 가짜 래퍼(Wrapper) 객체 없이 <code>Task</code> 스스로 단일 <code>TaskFragment</code>로 동작하며 <code>ActivityRecord</code>를 직접 담습니다 (<code>activity.getTaskFragment() == task</code>). 기존 코드 수정 0줄로 <strong>100% 무손실 하위 호환성</strong>을 유지합니다.</li>
+          <li><strong>2. Task가 다른 TaskFragment를 품는다 (자식 수납 &amp; 구조적 다형성):</strong> <code>TaskFragment</code>의 자식 컨테이너 타입이 <code>WindowContainer&lt;WindowContainer&gt;</code>로 일반화되었으므로, 최상위 컨테이너인 <code>Task</code>는 내부에 2개 이상의 자식 <code>TaskFragment</code>(Primary, Secondary)를 자유롭게 품을 수 있습니다. 시스템(ATMS)은 대상이 최상위 전체 창이든 내부 분할 창이든 <code>if-else</code> 분기 없이 <strong>항상 <code>TaskFragment</code> 단일 인터페이스</strong>로 일관되게 제어합니다.</li>
         </ul>
         <p>
           이 다형성 설계 덕분에 시스템 서버(ATMS)의 윈도우 관리 및 Surface 렌더링 코드는 대상이 화면 전체인 큰 창(<code>Task</code>)이든 쪼개진 서브 창(<code>TaskFragment</code>)이든 복잡한 분기문(<code>if-else</code>) 없이 <strong>항상 <code>TaskFragment</code>라는 단 하나의 공통 타입</strong>으로 일관되게 제어할 수 있습니다. 
