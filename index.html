@@ -736,6 +736,48 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
           </div>
         </div>
 
+        <!-- Deep Dive: compileOnly Stub & Manifest Merger <uses-library> -->
+        <div class="card" style="margin-top: 1.5rem; border-left: 4px solid var(--accent-purple);">
+          <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: var(--accent-purple);">🔬 빌드 타임 Stub(compileOnly)과 런타임 동적 마운트(&lt;uses-library&gt;)의 비밀</span>
+            <span class="pill pill-purple">패키징 &amp; 바인딩 메커니즘</span>
+          </div>
+          <p style="font-size: 0.9rem; line-height: 1.65; color: var(--text-main); margin-top: 0.5rem;">
+            일반 앱 개발자는 <code>build.gradle</code>에 <code>implementation("androidx.window:window:1.3+")</code>만 추가할 뿐, OEM 전용 코드를 작성하거나 Manifest를 수정하지 않습니다. 
+            AndroidX와 기기 제조사(OEM) 시스템 코드가 완벽히 결합을 분리하면서도 런타임에 안전하게 바인딩되는 아키텍처적 비결은 다음과 같습니다.
+          </p>
+
+          <div class="grid-2" style="margin-top: 0.85rem;">
+            <div style="background: rgba(13, 17, 23, 0.6); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0.85rem 1rem;">
+              <strong style="color: var(--accent); font-size: 0.9rem;">1. AndroidX 빌드 타임: Stub JAR와 compileOnly</strong>
+              <p style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.6; margin-top: 0.35rem; margin-bottom: 0.5rem;">
+                AndroidX Window 라이브러리 빌드 시 <code>compileOnly(project(":window:extensions:extensions"))</code>로 컴파일됩니다. 이 JAR는 로직이 전혀 없는 <strong>순수 인터페이스 및 규격(API Contract / Stub)</strong>입니다.
+              </p>
+              <ul style="margin-left: 1.1rem; font-size: 0.82rem; color: var(--text-muted); line-height: 1.55; margin-bottom: 0;">
+                <li>컴파일 타임에 타입 체크와 시그니처 참조만 제공 (SDK의 <code>android.jar</code> Stub과 동일 역할)</li>
+                <li><code>compileOnly</code>이므로 <strong>AAR 파일이나 앱 APK 내부로 클래스가 번들링되지 않음</strong></li>
+                <li>AAR 용량이 최소화되고, 기기 시스템 라이브러리와의 클래스 중복 충돌을 원천 차단</li>
+              </ul>
+            </div>
+
+            <div style="background: rgba(13, 17, 23, 0.6); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0.85rem 1rem;">
+              <strong style="color: var(--accent-green); font-size: 0.9rem;">2. 앱 패키징 &amp; 런타임: Manifest Merger &amp; &lt;uses-library&gt;</strong>
+              <p style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.6; margin-top: 0.35rem; margin-bottom: 0.5rem;">
+                <code>androidx.window:window</code> AAR 자체의 Manifest에는 <code>&lt;uses-library android:name="androidx.window.extensions" android:required="false" /&gt;</code>가 명시되어 있습니다.
+              </p>
+              <ul style="margin-left: 1.1rem; font-size: 0.82rem; color: var(--text-muted); line-height: 1.55; margin-bottom: 0;">
+                <li><strong>Manifest Merger:</strong> 앱 빌드 시 Gradle이 AAR의 선언을 앱 최종 Manifest로 자동 합성</li>
+                <li><strong><code>required="false"</code>:</strong> Extensions가 없는 구형 폰이나 비지원 기기에서도 앱 설치/실행이 차단되지 않음</li>
+                <li><strong>PathClassLoader 동적 마운트:</strong> 지원 기기에서는 OS가 앱 프로세스 기동 시 <code>/system_ext/framework/androidx.window.extensions.jar</code>(실제 OEM 구현체)를 앱 클래스로더에 동적 마운트</li>
+              </ul>
+            </div>
+          </div>
+
+          <div style="margin-top: 0.85rem; font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; background: rgba(56, 139, 253, 0.08); border-left: 3px solid var(--accent); padding: 0.55rem 0.85rem; border-radius: 0 6px 6px 0;">
+            👉 <strong>결과:</strong> 런타임에 앱의 <code>SafeWindowExtensionsProvider</code>가 클래스로더를 통해 시스템 파티션의 <code>WindowExtensionsProvider</code>를 호출하면, Stub이 아닌 <strong>기기 제조사가 구현한 진짜 `SplitController` 싱글톤</strong>을 획득하여 앱 힙 메모리에 즉시 바인딩하게 됩니다.
+          </div>
+        </div>
+
         <div class="callout" style="margin-top: 1.25rem;">
           <div class="callout-title" style="color: var(--accent-green); display: flex; align-items: center; justify-content: space-between;">
             <span>💡 1단계의 핵심: 시스템 서버는 개입하지 않는다</span>
