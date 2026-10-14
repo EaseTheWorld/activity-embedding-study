@@ -946,10 +946,10 @@ DisplayContent (물리 디스플레이)
             <div class="slide-body">
               <p>기존 안드로이드는 수십만 줄의 코드가 <code>Task ──▶ ActivityRecord</code> 직접 포함 관계를 전제했습니다. Google은 기존 계약을 깨지 않고 하위 호환성을 유지하기 위해 클래스 상속 계층을 우아하게 리팩터링했습니다.</p>
 
-              <pre style="margin: 0.5rem 0 0.75rem; font-size: 0.82rem; line-height: 1.45;"><code>// Android 11 및 이전: Task가 오직 ActivityRecord만 직접 자식으로 수납
-class Task extends WindowContainer&lt;ActivityRecord&gt; { ... }
+              <pre style="margin: 0.5rem 0 0.75rem; font-size: 0.82rem; line-height: 1.45;"><code>// Android 11 ~ 12: Task가 WindowContainer를 직접 상속
+class Task extends WindowContainer&lt;WindowContainer&gt; { ... }
 
-// Android 12L 및 이후 (frameworks/base/services/core/java/com/android/server/wm/Task.java):
+// Android 12L 및 이후 (TaskFragment 도입 및 Task 상속 구조 개편):
 class TaskFragment extends WindowContainer&lt;WindowContainer&gt; { ... }
 class Task extends TaskFragment { ... }</code></pre>
 

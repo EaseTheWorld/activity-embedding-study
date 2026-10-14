@@ -975,10 +975,10 @@ startActivity(intent, options)</code></pre>
         <h3>1. 계층 구조의 진화: Task extends TaskFragment (구조적 다형성과 하위 호환성)</h3>
         <p>레거시 Android에서 OS의 기본 계약은 <code>Task</code>가 <code>ActivityRecord</code>들을 직접 포함하며, 최근 앱(Recents) 타일과 1:1로 대응된다고 가정했습니다. 수많은 ATMS 내부 로직이 <code>Task ──▶ ActivityRecord</code> 전제 위에 결합되어 있었기 때문에, 최상위 레벨에 새로운 컨테이너 타입을 추가하면 기존 호환성이 크게 깨질 위험이 있었습니다. 구글은 상속 계층 트리를 리팩터링하여 이를 우아하게 해결했습니다:</p>
 
-        <pre><code>// Android 11 및 이전:
-class Task extends WindowContainer&lt;ActivityRecord&gt; { ... }
+        <pre><code>// Android 11 ~ Android 12 (Task.java):
+class Task extends WindowContainer&lt;WindowContainer&gt; { ... }
 
-// Android 12L 및 이후 (frameworks/base/services/core/java/com/android/server/wm/Task.java):
+// Android 12L 및 이후 (TaskFragment.java &amp; Task.java):
 class TaskFragment extends WindowContainer&lt;WindowContainer&gt; { ... }
 class Task extends TaskFragment { ... }</code></pre>
 
