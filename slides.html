@@ -910,10 +910,13 @@ startActivity(intent, options)</code></pre>
             <div class="slide-meta">
               <span class="pill pill-green">Section 3</span>
               <span class="pill pill-blue">플랫폼 내부 트리</span>
+              <span class="pill pill-purple">원자적 트랜잭션</span>
             </div>
-            <h2 class="slide-title">원자적 WCT 패키징 &amp; ATMS 계층 트리 배치</h2>
+            <h2 class="slide-title">원자적 WCT(WindowContainerTransaction) 패키징 &amp; ATMS 트리</h2>
             <div class="slide-body">
-              <p>System Server(ATMS)는 전달받은 WCT를 원자적으로 처리하여 계층 트리를 구성합니다.</p>
+              <p style="font-size: 0.92rem; margin-bottom: 0.65rem;">
+                <strong>WCT (WindowContainerTransaction)</strong>는 창 컨테이너(Task, TaskFragment 등)의 생성·크기 지정·인접 설정을 <strong>단일 바인더 IPC로 묶어 전송하는 Frameworks 계층의 일괄 트랜잭션 객체</strong>(<code>android.window</code>)입니다. 시스템 서버(ATMS)는 전달받은 WCT를 원자적으로 처리하여 계층 트리를 구성합니다.
+              </p>
 
               <div class="ascii-diagram">
 DisplayContent (물리 디스플레이)
@@ -926,8 +929,8 @@ DisplayContent (물리 디스플레이)
               </div>
 
               <div class="callout callout-green">
-                <strong>원자적 트랜잭션 (Atomic Transaction):</strong><br>
-                생성, 상대적 Bounds 설정, 인접 관계(adjacent) 설정이 <strong>단 1회의 바인더 IPC</strong>로 일괄 처리됩니다. 따라서 중간 상태가 화면에 노출되거나 깜빡임(Flicker)이 발생하는 현상이 원천적으로 차단됩니다.
+                <strong>⚡ 왜 WCT(원자적 트랜잭션)인가?</strong><br>
+                컨테이너 생성, 상대적 Bounds 설정, 인접 관계(adjacent) 설정이 <strong>단 1회의 바인더 IPC</strong>로 일괄 처리됩니다. 따라서 좌우 화면이 어긋나게 렌더링되거나 중간 상태가 노출되는 <strong>화면 깜빡임(Flickering)과 찢어짐(Tearing)이 원천 차단</strong>됩니다.
               </div>
             </div>
           </div>
