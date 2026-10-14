@@ -939,7 +939,7 @@ startActivity(intent, options)</code></pre>
               <ol style="margin-left: 1.2rem;">
                 <li><code>TaskFragmentOrganizerController</code>가 수신된 WCT를 실행하여 시스템 창 트리에 실제 <code>TaskFragment</code> 노드를 생성하고 바운드를 적용합니다.</li>
                 <li><code>ActivityStarter</code>가 <code>options.getLaunchTaskFragmentToken()</code>을 확인하고 UID 임베딩 보안을 검증한 후, 새 <code>ActivityRecord</code>를 해당 <code>TaskFragment</code> 내부로 직접 라우팅합니다.</li>
-                <li>SurfaceFlinger가 두 액티비티의 서피스를 깜빡임 없이 나란히 합성(Composite)하여 화면에 렌더링합니다. (<a href="#appendix-zorder" style="color: var(--accent); text-decoration: underline;">부록 B. Z-Order 판정</a> 참조)</li>
+                <li>SurfaceFlinger가 두 액티비티의 서피스를 깜빡임 없이 나란히 합성(Compositing)하여 화면에 렌더링합니다. (<a href="#appendix-zorder" style="color: var(--accent); text-decoration: underline;">부록 B. Z-Order 판정</a> 참조)</li>
               </ol>
             </div>
             <div class="arch-chips" style="margin-top: 0.75rem;">
@@ -972,7 +972,7 @@ startActivity(intent, options)</code></pre>
         <h2>4. 하위 호환성 설계: 계층 구조의 진화 및 규칙 기반 모델</h2>
         <p>WindowManager 계층 구조의 재설계와 규칙(Rule) 기반 임베딩 시스템은 한 가지 근본적인 아키텍처 목표를 공유합니다. 바로 <strong>완벽한 하위 호환성(Absolute Backward Compatibility)</strong>입니다. 기존의 멀티 액티비티 앱들은 코드 수정 없이 그대로 실행되며, Android OS는 기존의 표준 생명주기 계약에 따라 일관되게 태스크를 관리합니다.</p>
 
-        <h3>1. 계층 구조의 진화: Task extends TaskFragment (Composite 패턴)</h3>
+        <h3>1. 계층 구조의 진화: Task extends TaskFragment (구조적 다형성과 하위 호환성)</h3>
         <p>레거시 Android에서 OS의 기본 계약은 <code>Task</code>가 <code>ActivityRecord</code>들을 직접 포함하며, 최근 앱(Recents) 타일과 1:1로 대응된다고 가정했습니다. 수많은 ATMS 내부 로직이 <code>Task ──▶ ActivityRecord</code> 전제 위에 결합되어 있었기 때문에, 최상위 레벨에 새로운 컨테이너 타입을 추가하면 기존 호환성이 크게 깨질 위험이 있었습니다. 구글은 상속 계층 트리를 리팩터링하여 이를 우아하게 해결했습니다:</p>
 
         <pre><code>// Android 11 및 이전:
@@ -993,14 +993,15 @@ RootWindowContainer
                      └── ActivityRecord (예: DetailActivity)</code></pre>
 
         <p>
-          구글은 <code>Task</code>를 완전히 뜯어고치는 대신, 새 컨테이너 단위인 <code>TaskFragment</code>를 정의하고 <code><a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/services/core/java/com/android/server/wm/Task.java" target="_blank" style="color: var(--accent);">Task</a></code>가 <code>TaskFragment</code>를 상속받도록(<code>extends</code>) 설계하는 <strong>Composite 패턴</strong>을 채택했습니다.
+          구글은 <code>Task</code>를 완전히 뜯어고치는 대신, 새 컨테이너 단위인 <code>TaskFragment</code>를 정의하고 <code><a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/services/core/java/com/android/server/wm/Task.java" target="_blank" style="color: var(--accent);">Task</a></code>가 <code>TaskFragment</code>를 상속받도록(<code>extends</code>) 설계하여 <strong>객체지향의 핵심인 구조적 다형성(Polymorphism)</strong>을 극대화했습니다.
         </p>
         <ul style="margin-left: 1.2rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); margin-bottom: 0.8rem;">
-          <li><strong>Activity Embedding 사용 시:</strong> <code>Task</code>가 부모 컨테이너가 되고, 자식으로 2개 이상의 <code>TaskFragment</code>가 들어갑니다.</li>
-          <li><strong>레거시 일반 앱 실행 시:</strong> <code>Task</code> 자체가 곧 하나의 <code>TaskFragment</code>로서 <code>ActivityRecord</code>를 직접 담습니다.</li>
+          <li><strong>Activity Embedding 분할 앱:</strong> <code>Task</code>가 최상위 부모 컨테이너가 되고, 자식으로 2개 이상의 <code>TaskFragment</code>를 포함합니다.</li>
+          <li><strong>기존 레거시 일반 앱 (분할 X):</strong> <code>Task</code> 자체가 이미 <code>TaskFragment</code>를 상속받았으므로, 가짜 래퍼 객체 없이 <code>Task</code> 스스로 하나의 <code>TaskFragment</code>로 동작하며 <code>ActivityRecord</code>를 직접 담습니다.</li>
         </ul>
         <p>
-          따라서 외부 시스템 서비스들(Launcher, Recents, ATMS)은 여전히 Task를 단일 단위로 취급하며, 기존의 포커스 관리나 최근 앱 타일 매핑, z-order 계산 로직을 단 한 줄도 손상시키지 않고 <strong>100% 무손실 하위 호환성</strong>을 완벽히 달성했습니다.
+          이 다형성 설계 덕분에 시스템 서버(ATMS)의 윈도우 관리 및 Surface 렌더링 코드는 대상이 화면 전체인 큰 창(<code>Task</code>)이든 쪼개진 서브 창(<code>TaskFragment</code>)이든 복잡한 분기문(<code>if-else</code>) 없이 <strong>항상 <code>TaskFragment</code>라는 단 하나의 공통 타입</strong>으로 일관되게 제어할 수 있습니다. 
+          동시에 외부 시스템(Launcher, Recents)과의 기존 계약을 전혀 깨뜨리지 않고 <strong>100% 무손실 하위 호환성</strong>을 완벽히 달성했습니다.
         </p>
 
         <!-- Brief Note: Top Activity in Split Layout -->
@@ -1225,7 +1226,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
               <span class="pill pill-green">렌더링</span>
             </div>
             <p style="font-size: 0.85rem; line-height: 1.6; color: var(--text-muted); margin-top: 0.4rem;">
-              각 액티비티는 자신만의 독립적인 서피스(Surface)를 소유합니다. WindowManager가 계산한 바운드와 레이어 계층에 맞춰 <strong>SurfaceFlinger가 GPU VSYNC 타이밍에 단일 프레임으로 두 화면을 나란히 합성(Composite)</strong>합니다.
+              각 액티비티는 자신만의 독립적인 서피스(Surface)를 소유합니다. WindowManager가 계산한 바운드와 레이어 계층에 맞춰 <strong>SurfaceFlinger가 GPU VSYNC 타이밍에 단일 프레임으로 두 화면을 나란히 합성(Compositing)</strong>합니다.
             </p>
           </div>
 
