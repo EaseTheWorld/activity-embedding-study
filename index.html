@@ -1032,7 +1032,7 @@ RootWindowContainer
 
         <ul style="margin-left: 1.2rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); margin-bottom: 0.8rem;">
           <li><strong>1. 임베딩 기능의 위임과 단일 책임 원칙(SoC):</strong> 복잡한 화면 분할(Split), 상대적 경계 계산, 멀티 리줌(Multi-Resume) 가시성 평가는 <code>TaskFragment</code>가 전담하므로, <code>Task</code>는 자신의 고유한 책임인 태스크 식별과 시스템 라우팅에만 집중할 수 있습니다.</li>
-          <li><strong>2. 100% 무손실 하위 호환성 (Task IS-A TaskFragment):</strong> 분할을 쓰지 않는 기존 레거시 앱에서는 <code>Task</code> 자체가 이미 <code>TaskFragment</code>를 상속받았으므로, 가짜 래퍼(Wrapper) 객체 없이 <code>Task</code> 스스로 단일 <code>TaskFragment</code>로 동작하며 <code>ActivityRecord</code>를 직접 담습니다 (<code>activity.getTaskFragment() == task</code>). 기존 코드 수정 0줄로 완벽한 하위 호환성을 유지합니다.</li>
+          <li><strong>2. 100% 무손실 하위 호환성 (Task IS-A TaskFragment):</strong> 분할을 쓰지 않는 기존 레거시 앱에서는 <code>Task</code> 자체가 이미 <code>TaskFragment</code>를 상속받았으므로, 가짜 래퍼(Wrapper) 객체 없이 <code>Task</code> 스스로 단일 <code>TaskFragment</code>로 동작하며 <code>ActivityRecord</code>를 직접 담습니다 (ATMS 내부에서 <code>activity.getTaskFragment()</code> 호출 시 직속 부모인 <code>Task</code> 자신이 그대로 반환). 기존 코드 수정 0줄로 완벽한 하위 호환성을 유지합니다.</li>
           <li><strong>3. ATMS 코드의 구조적 다형성:</strong> 시스템 서버(ATMS)의 윈도우 관리 및 Surface 렌더링 코드는 대상이 화면 전체인 큰 창(<code>Task</code>)이든 쪼개진 서브 창(<code>TaskFragment</code>)이든 복잡한 분기문(<code>if-else</code>) 없이 <strong>항상 <code>TaskFragment</code>라는 단 하나의 공통 인터페이스</strong>로 일관되게 제어합니다.</li>
         </ul>
 
