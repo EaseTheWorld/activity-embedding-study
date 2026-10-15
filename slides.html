@@ -982,7 +982,7 @@ class Task extends WindowContainer&lt;WindowContainer&gt; { ... }
 class TaskFragment extends WindowContainer&lt;WindowContainer&gt; { ... }
 class Task extends TaskFragment { ... }</code></pre>
                   <p style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.45; margin: 0;">
-                    <code>Task extends TaskFragment</code> 덕분에, 레거시 앱에서도 <code>Task</code> 스스로 단일 <code>TaskFragment</code>로 동작합니다 (ATMS 내부에서 <code>activity.getTaskFragment()</code> 호출 시 직속 부모인 <code>Task</code> 자신이 반환). 코드 수정 0줄로 <strong>100% 하위 호환성</strong>을 유지합니다.
+                    <code>Task extends TaskFragment</code> 덕분에, 일반 앱에서도 별도의 래퍼 없이 <code>Task</code> 스스로 단일 <code>TaskFragment</code>로 동작합니다 (ATMS 내부에서 <code>activity.getTaskFragment()</code> 호출 시 직속 부모인 <code>Task</code> 반환).
                   </p>
                 </div>
               </div>
