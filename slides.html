@@ -606,7 +606,7 @@
         <!-- Part 4 -->
         <div class="part-group">
           <div class="part-title">Part 4. 하위 호환성 설계: 계층 구조 및 규칙</div>
-          <div class="slide-item" data-slide="8"><span class="slide-num">09</span><span>4. 구조적 다형성: Task extends TaskFragment</span></div>
+          <div class="slide-item" data-slide="8"><span class="slide-num">09</span><span>4. 기능 위임과 다형성: Task extends TaskFragment</span></div>
           <div class="slide-item" data-slide="9"><span class="slide-num">10</span><span>선언적 규칙 기반(Rule-Based) 아키텍처</span></div>
         </div>
 
@@ -662,7 +662,7 @@
                     <li><strong>관심사 분리(SoC)</strong>: AAOS 차량 설정과 헤드리스 서비스 간 멀티 APK 분할</li>
                     <li><strong>준비 ➔ 실행 파이프라인</strong>: 규칙 캐싱, 가로채기(Intercept), 원자적 WCT 패키징</li>
                     <li><strong>1.4 런타임 직접 제어</strong>: 타깃 스택 지정 &amp; Overlay TaskFragment (Ext 8)</li>
-                    <li><strong>하위 호환성</strong>: <code>Task extends TaskFragment</code> (구조적 다형성)</li>
+                    <li><strong>하위 호환성</strong>: <code>Task extends TaskFragment</code> (기능 위임 &amp; 다형성)</li>
                   </ul>
                 </div>
                 <div class="card-box">
@@ -935,27 +935,27 @@ DisplayContent (물리 디스플레이)
             </div>
           </div>
 
-          <!-- SLIDE 09: Section 4 Structural Polymorphism & Backward Compatibility -->
+          <!-- SLIDE 09: Section 4 TaskFragment Delegation & Polymorphism -->
           <div class="slide-card" data-index="8">
             <div class="slide-meta">
               <span class="pill pill-orange">Section 4</span>
               <span class="pill pill-purple">하위 호환성 설계</span>
-              <span class="pill pill-blue">구조적 다형성</span>
+              <span class="pill pill-blue">임베딩 기능 위임 &amp; 다형성</span>
             </div>
-            <h2 class="slide-title">4. 계층 구조의 진화: Task extends TaskFragment (하위 호환성과 다형성)</h2>
+            <h2 class="slide-title">4. 계층 구조의 진화: Task에서 TaskFragment로의 기능 위임</h2>
             <div class="slide-body">
-              <p>기존 안드로이드는 수십만 줄의 코드가 <code>Task ──▶ ActivityRecord</code> 직접 포함 관계를 전제했습니다. Google은 기존 계약을 깨지 않고 하위 호환성을 유지하기 위해 클래스 상속 계층을 우아하게 리팩터링했습니다.</p>
+              <p>기존 <code>Task</code>의 거대한 책임 중 <strong>화면 분할(Embedding), 윈도우 Bounds, 액티비티 가시성/생명주기 제어 책임을 전용 경량 컨테이너인 <code>TaskFragment</code>에 깔끔하게 위임</strong>했습니다.</p>
 
               <pre style="margin: 0.5rem 0 0.75rem; font-size: 0.82rem; line-height: 1.45;"><code>// Android 11 ~ 12: Task가 WindowContainer를 직접 상속
 class Task extends WindowContainer&lt;WindowContainer&gt; { ... }
 
-// Android 12L 및 이후 (TaskFragment 도입 및 Task 상속 구조 개편):
+// Android 12L 및 이후 (임베딩 전담 TaskFragment 신설 및 Task 상속 구조 개편):
 class TaskFragment extends WindowContainer&lt;WindowContainer&gt; { ... }
 class Task extends TaskFragment { ... }</code></pre>
 
               <div class="ascii-diagram" style="margin: 0.5rem 0 0.75rem; font-size: 0.75rem; line-height: 1.45; padding: 0.65rem 0.95rem;">
 [레거시 일반 앱: 분할 미사용]              [Activity Embedding 앱: 대화면 분할]
-Task (스스로 하나의 TaskFragment로 동작)      Task (TaskFragment이되 다른 TaskFragment들을 품음)
+Task (스스로 하나의 TaskFragment로 동작)      Task (최상위 호스트 - 분할 책임을 TaskFragment에 위임)
  └── ActivityRecord (직접 호스팅)             ├── TaskFragment 1 (Primary)   ──▶ ActivityRecord
                                               └── TaskFragment 2 (Secondary) ──▶ ActivityRecord
               </div>
@@ -963,19 +963,19 @@ Task (스스로 하나의 TaskFragment로 동작)      Task (TaskFragment이되 
               <div class="grid-2" style="margin-top: 0.75rem;">
                 <div class="card-box" style="border-left: 3px solid var(--accent); padding: 0.75rem 0.95rem;">
                   <div style="font-weight: 600; color: var(--accent); font-size: 0.88rem; margin-bottom: 0.35rem;">
-                    1. Task도 TaskFragment이다 (IS-A 상속 &amp; 하위 호환)
+                    1. 임베딩 기능의 전담 위임 (Delegation)
                   </div>
                   <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; margin: 0;">
-                    <code>Task</code> 자신이 곧 <code>TaskFragment</code>이므로, 임베딩을 쓰지 않는 기존 앱에서도 가짜 래퍼 객체 없이 <code>Task</code> 스스로 단일 <code>TaskFragment</code>로 동작합니다 (<code>activity.getTaskFragment() == task</code>). 코드 수정 0줄로 <strong>100% 하위 호환성</strong>을 유지합니다.
+                    창 분할(Split), 상대적 Bounds, Multi-Resume 가시성 제어는 <code>TaskFragment</code>가 전담합니다. <code>Task</code>는 최근 앱(Recents), TaskId, TaskAffinity, PIP 등 <strong>OS 차원의 애플리케이션 작업 관리</strong>에만 집중합니다.
                   </p>
                 </div>
 
                 <div class="card-box" style="border-left: 3px solid var(--accent-green); padding: 0.75rem 0.95rem;">
                   <div style="font-weight: 600; color: var(--accent-green); font-size: 0.88rem; margin-bottom: 0.35rem;">
-                    2. Task가 다른 TaskFragment를 품는다 (자식 수납 &amp; 다형성)
+                    2. Task도 TaskFragment이다 (다형성 &amp; 하위 호환)
                   </div>
                   <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; margin: 0;">
-                    자식 타입이 <code>WindowContainer&lt;WindowContainer&gt;</code>로 일반화되어, <code>Task</code>는 내부에 여러 자식 <code>TaskFragment</code>를 품을 수 있습니다. 시스템(ATMS)은 최상위 전체 창이든 서브 분할 창이든 <code>if-else</code> 분기 없이 <strong>동일한 TaskFragment 타입</strong>으로 일관되게 제어합니다.
+                    <code>Task extends TaskFragment</code> 덕분에, 임베딩을 쓰지 않는 레거시 앱에서도 <code>Task</code> 스스로 단일 <code>TaskFragment</code>로 위임받은 능력을 직접 수행합니다 (<code>activity.getTaskFragment() == task</code>). 코드 수정 0줄로 <strong>100% 하위 호환성</strong>을 유지합니다.
                   </p>
                 </div>
               </div>
@@ -1186,9 +1186,9 @@ ATMS 최상위 탐색 알고리즘:
                   </p>
                 </div>
                 <div class="card-box">
-                  <div class="card-box-header">3. 구조적 다형성 (Task extends TaskFragment)</div>
+                  <div class="card-box-header">3. 기능 위임과 다형성 (Task extends TaskFragment)</div>
                   <p style="font-size: 0.86rem; color: var(--text-muted); line-height: 1.6;">
-                    Task도 TaskFragment이면서 다른 TaskFragment를 품는 구조를 통해, 시스템 서버 전반의 분기문을 없애고 100% 하위 호환성을 보장합니다.
+                    Task의 거대한 책임 중 화면 분할(Embedding)과 가시성 제어를 TaskFragment에 깔끔하게 위임하고 상속을 통해 100% 하위 호환성을 보장합니다.
                   </p>
                 </div>
                 <div class="card-box">
