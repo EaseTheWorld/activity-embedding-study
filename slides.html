@@ -944,38 +944,45 @@ DisplayContent (물리 디스플레이)
             </div>
             <h2 class="slide-title">4. 계층 구조의 진화: Task에서 TaskFragment로의 기능 위임</h2>
             <div class="slide-body">
-              <p>기존 <code>Task</code>의 거대한 책임 중 <strong>화면 분할(Embedding), 윈도우 Bounds, 액티비티 가시성/생명주기 제어 책임을 전용 경량 컨테이너인 <code>TaskFragment</code>에 깔끔하게 위임</strong>했습니다.</p>
+              <p style="margin-bottom: 0.6rem;">
+                기존 <code>Task</code>의 거대한 책임 중 <strong>화면 분할(Embedding), 윈도우 Bounds, 액티비티 가시성/생명주기 제어 책임을 전용 경량 컨테이너인 <code>TaskFragment</code>에 깔끔하게 위임</strong>했습니다.
+              </p>
 
-              <pre style="margin: 0.5rem 0 0.75rem; font-size: 0.82rem; line-height: 1.45;"><code>// Android 11 ~ 12: Task가 WindowContainer를 직접 상속
-class Task extends WindowContainer&lt;WindowContainer&gt; { ... }
-
-// Android 12L 및 이후 (임베딩 전담 TaskFragment 신설 및 Task 상속 구조 개편):
-class TaskFragment extends WindowContainer&lt;WindowContainer&gt; { ... }
-class Task extends TaskFragment { ... }</code></pre>
-
-              <div class="ascii-diagram" style="margin: 0.5rem 0 0.75rem; font-size: 0.75rem; line-height: 1.45; padding: 0.65rem 0.95rem;">
+              <div class="ascii-diagram" style="margin: 0.4rem 0 0.75rem; font-size: 0.75rem; line-height: 1.45; padding: 0.65rem 0.95rem;">
 [레거시 일반 앱: 분할 미사용]              [Activity Embedding 앱: 대화면 분할]
 Task (스스로 하나의 TaskFragment로 동작)      Task (최상위 호스트 - 분할 책임을 TaskFragment에 위임)
  └── ActivityRecord (직접 호스팅)             ├── TaskFragment 1 (Primary)   ──▶ ActivityRecord
                                               └── TaskFragment 2 (Secondary) ──▶ ActivityRecord
               </div>
 
-              <div class="grid-2" style="margin-top: 0.75rem;">
+              <div class="grid-2" style="margin-top: 0.6rem;">
+                <!-- 1. 임베딩 기능의 전담 위임 -->
                 <div class="card-box" style="border-left: 3px solid var(--accent); padding: 0.75rem 0.95rem;">
                   <div style="font-weight: 600; color: var(--accent); font-size: 0.88rem; margin-bottom: 0.35rem;">
                     1. 임베딩 기능의 전담 위임 (Delegation)
                   </div>
-                  <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; margin: 0;">
-                    창 분할(Split), 상대적 Bounds, Multi-Resume 가시성 제어는 <code>TaskFragment</code>가 전담합니다. <code>Task</code>는 최근 앱(Recents), TaskId, TaskAffinity, PIP 등 <strong>OS 차원의 애플리케이션 작업 관리</strong>에만 집중합니다.
+                  <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 0.45rem;">
+                    창 분할(Split), 상대적 Bounds, Multi-Resume 가시성 제어는 <code>TaskFragment</code>가 전담합니다.
                   </p>
+                  <ul style="margin: 0 0 0 1.1rem; font-size: 0.78rem; line-height: 1.55; color: var(--text-muted);">
+                    <li><strong>Task</strong>: Recents 카드, TaskId, taskAffinity, PIP (OS 작업 관리)</li>
+                    <li><strong>TaskFragment</strong>: 화면 분할, Bounds 비율, 윈도우 렌더링 (뷰포트 구획)</li>
+                  </ul>
                 </div>
 
+                <!-- 2. Task도 TaskFragment이다 -->
                 <div class="card-box" style="border-left: 3px solid var(--accent-green); padding: 0.75rem 0.95rem;">
                   <div style="font-weight: 600; color: var(--accent-green); font-size: 0.88rem; margin-bottom: 0.35rem;">
                     2. Task도 TaskFragment이다 (다형성 &amp; 하위 호환)
                   </div>
-                  <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; margin: 0;">
-                    <code>Task extends TaskFragment</code> 덕분에, 임베딩을 쓰지 않는 레거시 앱에서도 <code>Task</code> 스스로 단일 <code>TaskFragment</code>로 위임받은 능력을 직접 수행합니다 (<code>activity.getTaskFragment() == task</code>). 코드 수정 0줄로 <strong>100% 하위 호환성</strong>을 유지합니다.
+                  <pre style="margin: 0.35rem 0 0.45rem; font-size: 0.71rem; line-height: 1.35; padding: 0.45rem 0.65rem; background: rgba(0,0,0,0.45);"><code>// Android 11 ~ 12: Task가 직접 수납
+class Task extends WindowContainer&lt;WindowContainer&gt; { ... }
+
+// Android 12L+: TaskFragment 신설 &amp; Task가 상속
+class TaskFragment extends WindowContainer&lt;WindowContainer&gt; { ... }
+class Task extends TaskFragment { ... }</code></pre>
+                  <p style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.45; margin: 0;">
+                    <code>Task extends TaskFragment</code> 덕분에, 레거시 앱에서도 <code>Task</code> 스스로 단일 <code>TaskFragment</code>로 동작합니다 (<code>activity.getTaskFragment() == task</code>). 코드 수정 0줄로 <strong>100% 하위 호환성</strong>을 유지합니다.
                   </p>
                 </div>
               </div>
