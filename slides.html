@@ -775,7 +775,7 @@
                 <ul style="margin-left: 1.15rem; font-size: 0.8rem; line-height: 1.6; color: var(--text-muted); margin-bottom: 0;">
                   <li><strong>빌드 타임 (compileOnly):</strong> AndroidX는 로직 없는 <strong>인터페이스/Stub JAR</strong>만 참조하여 컴파일되므로, AAR/APK 내부에 OEM 클래스가 번들링되지 않습니다.</li>
                   <li><strong>패키징 (Manifest Merger):</strong> <code>androidx.window:window</code> AAR의 <code>&lt;uses-library android:name="androidx.window.extensions" android:required="false" /&gt;</code>가 앱 Manifest로 자동 합성됩니다.</li>
-                  <li><strong>런타임 (PathClassLoader):</strong> 지원 기기에서는 OS가 앱 프로세스 기동 시 <code>/system_ext/framework/androidx.window.extensions.jar</code>(실제 OEM 구현체)를 앱 클래스로더에 동적 마운트하여 <strong>OEM `SplitController` 구현체</strong>에 바인딩됩니다.</li>
+                  <li><strong>런타임 (PathClassLoader):</strong> 지원 기기에서는 OS가 앱 프로세스 기동 시 <code>/system_ext/framework/androidx.window.extensions.jar</code>(실제 OEM 구현체)를 앱 클래스로더에 동적 마운트하여 <strong>OEM <code>SplitController</code> 구현체</strong>에 바인딩됩니다.</li>
                 </ul>
               </div>
             </div>
@@ -876,12 +876,12 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
               <div class="grid-2">
                 <div class="card-box">
                   <div class="card-box-header" style="color: var(--accent);">① 타깃 스택 직접 지정 (setLaunchingActivityStack)</div>
-                  <pre style="font-size: 0.78rem;"><code>val options = ActivityOptions.makeBasic().toBundle().apply {
-    setLaunchingActivityStack(context, targetActivityStack)
-}
+                  <pre style="font-size: 0.78rem;"><code>val options = ActivityOptions.makeBasic()
+    .setLaunchingActivityStack(context, targetActivityStack)
+    .toBundle()
 startActivity(intent, options)</code></pre>
                   <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;">
-                    👉 <code>ActivityStartMonitor</code>가 번들 내 <code>KEY_ACTIVITY_STACK_TOKEN</code>을 확인하여 플랫폼 키로 변환한 뒤, 규칙 평가 없이 <strong>즉시 조기 반환(Early Return)</strong>하여 시스템 서버로 넘깁니다.
+                    👉 <code>ActivityStartMonitor</code>가 번들 내 <code>KEY_ACTIVITY_STACK_TOKEN</code>을 확인하여 플랫폼 키로 변환한 뒤, 규칙 평가 없이 <strong>조기 반환(Early Return)</strong>하여 시스템 서버로 넘깁니다.
                   </p>
                 </div>
 
@@ -893,9 +893,9 @@ startActivity(intent, options)</code></pre>
     .setAssociateLaunchingActivity(true)
     .build()
 
-val options = ActivityOptions.makeBasic().toBundle().apply {
-    ActivityEmbeddingOptions.setOverlayCreateParams(this, overlayParams)
-}
+val options = ActivityOptions.makeBasic()
+    .setOverlayCreateParams(context, overlayParams)
+    .toBundle()
 startActivity(intent, options)</code></pre>
                   <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;">
                     👉 기존 Split 화면 크기를 줄이지 않고 그 위에 최상단 Z-Order로 드로어/모달을 띄우며, <code>KEY_OVERLAY_TAG</code> 감지 시 <code>createOrUpdateOverlayTaskFragmentIfNeeded()</code>로 직행합니다.
@@ -1013,7 +1013,7 @@ class Task extends TaskFragment { ... }</code></pre>
               </div>
 
               <div class="callout callout-orange">
-                <strong>아키텍처적 가치:</strong> UI 분할 정책을 개별 Activity 내부 로직과 완전히 분리함으로써, 화면 크기 변화에 유연하게 대응하는 선언적 시스템을 구축했습니다.
+                <strong>아키텍처적 가치:</strong> UI 분할 정책을 개별 Activity 코드에서 분리하여 화면 크기 변화에 따라 레이아웃을 동적으로 전환합니다.
               </div>
             </div>
           </div>
@@ -1032,7 +1032,7 @@ class Task extends TaskFragment { ... }</code></pre>
                 <div class="card-box" style="border-left: 3px solid var(--accent-red);">
                   <div class="card-box-header" style="color: var(--accent-red);">🛡️ 기본 원칙: Same-UID 샌드박싱</div>
                   <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.65;">
-                    OS는 기본적으로 **동일한 UID(동일 패키지 및 동일 서명)**를 가진 액티비티만 동일 TaskFragment 내 임베딩을 허용합니다. 권한 없는 외부 앱의 임베딩 시도는 플랫폼 레벨에서 차단됩니다.
+                    OS는 기본적으로 <strong>동일한 UID(동일 패키지 및 동일 서명)</strong>를 가진 액티비티만 호스트 앱이 관리하는 TaskFragment(동일 Task) 내 임베딩을 허용합니다. 권한 없는 외부 앱의 임베딩 시도는 플랫폼 레벨에서 차단됩니다.
                   </p>
                 </div>
                 <div class="card-box" style="border-left: 3px solid var(--accent-green);">
@@ -1181,27 +1181,27 @@ ATMS 최상위 탐색 알고리즘:
             <div class="slide-body">
               <div class="grid-2">
                 <div class="card-box">
-                  <div class="card-box-header">1. Organizer 패턴 (TaskFragmentOrganizer)</div>
+                  <div class="card-box-header">1. 원자적 배치 트랜잭션 (WindowContainerTransaction)</div>
                   <p style="font-size: 0.86rem; color: var(--text-muted); line-height: 1.6;">
-                    시스템 서버의 윈도우 레이아웃 제어권을 시스템 권한 없이 클라이언트 프로세스에 위임(Delegation)합니다.
+                    창 생성·크기 변경·액티비티 이동 연산을 단일 Binder IPC로 일괄 전송하여 단일 레이아웃 패스(Single Layout Pass)로 처리하고 화면 깜빡임을 방지합니다.
                   </p>
                 </div>
                 <div class="card-box">
-                  <div class="card-box-header">2. 원자적 트랜잭션 패턴 (WCT)</div>
+                  <div class="card-box-header">2. 불투명 토큰 기반 원격 제어 (TaskFragmentOrganizer)</div>
                   <p style="font-size: 0.86rem; color: var(--text-muted); line-height: 1.6;">
-                    여러 컨테이너 변경 연산을 단일 IPC로 일괄 전송(Batching)하여 IPC 지연을 줄이고 화면 찢어짐/깜빡임을 방지합니다.
+                    시스템 서버의 창 객체를 직접 노출하지 않고 <code>IBinder fragmentToken</code>만 앱에 부여하며, 매 요청 시 호출 프로세스의 소유권(UID)을 검증합니다.
                   </p>
                 </div>
                 <div class="card-box">
-                  <div class="card-box-header">3. 기능 위임과 다형성 (Task extends TaskFragment)</div>
+                  <div class="card-box-header">3. 컨테이너 라우팅 가로채기 (KEY_LAUNCH_TASK_FRAGMENT_TOKEN)</div>
                   <p style="font-size: 0.86rem; color: var(--text-muted); line-height: 1.6;">
-                    Task의 화면 분할(Embedding)과 가시성 제어 역할을 TaskFragment에 위임하고 상속을 통해 하위 호환성을 유지합니다.
+                    <code>ActivityStarter</code>가 인텐트 옵션의 토큰을 감지하면 기본 스택 배치를 우회하고 <code>isAllowedToEmbedActivity()</code> 보안 검증 후 타깃 <code>TaskFragment</code>로 직접 배정합니다.
                   </p>
                 </div>
                 <div class="card-box">
-                  <div class="card-box-header">4. 프록시 / 어댑터 패턴 (Extensions)</div>
+                  <div class="card-box-header">4. 역방향 피드백 루프 (TaskFragmentParentInfo)</div>
                   <p style="font-size: 0.86rem; color: var(--text-muted); line-height: 1.6;">
-                    기기 제조사(OEM)별 하드웨어 특수성과 구글 Jetpack 라이브러리 간의 결합도를 낮추고 모듈식 업데이트를 가능하게 합니다.
+                    시스템 서버는 <code>SplitRule</code>을 알지 못합니다. 화면 회전·폴더블 변경 시 ATMS는 변경된 치수만 앱으로 통보하고, 앱의 <code>SplitPresenter</code>가 분할 여부를 판단해 WCT로 재배치합니다.
                   </p>
                 </div>
               </div>
@@ -1220,18 +1220,18 @@ ATMS 최상위 탐색 알고리즘:
                 <div class="card-box">
                   <div class="card-box-header" style="color: var(--accent);">📂 4대 계층별 소스 코드 맵</div>
                   <ul style="margin-left: 1.2rem; font-size: 0.82rem; line-height: 1.6; font-family: var(--font-mono);">
-                    <li><strong>AndroidX:</strong> <code>androidx/window/embedding/</code> (RuleController, OverlayController)</li>
+                    <li><strong>AndroidX:</strong> <code>window/window/.../embedding/</code> (RuleController, OverlayController)</li>
                     <li><strong>Extensions:</strong> <code>libs/WindowManager/Jetpack/</code> (SplitController, ActivityStartMonitor)</li>
-                    <li><strong>Frameworks:</strong> <code>android/window/</code> (TaskFragmentOrganizer, WindowContainerTransaction)</li>
-                    <li><strong>System Server:</strong> <code>services/core/java/wm/</code> (ActivityTaskManagerService, TaskFragment)</li>
+                    <li><strong>Frameworks:</strong> <code>core/java/android/window/</code> (TaskFragmentOrganizer, WindowContainerTransaction)</li>
+                    <li><strong>System Server:</strong> <code>services/core/java/.../wm/</code> (ActivityTaskManagerService, TaskFragment)</li>
                   </ul>
                 </div>
                 <div class="card-box">
                   <div class="card-box-header" style="color: var(--accent-green);">🚀 Window SDK Extension 최신 진화</div>
                   <ul style="margin-left: 1.2rem; font-size: 0.84rem; line-height: 1.6;">
                     <li><strong>Ext 8 (Window 1.4):</strong> Overlay TaskFragment, 상태 자동 저장(<code>setAutoSaveEmbeddingState</code>), 타깃 스택 지정</li>
-                    <li><strong>Ext 9 (Android 15):</strong> 동기식 <code>getCurrentWindowLayoutInfo()</code>, <code>@UiContext</code> 지원</li>
-                    <li><strong>Ext 10 (Android 16):</strong> Window Area(후면 화면) 세션 고도화, PiP 상호 전환 최적화</li>
+                    <li><strong>Ext 9 (Window 1.5):</strong> 동기식 <code>getCurrentWindowLayoutInfo()</code>, <code>@UiContext</code> 지원</li>
+                    <li><strong>Ext 10 (Window 1.6):</strong> Window Area(후면 화면) 세션 고도화, PiP 상호 전환 최적화</li>
                   </ul>
                 </div>
               </div>

@@ -854,12 +854,12 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
                 <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 0.3rem;">
                   특정 <code>ActivityStack</code>에 액티비티를 직접 띄우고자 할 때 사용하며, Extensions 계층은 SplitRule 평가를 건너뛰고 해당 스택으로 직행합니다:
                 </p>
-                <pre style="margin: 0.35rem 0; font-size: 0.78rem; padding: 0.45rem 0.65rem;"><code>val options = ActivityOptions.makeBasic().toBundle().apply {
-    setLaunchingActivityStack(context, targetActivityStack)
-}
+                <pre style="margin: 0.35rem 0; font-size: 0.78rem; padding: 0.45rem 0.65rem;"><code>val options = ActivityOptions.makeBasic()
+    .setLaunchingActivityStack(context, targetActivityStack)
+    .toBundle()
 startActivity(intent, options)</code></pre>
                 <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; margin-bottom: 0; line-height: 1.5;">
-                  👉 <code>ActivityStartMonitor.onStartActivity()</code>가 번들 내 <code>KEY_ACTIVITY_STACK_TOKEN</code>을 확인하여 플랫폼 키(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>)로 변환한 뒤, 규칙 평가 없이 <strong>즉시 조기 반환(Early Return)</strong>하여 시스템 서버로 넘깁니다.
+                  👉 <code>ActivityStartMonitor.onStartActivity()</code>가 번들 내 <code>KEY_ACTIVITY_STACK_TOKEN</code>을 확인하여 플랫폼 키(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>)로 변환한 뒤, 규칙 평가 없이 <strong>조기 반환(Early Return)</strong>하여 시스템 서버로 넘깁니다.
                 </p>
               </div>
 
@@ -877,9 +877,9 @@ startActivity(intent, options)</code></pre>
     .setAssociateLaunchingActivity(true)     // 부모 액티비티 종료 시 오버레이도 함께 자동 정리
     .build()
 
-val options = ActivityOptions.makeBasic().toBundle().apply {
-    ActivityEmbeddingOptions.setOverlayCreateParams(this, overlayParams)
-}
+val options = ActivityOptions.makeBasic()
+    .setOverlayCreateParams(context, overlayParams)
+    .toBundle()
 startActivity(intent, options)</code></pre>
                 <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; margin-bottom: 0; line-height: 1.5;">
                   👉 <code>SplitController.java</code>가 번들 내 <code>KEY_OVERLAY_TAG</code>를 감지하면 SplitRule 평가 대신 <code>createOrUpdateOverlayTaskFragmentIfNeeded()</code>를 실행하여, 동일 태그 컨테이너를 재사용하거나 최상단 Z-Order에 새 오버레이 TaskFragment를 원자적으로 생성합니다.
@@ -1597,7 +1597,7 @@ public static final String KEY_LAUNCH_TASK_FRAGMENT_TOKEN =
             <span class="pill pill-purple">관심사 분리(SoC)</span>
           </div>
           <p style="font-size: 0.88rem; line-height: 1.6; margin-top: 0.4rem;">
-            가장 아름다운 아키텍처적 반전은 <strong>"시스템 서버는 SplitRule의 존재 자체를 전혀 모른다"</strong>는 점입니다. 시스템 서버는 화면을 5:5로 나눌지 3:7로 나눌지 결정하지 않습니다.
+            핵심 설계 원칙은 <strong>"시스템 서버는 SplitRule의 존재를 알지 못한다"</strong>는 점입니다. 시스템 서버는 화면을 5:5로 나눌지 3:7로 나눌지 직접 결정하지 않습니다.
           </p>
           <div style="background: rgba(13, 17, 23, 0.7); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0.85rem; margin-top: 0.6rem;">
             <div style="display: flex; flex-direction: column; gap: 0.6rem; font-size: 0.85rem; line-height: 1.6;">
@@ -1611,12 +1611,12 @@ public static final String KEY_LAUNCH_TASK_FRAGMENT_TOKEN =
               </div>
               <div>
                 <span class="pill pill-orange" style="font-size: 0.72rem; margin-right: 0.4rem;">3. 물리적 집행 (ATMS)</span>
-                앱이 보낸 WCT를 수신한 시스템 서버는 그저 지정된 바운드대로 서피스를 재배치합니다.
+                앱이 보낸 WCT를 수신한 시스템 서버는 지정된 바운드대로 서피스를 재배치합니다.
               </div>
             </div>
           </div>
           <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.6rem; line-height: 1.6;">
-            👉 <strong>"물리적 상태 관찰은 시스템 서버가, 비즈니스 정책 판단은 앱 프로세스가, 최종 렌더링 집행은 다시 시스템 서버가"</strong> 수행함으로써 시스템 서버의 코드를 비대화하지 않고도 무한히 확장 가능한 윈도우 분할 생태계를 완성했습니다.
+            👉 <strong>"물리적 상태 관찰은 시스템 서버가, 비즈니스 정책 판단은 앱 프로세스가, 최종 렌더링 집행은 다시 시스템 서버가"</strong> 수행하여 시스템 서버 코드의 복잡도를 낮추고 윈도우 분할 정책을 분리했습니다.
           </p>
         </div>
       </section>
@@ -1738,7 +1738,7 @@ public static final String KEY_LAUNCH_TASK_FRAGMENT_TOKEN =
         <div class="grid-2" style="margin-top: 1rem;">
           <div class="card">
             <div class="card-title">
-              <span>Extension 8 (Window 1.4 / Android 14 QPR2+)</span>
+              <span>Extension 8 (Window 1.4)</span>
               <span class="pill pill-purple">Ext 8</span>
             </div>
             <ul style="margin-left: 1.2rem; font-size: 0.85rem; line-height: 1.6; color: var(--text-muted); margin-top: 0.4rem;">
@@ -1750,12 +1750,12 @@ public static final String KEY_LAUNCH_TASK_FRAGMENT_TOKEN =
 
           <div class="card">
             <div class="card-title">
-              <span>Extension 9 &amp; 10 (Android 15 / Android 16+)</span>
+              <span>Extension 9 &amp; 10 (Window 1.5 / 1.6)</span>
               <span class="pill pill-green">Ext 9~10</span>
             </div>
             <ul style="margin-left: 1.2rem; font-size: 0.85rem; line-height: 1.6; color: var(--text-muted); margin-top: 0.4rem;">
-              <li><strong>Ext 9 (Android 15):</strong> 동기식 <code>getCurrentWindowLayoutInfo()</code> 조회, <code>@UiContext</code> 바인딩 안정화</li>
-              <li><strong>Ext 10 (Android 16+):</strong> Window Area(후면 화면 디스플레이) 세션 고도화 및 PiP-Split 상호 전환 최적화</li>
+              <li><strong>Ext 9 (Window 1.5):</strong> 동기식 <code>getCurrentWindowLayoutInfo()</code> 조회, <code>@UiContext</code> 바인딩 안정화</li>
+              <li><strong>Ext 10 (Window 1.6):</strong> Window Area(후면 화면 디스플레이) 세션 고도화 및 PiP-Split 상호 전환 최적화</li>
             </ul>
           </div>
         </div>
