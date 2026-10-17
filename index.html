@@ -245,14 +245,30 @@
       align-items: center;
       justify-content: space-between;
     }
+    .mock-single-activity {
+      border: 2px solid var(--accent-orange);
+      background: rgba(210, 153, 34, 0.05);
+      border-radius: 6px;
+      padding: 0.5rem;
+    }
+    .mock-activity-header {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--accent-orange);
+      margin-bottom: 0.45rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 0.15rem;
+    }
     .mock-screen-layout {
       display: grid;
-      grid-template-columns: 1fr 2fr;
+      grid-template-columns: 1fr 1.5fr;
       gap: 0.5rem;
-      min-height: 110px;
+      min-height: 92px;
     }
     .mock-pane {
-      border-radius: 4px;
+      border-radius: 5px;
       padding: 0.6rem 0.5rem;
       font-size: 0.75rem;
       display: flex;
@@ -262,9 +278,9 @@
       text-align: center;
       line-height: 1.4;
     }
-    .mock-pane-primary {
-      background: rgba(88, 166, 255, 0.1);
-      border: 1px dashed var(--accent);
+    .mock-pane-subview {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px dashed rgba(139, 148, 158, 0.45);
       color: var(--text-heading);
     }
     .mock-pane-violation {
@@ -272,10 +288,25 @@
       border: 1px dashed var(--accent-orange);
       color: var(--text-heading);
     }
-    .mock-pane-embedded {
-      background: rgba(63, 185, 80, 0.12);
-      border: 1px dashed var(--accent-green);
+    .mock-pane-activity-primary {
+      background: rgba(88, 166, 255, 0.1);
+      border: 2px solid var(--accent);
       color: var(--text-heading);
+      min-height: 126px;
+    }
+    .mock-pane-activity-secondary {
+      background: rgba(63, 185, 80, 0.12);
+      border: 2px solid var(--accent-green);
+      color: var(--text-heading);
+      min-height: 126px;
+    }
+    .mock-activity-badge {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 0.12rem 0.45rem;
+      border-radius: 3px;
+      margin-bottom: 0.3rem;
     }
     .mock-connector {
       display: flex;
@@ -563,23 +594,29 @@
           <!-- As-Is Box -->
           <div class="diagram-box">
             <div class="diagram-header">
-              <span class="diagram-title">As-Is: 모놀리식 구조</span>
-              <span class="pill pill-orange">관심사 분리(SoC) 위반</span>
+              <span class="diagram-title">As-Is: 단일 Activity 구조</span>
+              <span class="pill pill-orange">1개 Activity (SoC 위반)</span>
             </div>
 
             <div class="mock-screen">
               <div class="mock-screen-title">
                 <span>AAOS 디스플레이 (Task: Vehicle Settings)</span>
-                <span class="pill pill-orange" style="font-size: 0.65rem;">단일 APK 셸</span>
+                <span class="pill pill-orange" style="font-size: 0.65rem;">단일 APK</span>
               </div>
-              <div class="mock-screen-layout">
-                <div class="mock-pane mock-pane-primary">
-                  <strong>카테고리 목록</strong>
-                  <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">VehicleSettings.apk</span>
+              <div class="mock-single-activity">
+                <div class="mock-activity-header">
+                  <span>📱 단일 Activity: SettingsActivity</span>
+                  <span style="font-family: var(--font-mono); font-size: 0.68rem; font-weight: 400; color: var(--text-muted);">VehicleSettings.apk</span>
                 </div>
-                <div class="mock-pane mock-pane-violation">
-                  <strong style="color: var(--accent-orange);">음성 설정 UI 및 DB</strong>
-                  <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">❌ VehicleSettings.apk에 직접 구현됨</span>
+                <div class="mock-screen-layout">
+                  <div class="mock-pane mock-pane-subview">
+                    <strong>카테고리 목록</strong>
+                    <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">내부 Fragment / View</span>
+                  </div>
+                  <div class="mock-pane mock-pane-violation">
+                    <strong style="color: var(--accent-orange);">음성 설정 UI 및 DB</strong>
+                    <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">❌ 내부 Fragment / View로 종속</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -594,41 +631,49 @@
             </div>
 
             <div class="diagram-summary">
-              <strong style="color: var(--accent-orange);">⚠️ 아키텍처 결함:</strong> 도메인 경계의 붕괴. 음성 인식 서비스의 기능 추가, UI 변경, 데이터 스키마 수정이 발생할 때마다 메인 차량 설정 앱의 코드를 수정하고, 재테스트 및 재배포해야 하는 불필요한 결합이 발생합니다.
+              <strong style="color: var(--accent-orange);">⚠️ 단일 Activity 결합:</strong> 하나의 <code>SettingsActivity</code> 안에 타 도메인 화면이 함께 포함되어 있어, 음성 인식 서비스의 UI나 데이터 스키마 수정이 발생할 때마다 메인 차량 설정 앱을 수정하고 재배포해야 합니다.
             </div>
           </div>
 
           <!-- To-Be Box -->
           <div class="diagram-box">
             <div class="diagram-header">
-              <span class="diagram-title">To-Be: Activity Embedding 호스트</span>
-              <span class="pill pill-green">모듈식 호스트</span>
+              <span class="diagram-title">To-Be: 2개 독립 Activity 분할</span>
+              <span class="pill pill-green">2개 Activity 분할 (SoC 분리)</span>
             </div>
 
             <div class="mock-screen">
               <div class="mock-screen-title">
-                <span>AAOS 디스플레이 (통합 태스크 컨테이너)</span>
-                <span class="pill pill-green" style="font-size: 0.65rem;">멀티 APK 분할</span>
+                <span>AAOS 디스플레이 (Task: Vehicle Settings)</span>
+                <span class="pill pill-green" style="font-size: 0.65rem;">Activity Embedding</span>
               </div>
               <div class="mock-screen-layout">
-                <div class="mock-pane mock-pane-primary">
-                  <strong>카테고리 목록</strong>
-                  <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">TaskFragment 1<br>(VehicleSettings.apk)</span>
+                <div class="mock-pane mock-pane-activity-primary">
+                  <span class="mock-activity-badge" style="background: rgba(88, 166, 255, 0.2); color: var(--accent);">Activity 1 · TaskFragment 1</span>
+                  <strong style="font-size: 0.85rem; color: var(--accent);">SettingsActivity</strong>
+                  <span style="font-size: 0.68rem; color: var(--text-heading); margin-top: 0.2rem;">카테고리 목록</span>
+                  <span style="font-size: 0.64rem; color: var(--text-muted); font-family: var(--font-mono);">VehicleSettings.apk</span>
                 </div>
-                <div class="mock-pane mock-pane-embedded">
-                  <strong style="color: var(--accent-green);">VoiceSettingsActivity</strong>
-                  <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">TaskFragment 2<br>(✅ VoiceService.apk로부터 임베딩)</span>
+                <div class="mock-pane mock-pane-activity-secondary">
+                  <span class="mock-activity-badge" style="background: rgba(63, 185, 80, 0.2); color: var(--accent-green);">Activity 2 · TaskFragment 2</span>
+                  <strong style="font-size: 0.85rem; color: var(--accent-green);">VoiceSettingsActivity</strong>
+                  <span style="font-size: 0.68rem; color: var(--text-heading); margin-top: 0.2rem;">✅ 음성 설정 화면 임베딩</span>
+                  <span style="font-size: 0.64rem; color: var(--text-muted); font-family: var(--font-mono);">VoiceService.apk</span>
                 </div>
               </div>
             </div>
 
-            <div class="mock-external-pkg" style="margin-top: 0.5rem;">
-              <strong>음성 인식 패키지</strong><br>
-              <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">VoiceService.apk 내에서 자체 VoiceSettingsActivity 및 Service를 완전히 소유</span>
+            <div class="mock-connector mock-connector-success">
+              <span>✓ 각 패키지가 자체 Activity 분리 소유 (외부 IPC 불필요)</span>
+            </div>
+
+            <div class="mock-external-pkg">
+              <strong>음성 인식 패키지 (VoiceService.apk)</strong><br>
+              <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">자체 VoiceSettingsActivity 및 Service를 독립 소유</span>
             </div>
 
             <div class="diagram-summary">
-              <strong style="color: var(--accent-green);">✅ 아키텍처 이점:</strong> 순수한 관심사 분리(SoC). 음성 인식 팀이 자체 UI, 비즈니스 로직, 데이터 스토리지를 독립적으로 관리합니다. 운전자에게는 시각적으로 매끄러운 단일 설정 앱으로 표시되면서도, 패키지 간 교차 유지보수 부담이 완전히 제거됩니다.
+              <strong style="color: var(--accent-green);">✅ 2개 Activity 분리:</strong> 기존 1개 액티비티를 <code>SettingsActivity</code>(좌측)와 <code>VoiceSettingsActivity</code>(우측) 두 개의 독립 액티비티로 나누어, 사용자에게는 단일 설정 화면으로 보이면서도 각 앱의 생명주기와 배포 주기를 분리합니다.
             </div>
           </div>
         </div>
