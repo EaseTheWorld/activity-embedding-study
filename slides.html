@@ -800,17 +800,17 @@
                       <div class="mock-screen-layout">
                         <div class="mock-pane mock-pane-subview">
                           <strong>카테고리 목록</strong>
-                          <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">내부 Fragment</span>
+                          <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">내부 Composable</span>
                         </div>
                         <div class="mock-pane mock-pane-violation">
                           <strong style="color: var(--accent-orange);">음성 설정 UI</strong>
-                          <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">내부 Fragment로 종속</span>
+                          <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">내부 Composable로 종속</span>
                         </div>
                       </div>
                     </div>
 
                     <div class="mock-status-bar mock-status-warning">
-                      ❌ 외부 VoiceService.apk와 IPC 결합 · 음성 기능 수정 시 설정 앱도 재배포
+                      ❌ 외부 VoiceService.apk와 ContentProvider 결합 · 음성 기능 수정 시 설정 앱도 재배포
                     </div>
                   </div>
                 </div>
@@ -840,7 +840,7 @@
                     </div>
 
                     <div class="mock-status-bar mock-status-success">
-                      ✅ 각 APK가 자체 Activity 소유 · 외부 IPC 불필요 및 독립 배포 가능
+                      ✅ 각 APK가 자체 Activity 소유 · 외부 ContentProvider 불필요 및 독립 배포 가능
                     </div>
                   </div>
                 </div>
