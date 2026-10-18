@@ -899,31 +899,26 @@ DisplayContent
                 <table>
                   <thead>
                     <tr>
-                      <th>비교 항목</th>
-                      <th>전통적 Multi-Window (Split-Screen)</th>
-                      <th>Activity Embedding</th>
+                      <th style="width: 24%;">비교 항목</th>
+                      <th style="width: 38%;">전통적 Multi-Window (Split-Screen)</th>
+                      <th style="width: 38%;">Activity Embedding</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td><strong>태스크(Task) 경계</strong></td>
-                      <td>2개의 독립된 Task (서로 다른 최근 앱 카드)</td>
-                      <td><strong style="color: var(--accent-green);">단일 Task 내부 분할 (단일 앱 카드 유지)</strong></td>
+                      <td><strong>분할 단위 / 대상</strong></td>
+                      <td>서로 다른 앱 간 분할 (다중 Task / 2개 카드)</td>
+                      <td><strong style="color: var(--accent-green);">단일 앱 내부 분할 (단일 Task / 1개 카드)</strong></td>
                     </tr>
                     <tr>
-                      <td><strong>주요 목적</strong></td>
-                      <td>서로 다른 두 앱 간의 멀티태스킹 (e.g. 유튜브 + 카톡)</td>
-                      <td><strong style="color: var(--accent-green);">단일 앱 내부의 대화면 레이아웃 최적화 (List-Detail)</strong></td>
+                      <td><strong>제어 주체</strong></td>
+                      <td>사용자 및 SystemUI (OS 주도)</td>
+                      <td><strong style="color: var(--accent-green);">앱 개발자 (SplitRule 기반 선언)</strong></td>
                     </tr>
                     <tr>
-                      <td><strong>제어권 주체</strong></td>
-                      <td>사용자 및 시스템 SystemUI (OS 주도)</td>
-                      <td><strong style="color: var(--accent-green);">앱 프로세스 및 개발자 (SplitRule 기반 App 주도)</strong></td>
-                    </tr>
-                    <tr>
-                      <td><strong>내비게이션</strong></td>
-                      <td>각 창마다 독립 백스택, 개별 뒤로가기</td>
-                      <td><strong style="color: var(--accent-green);">통합 백스택 및 FinishBehavior 연계</strong></td>
+                      <td><strong>뒤로가기 / 생명주기</strong></td>
+                      <td>창별 독립 백스택</td>
+                      <td><strong style="color: var(--accent-green);">통합 백스택 &amp; FinishBehavior 연동</strong></td>
                     </tr>
                   </tbody>
                 </table>
