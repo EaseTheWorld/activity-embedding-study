@@ -993,17 +993,51 @@ class Task extends TaskFragment { ... }</code></pre>
             <div class="slide-body">
               <p>개발자는 평소대로 표준 <code>startActivity(intent)</code>를 호출할 뿐이며, 이 실행 과정에서 AndroidX 계층은 개입하지 않고 Extensions 계층이 런타임에 호출을 가로챕니다.</p>
 
-              <div class="card-box" style="margin-bottom: 0.6rem;">
-                <strong>1단계 (SplitRule 캐싱):</strong> 앱 시작 시 <code>mSplitRules</code>에 등록 완료 (IPC 없음)
+              <div class="card-box" style="margin-bottom: 0.45rem; padding: 0.65rem 0.85rem; border-left: 3px solid var(--accent-purple);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem;">
+                  <strong style="color: var(--text-heading); font-size: 0.85rem;">1단계: SplitRule 캐싱</strong>
+                  <span class="pill pill-purple" style="font-size: 0.68rem; padding: 0.1rem 0.45rem;">Extensions 계층 · 앱 프로세스</span>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.45;">
+                  <code>setRules()</code> 호출 시 앱 내부 <code>mSplitRules</code> 메모리에 캐싱 등록 완료 (IPC 없음, 인프로세스)
+                </div>
               </div>
-              <div class="card-box" style="margin-bottom: 0.6rem;">
-                <strong>2단계 (가로채기 &amp; 조건 평가):</strong> <code>Instrumentation.execStartActivity()</code> 직전, Extensions의 <code>ActivityStartMonitor.onStartActivity()</code>가 가로챔 ➔ <code>SplitController</code>가 <code>SplitRule</code> 대조 ➔ <code>SplitPresenter</code>가 윈도우 크기(<code>minWidthDp</code>) 실시간 평가 ➔ 타깃 컨테이너 토큰(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>) 주입
+
+              <div class="card-box" style="margin-bottom: 0.45rem; padding: 0.65rem 0.85rem; border-left: 3px solid var(--accent-purple);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem;">
+                  <strong style="color: var(--text-heading); font-size: 0.85rem;">2단계: 가로채기 &amp; 분할 조건 평가</strong>
+                  <span class="pill pill-purple" style="font-size: 0.68rem; padding: 0.1rem 0.45rem;">Extensions 계층 · 앱 프로세스</span>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.45;">
+                  <code>Instrumentation.execStartActivity()</code> 직전 <code>ActivityStartMonitor</code>가 가로챔 ➔ <code>SplitController</code>가 규칙 대조 ➔ <code>SplitPresenter</code>가 창 크기(<code>minWidthDp</code>) 실시간 평가 ➔ 타깃 컨테이너 토큰(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>) 생성 및 주입
+                </div>
               </div>
-              <div class="card-box" style="margin-bottom: 0.6rem;">
-                <strong>3단계 (원자적 WCT 패키징):</strong> <code>TaskFragmentOrganizer</code>가 컨테이너 생성·Bounds·인접 관계를 <code>WindowContainerTransaction (WCT)</code>으로 일괄 묶어 <strong>단 1회의 바인더 IPC</strong>로 전송 (화면 깜빡임·찢어짐 방지)
+
+              <div class="card-box" style="margin-bottom: 0.45rem; padding: 0.65rem 0.85rem; border-left: 3px solid var(--accent-orange);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem;">
+                  <strong style="color: var(--text-heading); font-size: 0.85rem;">3단계: 원자적 WCT 트랜잭션 패키징</strong>
+                  <span class="pill pill-orange" style="font-size: 0.68rem; padding: 0.1rem 0.45rem;">Frameworks 계층 · 앱 프로세스</span>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.45;">
+                  <code>TaskFragmentOrganizer</code>(<code>android.window</code>)가 컨테이너 생성·Bounds·인접 관계를 <code>WindowContainerTransaction (WCT)</code>으로 일괄 묶어 <strong>단 1회의 Binder IPC</strong>로 시스템 서버에 전송 (화면 깜빡임·찢어짐 방지)
+                </div>
               </div>
-              <div class="card-box">
-                <strong>4단계 (트랜잭션 실행 &amp; 라우팅):</strong> System Server (ATMS)의 <code>TaskFragmentOrganizerController</code>가 WCT를 원자적으로 실행해 계층 트리를 구성 ➔ <code>ActivityStarter</code>가 새 액티비티를 해당 <code>TaskFragment</code> 안으로 직접 라우팅
+
+              <!-- Cross-Process Boundary Divider -->
+              <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin: 0.35rem 0; font-size: 0.72rem; color: var(--accent-orange); font-family: var(--font-mono);">
+                <span style="flex: 1; height: 1px; background: rgba(210, 153, 34, 0.3);"></span>
+                ⚡ 프로세스 간 경계 (Cross-Process Binder IPC) ⚡
+                <span style="flex: 1; height: 1px; background: rgba(210, 153, 34, 0.3);"></span>
+              </div>
+
+              <div class="card-box" style="padding: 0.65rem 0.85rem; border-left: 3px solid var(--accent-green);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem;">
+                  <strong style="color: var(--text-heading); font-size: 0.85rem;">4단계: 트랜잭션 실행 &amp; 액티비티 라우팅</strong>
+                  <span class="pill pill-green" style="font-size: 0.68rem; padding: 0.1rem 0.45rem;">System Server 계층 · system_server</span>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.45;">
+                  ATMS의 <code>TaskFragmentOrganizerController</code>가 WCT를 원자적으로 실행해 실제 <code>TaskFragment</code> 노드를 생성 ➔ <code>ActivityStarter</code>가 새 액티비티를 해당 <code>TaskFragment</code> 안으로 직접 라우팅
+                </div>
               </div>
             </div>
           </div>
