@@ -658,22 +658,21 @@
     <aside>
       <div class="toc-header">
         <span class="toc-title">Slide Index</span>
-        <span class="toc-count" id="toc-slide-count">01 / 13</span>
+        <span class="toc-count" id="toc-slide-count">01 / 12</span>
       </div>
       <div class="toc-scroll" id="toc-scroll-list">
-        <div class="slide-item active" data-slide="0"><span class="slide-num">01</span><span>Android Activity Embedding 아키텍처</span></div>
-        <div class="slide-item" data-slide="1"><span class="slide-num">02</span><span>도입 배경: 관심사 분리(SoC)</span></div>
-        <div class="slide-item" data-slide="2"><span class="slide-num">03</span><span>SplitRule 등록</span></div>
-        <div class="slide-item" data-slide="3"><span class="slide-num">04</span><span>AndroidX &amp; Extensions 계층 바인딩</span></div>
-        <div class="slide-item" data-slide="4"><span class="slide-num">05</span><span>핵심 컨테이너 구조: TaskFragment</span></div>
-        <div class="slide-item" data-slide="5"><span class="slide-num">06</span><span>기능 위임과 다형성: Task extends TaskFragment</span></div>
-        <div class="slide-item" data-slide="6"><span class="slide-num">07</span><span>startActivity 가로채기와 4단계 파이프라인</span></div>
-        <div class="slide-item" data-slide="7"><span class="slide-num">08</span><span>1.4+ 런타임 직접 제어: 스택 &amp; Overlay</span></div>
-        <div class="slide-item" data-slide="8"><span class="slide-num">09</span><span>보안 및 신뢰 경계</span></div>
-        <div class="slide-item" data-slide="9"><span class="slide-num">10</span><span>Z-Order 판정과 Top Activity 역순 탐색</span></div>
-        <div class="slide-item" data-slide="10"><span class="slide-num">11</span><span>Activity Finish와 3대 FinishBehavior</span></div>
-        <div class="slide-item" data-slide="11"><span class="slide-num">12</span><span>Frameworks &amp; ATMS 4대 핵심 패턴</span></div>
-        <div class="slide-item" data-slide="12"><span class="slide-num">13</span><span>AOSP 소스 탐색 가이드 &amp; 최신 진화</span></div>
+        <div class="slide-item active" data-slide="0"><span class="slide-num">01</span><span>Activity Embedding 도입 배경</span></div>
+        <div class="slide-item" data-slide="1"><span class="slide-num">02</span><span>SplitRule 등록</span></div>
+        <div class="slide-item" data-slide="2"><span class="slide-num">03</span><span>AndroidX &amp; Extensions 계층 바인딩</span></div>
+        <div class="slide-item" data-slide="3"><span class="slide-num">04</span><span>핵심 컨테이너 구조: TaskFragment</span></div>
+        <div class="slide-item" data-slide="4"><span class="slide-num">05</span><span>기능 위임과 다형성: Task extends TaskFragment</span></div>
+        <div class="slide-item" data-slide="5"><span class="slide-num">06</span><span>startActivity 가로채기와 4단계 파이프라인</span></div>
+        <div class="slide-item" data-slide="6"><span class="slide-num">07</span><span>1.4+ 런타임 직접 제어: 스택 &amp; Overlay</span></div>
+        <div class="slide-item" data-slide="7"><span class="slide-num">08</span><span>보안 및 신뢰 경계</span></div>
+        <div class="slide-item" data-slide="8"><span class="slide-num">09</span><span>Z-Order 판정과 Top Activity 역순 탐색</span></div>
+        <div class="slide-item" data-slide="9"><span class="slide-num">10</span><span>Activity Finish와 3대 FinishBehavior</span></div>
+        <div class="slide-item" data-slide="10"><span class="slide-num">11</span><span>Frameworks &amp; ATMS 4대 핵심 패턴</span></div>
+        <div class="slide-item" data-slide="11"><span class="slide-num">12</span><span>AOSP 소스 탐색 가이드 &amp; 최신 진화</span></div>
       </div>
 
       <div class="toc-footer">
@@ -692,51 +691,17 @@
       <div class="slide-viewport" id="slide-viewport">
         <div class="slide-content-wrapper">
 
-          <!-- SLIDE 01: Title -->
+          <!-- SLIDE 01: Activity Embedding 도입 배경 -->
           <div class="slide-card active" data-index="0">
             <div class="slide-meta">
               <span class="pill pill-blue">Architecture Deep Dive</span>
-              <span class="pill pill-purple">Android 12L (API 32) &amp; Android 13+ / AAOS</span>
-              <span class="pill pill-green">androidx.window:window:1.3+</span>
+              <span class="pill pill-purple">Android 12L+ / AAOS</span>
+              <span class="pill pill-green">관심사 분리(SoC)</span>
             </div>
-            <h1 class="slide-title">Android Activity Embedding 아키텍처</h1>
-            <div class="slide-body">
-              <p style="font-size: 1.15rem; color: var(--text-heading); margin-bottom: 1.5rem;">
-                Android 12L(API 32) 및 Android 13+와 Jetpack WindowManager가 단일 태스크(Task) 내에서 여러 Activity를 분할 배치(Split)하여 호스팅하는 내부 동작 원리를 다룹니다. 패키지 간 관심사 분리(SoC)와 대화면 분할 레이아웃 구현 메커니즘을 설명합니다.
-              </p>
-              <div class="grid-2">
-                <div class="card-box">
-                  <div class="card-box-header" style="color: var(--accent);">🎯 본 기술 분석의 핵심 탐구 축</div>
-                  <ul style="margin-left: 1.2rem; font-size: 0.9rem; line-height: 1.8;">
-                    <li><strong>관심사 분리(SoC)</strong>: AAOS 차량 설정과 헤드리스 서비스 간 멀티 APK 분할</li>
-                    <li><strong>준비 ➔ 실행 파이프라인</strong>: SplitRule 캐싱, 가로채기(Intercept), 원자적 WCT 패키징</li>
-                    <li><strong>1.4 런타임 직접 제어</strong>: 타깃 스택 지정 &amp; Overlay TaskFragment (Ext 8)</li>
-                    <li><strong>하위 호환성</strong>: <code>Task extends TaskFragment</code> (기능 위임 &amp; 다형성)</li>
-                  </ul>
-                </div>
-                <div class="card-box">
-                  <div class="card-box-header" style="color: var(--accent-green);">🔬 플랫폼 엔지니어링 &amp; 런타임 제어</div>
-                  <ul style="margin-left: 1.2rem; font-size: 0.9rem; line-height: 1.8;">
-                    <li><strong>Multi-Resume &amp; Z-Order</strong>: <code>pairedPosition + 1</code> 및 Top-Down 역순 탐색</li>
-                    <li><strong>Finish 연쇄 종료</strong>: 3대 <code>SplitRule.FinishBehavior</code> 파이프라인</li>
-                    <li><strong>보안 경계</strong>: Same-UID 샌드박스 및 Cross-UID 인증서 서명 검증</li>
-                    <li><strong>Multi-Window 비교</strong>: 단일 Task vs 독립 Task 아키텍처 차이</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- SLIDE 02: Intro & Comparison -->
-          <div class="slide-card" data-index="1">
-            <div class="slide-meta">
-              <span class="pill pill-blue">SoC 도입 배경</span>
-              <span class="pill pill-purple">AAOS 환경</span>
-            </div>
-            <h2 class="slide-title">도입 배경: 관심사 분리(SoC)</h2>
+            <h1 class="slide-title">Activity Embedding 도입 배경</h1>
             <div class="slide-body">
               <p style="font-size: 0.95rem; margin-bottom: 0.75rem;">
-                <strong>AAOS</strong> 대화면에서는 메인 <strong>차량 설정 앱</strong>이 <strong>음성 인식</strong> 등 여러 서비스의 설정 화면 진입점 역할을 합니다. 기존 단일 액티비티 구조의 결합 문제를 <strong>Activity 분리 임베딩</strong>으로 해결합니다.
+                <strong>AAOS</strong> 등 대화면 환경에서는 메인 <strong>차량 설정 앱</strong>이 여러 서비스(음성 인식 등)의 설정 화면 진입점 역할을 합니다. 기존 단일 액티비티 구조는 패키지 간 결합과 배포 병목을 유발하므로, 이를 <strong>관심사 분리(SoC) 관점에서 독립된 Activity로 분리 임베딩</strong>하여 해결합니다.
               </p>
 
               <div class="grid-2" style="margin: 0.5rem 0;">
@@ -803,14 +768,15 @@
                 </div>
               </div>
 
-              <div class="callout callout-green" style="margin-top: 0.6rem; padding: 0.65rem 0.95rem; font-size: 0.86rem;">
-                <strong>핵심:</strong> 하나의 <code>SettingsActivity</code>에 묶여 있던 화면을 <strong>두 개의 독립 Activity로 분리</strong>해 한 화면(단일 Task)에 나란히 임베딩합니다.
+              <div class="callout callout-green" style="margin-top: 0.6rem; padding: 0.75rem 1rem;">
+                <strong>🔬 관심사 분리(SoC)를 위해 Activity를 쪼갰으니, 이제부터 그 기술적 내부 동작 원리를 자세히 알아봅니다.</strong><br>
+                독립된 Activity들이 단일 Task 안에서 자연스럽게 공존하려면 단순 UI 배치를 넘어 플랫폼 레벨의 지원이 필수적입니다. <strong>SplitRule 등록(Zero IPC 캐싱) ➔ TaskFragment 컨테이너 구조 및 다형성(Task extends TaskFragment) ➔ 4단계 startActivity 가로채기 파이프라인 ➔ 런타임 직접 제어 및 보안 신뢰 경계</strong>까지, Activity Embedding을 완성하는 핵심 아키텍처를 순서대로 탐구합니다.
               </div>
             </div>
           </div>
 
-          <!-- SLIDE 03: SplitRule Code & IPC Caching -->
-          <div class="slide-card" data-index="2">
+          <!-- SLIDE 02: SplitRule Code & IPC Caching -->
+          <div class="slide-card" data-index="1">
             <div class="slide-meta">
               <span class="pill pill-blue">1단계: 준비</span>
               <span class="pill pill-green">Zero IPC 인메모리 캐싱</span>
@@ -837,8 +803,8 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             </div>
           </div>
 
-          <!-- SLIDE 04: 3-Tier Binding -->
-          <div class="slide-card" data-index="3">
+          <!-- SLIDE 03: 3-Tier Binding -->
+          <div class="slide-card" data-index="2">
             <div class="slide-meta">
               <span class="pill pill-blue">1단계: 준비</span>
               <span class="pill pill-green">플랫폼 바인딩</span>
@@ -881,8 +847,8 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             </div>
           </div>
 
-          <!-- SLIDE 05: TaskFragment & Multi-Window Comparison -->
-          <div class="slide-card" data-index="4">
+          <!-- SLIDE 04: TaskFragment & Multi-Window Comparison -->
+          <div class="slide-card" data-index="3">
             <div class="slide-meta">
               <span class="pill pill-green">핵심 컨테이너 구조</span>
               <span class="pill pill-blue">단일 Task vs 다중 Task</span>
@@ -947,8 +913,8 @@ DisplayContent
             </div>
           </div>
 
-          <!-- SLIDE 06: TaskFragment Delegation & Polymorphism -->
-          <div class="slide-card" data-index="5">
+          <!-- SLIDE 05: TaskFragment Delegation & Polymorphism -->
+          <div class="slide-card" data-index="4">
             <div class="slide-meta">
               <span class="pill pill-purple">하위 호환성 설계</span>
               <span class="pill pill-blue">임베딩 기능 위임 &amp; 다형성</span>
@@ -1000,8 +966,8 @@ class Task extends TaskFragment { ... }</code></pre>
             </div>
           </div>
 
-          <!-- SLIDE 07: Execution Pipeline -->
-          <div class="slide-card" data-index="6">
+          <!-- SLIDE 06: Execution Pipeline -->
+          <div class="slide-card" data-index="5">
             <div class="slide-meta">
               <span class="pill pill-green">2단계: 실행</span>
               <span class="pill pill-blue">가로채기 &amp; 원자적 트랜잭션</span>
@@ -1025,8 +991,8 @@ class Task extends TaskFragment { ... }</code></pre>
             </div>
           </div>
 
-          <!-- SLIDE 08: Window 1.4 Runtime Direct Control -->
-          <div class="slide-card" data-index="7">
+          <!-- SLIDE 07: Window 1.4 Runtime Direct Control -->
+          <div class="slide-card" data-index="6">
             <div class="slide-meta">
               <span class="pill pill-purple">Window 1.4+ / Ext 8</span>
               <span class="pill pill-orange">런타임 직접 제어</span>
@@ -1067,8 +1033,8 @@ startActivity(intent, options)</code></pre>
             </div>
           </div>
 
-          <!-- SLIDE 09: Security -->
-          <div class="slide-card" data-index="8">
+          <!-- SLIDE 08: Security -->
+          <div class="slide-card" data-index="7">
             <div class="slide-meta">
               <span class="pill pill-red">보안 및 신뢰 경계</span>
               <span class="pill pill-blue">Same-UID &amp; Cross-UID</span>
@@ -1098,8 +1064,8 @@ startActivity(intent, options)</code></pre>
             </div>
           </div>
 
-          <!-- SLIDE 10: Z-Order -->
-          <div class="slide-card" data-index="9">
+          <!-- SLIDE 09: Z-Order -->
+          <div class="slide-card" data-index="8">
             <div class="slide-meta">
               <span class="pill pill-purple">Z-Order &amp; Top Activity</span>
               <span class="pill pill-blue">Multi-Resume</span>
@@ -1126,8 +1092,8 @@ ATMS 최상위 탐색 알고리즘:
             </div>
           </div>
 
-          <!-- SLIDE 11: Finish -->
-          <div class="slide-card" data-index="10">
+          <!-- SLIDE 10: Finish -->
+          <div class="slide-card" data-index="9">
             <div class="slide-meta">
               <span class="pill pill-purple">생명주기 및 연쇄 종료</span>
               <span class="pill pill-orange">3대 FinishBehavior</span>
@@ -1172,8 +1138,8 @@ ATMS 최상위 탐색 알고리즘:
             </div>
           </div>
 
-          <!-- SLIDE 12: Platform Patterns -->
-          <div class="slide-card" data-index="11">
+          <!-- SLIDE 11: Platform Patterns -->
+          <div class="slide-card" data-index="10">
             <div class="slide-meta">
               <span class="pill pill-purple">플랫폼 엔지니어링 패턴</span>
               <span class="pill pill-blue">ATMS &amp; WCT</span>
@@ -1209,8 +1175,8 @@ ATMS 최상위 탐색 알고리즘:
             </div>
           </div>
 
-          <!-- SLIDE 13: Sources & Extensions Evolution -->
-          <div class="slide-card" data-index="12">
+          <!-- SLIDE 12: Sources & Extensions Evolution -->
+          <div class="slide-card" data-index="11">
             <div class="slide-meta">
               <span class="pill pill-purple">소스 코드 맵</span>
               <span class="pill pill-green">최신 Window SDK 확장</span>
@@ -1258,7 +1224,7 @@ ATMS 최상위 탐색 알고리즘:
         </div>
 
         <div class="slide-indicator" id="slide-indicator">
-          01 / 13
+          01 / 12
         </div>
 
         <div class="shortcut-hint">
