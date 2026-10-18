@@ -670,7 +670,7 @@
         <!-- Part 2 -->
         <div class="part-group">
           <div class="part-title">Part 2. [1단계: 준비] SplitRule 등록과 플랫폼 바인딩</div>
-          <div class="slide-item" data-slide="2"><span class="slide-num">03</span><span>2. SplitRule 등록과 인메모리 캐싱 (Zero IPC)</span></div>
+          <div class="slide-item" data-slide="2"><span class="slide-num">03</span><span>2. SplitRule 등록</span></div>
           <div class="slide-item" data-slide="3"><span class="slide-num">04</span><span>AndroidX &amp; Extensions 계층 바인딩</span></div>
         </div>
 
@@ -848,7 +848,7 @@
               <span class="pill pill-blue">1단계: 준비</span>
               <span class="pill pill-green">Zero IPC 인메모리 캐싱</span>
             </div>
-            <h2 class="slide-title">2. SplitRule 등록과 인메모리 캐싱 (Zero IPC)</h2>
+            <h2 class="slide-title">2. SplitRule 등록</h2>
             <div class="slide-body">
               <pre><code>val splitPairRule = SplitPairRule.Builder(filterSet)
     .setMinWidthDp(600)
@@ -961,13 +961,13 @@ DisplayContent
               <div class="card-box" style="margin-bottom: 0.6rem;">
                 <strong>1단계 (SplitRule 캐싱):</strong> 앱 시작 시 <code>mSplitRules</code>에 등록 완료 (IPC 없음)
               </div>
-              <div class="card-box" style="margin-bottom: 0.6rem; border-left: 3px solid var(--accent-purple);">
+              <div class="card-box" style="margin-bottom: 0.6rem;">
                 <strong>2단계 (가로채기 &amp; 조건 평가):</strong> <code>Instrumentation.execStartActivity()</code> 직전, Extensions의 <code>ActivityStartMonitor.onStartActivity()</code>가 가로챔 ➔ <code>SplitController</code>가 <code>SplitRule</code> 대조 ➔ <code>SplitPresenter</code>가 윈도우 크기(<code>minWidthDp</code>) 실시간 평가 ➔ 타깃 컨테이너 토큰(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>) 주입
               </div>
-              <div class="card-box" style="margin-bottom: 0.6rem; border-left: 3px solid var(--accent-orange);">
+              <div class="card-box" style="margin-bottom: 0.6rem;">
                 <strong>3단계 (원자적 WCT 패키징):</strong> <code>TaskFragmentOrganizer</code>가 컨테이너 생성/바운드 설정을 <code>WindowContainerTransaction (WCT)</code>으로 일괄 패키징
               </div>
-              <div class="card-box" style="border-left: 3px solid var(--accent-green);">
+              <div class="card-box">
                 <strong>4단계 (트랜잭션 실행 &amp; 라우팅):</strong> System Server (ATMS)의 <code>TaskFragmentOrganizerController</code>가 WCT 실행 ➔ <code>ActivityStarter</code>가 새 액티비티를 해당 <code>TaskFragment</code> 안으로 직접 라우팅
               </div>
             </div>
