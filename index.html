@@ -1019,7 +1019,7 @@ startActivity(intent, options)</code></pre>
         <p>WindowManager 계층 구조의 재설계와 규칙(Rule) 기반 임베딩 시스템은 한 가지 근본적인 아키텍처 목표를 공유합니다. 바로 <strong>하위 호환성 유지</strong>입니다. 기존 멀티 액티비티 앱들은 동작 방식을 그대로 유지하며, Android OS는 표준 생명주기 계약에 따라 태스크를 관리합니다.</p>
 
         <h3>1. 계층 구조의 진화: Task에서 TaskFragment로의 기능 위임과 구조적 다형성</h3>
-        <p>레거시 Android(Android 11~12)에서 <code>Task</code>는 OS 수준의 작업 식별(TaskId, Recents, taskAffinity, PIP)과 화면 윈도우 크기, 액티비티 수납을 담당했습니다. ATMS 내부 로직이 <code>Task ──▶ ActivityRecord</code> 전제 위에 결합되어 있었기 때문에, 화면 분할(Embedding) 지원을 위해 최상위 구조를 변경하면 하위 호환성에 영향이 있었습니다. 이를 위해 <strong>화면 분할(Embedding) 책임을 TaskFragment에 위임하고 상속 계층을 재구성</strong>했습니다:</p>
+        <p>레거시 Android(Android 11~12)에서 <code>Task</code>는 OS 수준의 작업 식별(TaskId, Recents, taskAffinity, PIP)뿐만 아니라 화면 윈도우 크기와 <strong>액티비티 수납(ActivityStack)</strong>까지 모두 직접 담당했습니다. 그러나 대화면 분할 환경에서는 하나의 태스크 안에 <strong>독립적인 복수의 액티비티 백스택(ActivityStack)</strong>이 동시에 존재하고 각각의 화면 구획을 가져야 합니다. 이를 위해 ATMS는 <strong>ActivityStack 관리(액티비티 수납 및 백스택 운용)와 화면 분할(Bounds) 책임을 새로운 분할 컨테이너인 <code>TaskFragment</code>에 위임하고 상속 계층을 재구성</strong>했습니다:</p>
 
         <pre><code>// Android 11 ~ Android 12 (Task.java):
 class Task extends WindowContainer&lt;WindowContainer&gt; { ... }
@@ -1033,13 +1033,13 @@ RootWindowContainer
  └── DisplayContent
       └── TaskDisplayArea
            └── Task (최상위 작업 관리자 &amp; Recents 타일)
-                ├── TaskFragment 1 (좌측 분할 창, Primary)
+                ├── TaskFragment 1 (Primary ActivityStack - 좌측 분할 창)
                 │    └── ActivityRecord (예: ListActivity)
-                └── TaskFragment 2 (우측 분할 창, Secondary)
+                └── TaskFragment 2 (Secondary ActivityStack - 우측 분할 창)
                      └── ActivityRecord (예: DetailActivity)</code></pre>
 
         <p>
-          <code>Task</code>의 역할 중 화면 윈도우 바운드(Bounds)와 액티비티 가시성/생명주기(Multi-Resume)를 관리하는 <strong>임베딩 관련 책임을 <code>TaskFragment</code>에 위임(Delegation)</strong>했습니다. 그리고 <code><a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/services/core/java/com/android/server/wm/Task.java" target="_blank" style="color: var(--accent);">Task</a></code>가 <code>TaskFragment</code>를 상속받도록(<code>extends</code>) 설계하여 하위 호환성을 유지했습니다:
+          <code>Task</code>의 역할 중 <strong>독립된 액티비티 백스택 관리(ActivityStack)</strong>와 화면 윈도우 바운드(Bounds), 액티비티 가시성/생명주기(Multi-Resume)를 관리하는 <strong>임베딩 관련 책임을 <code>TaskFragment</code>에 전담 위임(Delegation)</strong>했습니다. 그리고 <code><a href="https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/services/core/java/com/android/server/wm/Task.java" target="_blank" style="color: var(--accent);">Task</a></code>가 <code>TaskFragment</code>를 상속받도록(<code>extends</code>) 설계하여 하위 호환성을 유지했습니다:
         </p>
 
         <div class="table-container" style="margin: 1rem 0;">
@@ -1055,7 +1055,7 @@ RootWindowContainer
               <tr>
                 <td><strong>핵심 책임</strong></td>
                 <td><strong>OS/사용자 관점의 단일 작업(App) 단위 총괄</strong></td>
-                <td><strong>화면 분할(Embedding), Bounds 및 윈도우 구획 전담</strong></td>
+                <td><strong>ActivityStack 관리(독립 백스택 운용) 및 화면 분할(Bounds 구획 전담)</strong></td>
               </tr>
               <tr>
                 <td><strong>최근 앱(Recents)</strong></td>
@@ -1065,7 +1065,7 @@ RootWindowContainer
               <tr>
                 <td><strong>라우팅 / 스택</strong></td>
                 <td><code style="color: var(--accent);">taskAffinity</code>, <code style="color: var(--accent);">singleTask</code>, Intent 플래그 처리</td>
-                <td>스택 라우팅 권한 없음 (선언적 분할 규칙만 준수)</td>
+                <td><strong>자체 서브 백스택(ActivityStack) 운용</strong> (Jetpack WindowManager의 <code>ActivityStack</code>에 1:1 매핑)</td>
               </tr>
               <tr>
                 <td><strong>시스템 윈도잉</strong></td>
@@ -1077,7 +1077,7 @@ RootWindowContainer
         </div>
 
         <ul style="margin-left: 1.2rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); margin-bottom: 0.8rem;">
-          <li><strong>1. 임베딩 기능의 위임과 단일 책임 원칙(SoC):</strong> 복잡한 화면 분할(Split), 상대적 경계 계산, 멀티 리줌(Multi-Resume) 가시성 평가는 <code>TaskFragment</code>가 전담하므로, <code>Task</code>는 자신의 고유한 책임인 태스크 식별과 시스템 라우팅에만 집중할 수 있습니다.</li>
+          <li><strong>1. ActivityStack 관리 및 임베딩 기능의 위임 (단일 책임 원칙, SoC):</strong> 태스크 내에서 독립적인 서브 액티비티 백스택(ActivityStack)을 수납·관리하고, 복잡한 화면 분할(Split), 상대적 경계 계산, 멀티 리줌(Multi-Resume) 가시성 평가를 <code>TaskFragment</code>가 전담합니다. 이로써 <code>Task</code>는 최상위 태스크 식별과 시스템 전역 라우팅에만 집중할 수 있습니다.</li>
           <li><strong>2. 하위 호환성 보장 (Task IS-A TaskFragment):</strong> 분할을 쓰지 않는 기존 일반 앱에서는 <code>Task</code> 자체가 <code>TaskFragment</code>이므로, 별도의 래퍼(Wrapper) 객체 생성 없이 <code>Task</code> 스스로 단일 <code>TaskFragment</code>로 동작하며 <code>ActivityRecord</code>를 직접 담습니다 (ATMS 내부에서 <code>activity.getTaskFragment()</code> 호출 시 직속 부모인 <code>Task</code> 자신이 그대로 반환).</li>
           <li><strong>3. ATMS 코드의 구조적 다형성:</strong> 시스템 서버(ATMS)의 윈도우 관리 및 Surface 렌더링 코드는 대상이 화면 전체인 큰 창(<code>Task</code>)이든 쪼개진 서브 창(<code>TaskFragment</code>)이든 복잡한 분기문(<code>if-else</code>) 없이 <strong>항상 <code>TaskFragment</code>라는 단 하나의 공통 인터페이스</strong>로 일관되게 제어합니다.</li>
         </ul>

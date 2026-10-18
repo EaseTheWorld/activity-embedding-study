@@ -939,7 +939,7 @@ DisplayContent
             <h2 class="slide-title">기능 위임과 다형성: Task extends TaskFragment</h2>
             <div class="slide-body">
               <p style="margin-bottom: 0.6rem;">
-                Android 12L부터 화면 분할 및 윈도우 제어 책임을 분할 컨테이너인 <code>TaskFragment</code>에 위임하여 하위 호환성과 유연성을 동시에 확보했습니다.
+                Android 12L부터 <strong>ActivityStack 관리 및 화면 분할 제어 책임</strong>을 분할 컨테이너인 <code>TaskFragment</code>에 위임하여 하위 호환성과 유연성을 동시에 확보했습니다.
               </p>
 
               <div class="grid-2" style="margin: 0.4rem 0 0.75rem;">
@@ -947,9 +947,9 @@ DisplayContent
 Task (스스로 하나의 TaskFragment로 동작)
  └── ActivityRecord (직접 호스팅)</div>
                 <div class="ascii-diagram" style="margin: 0; font-size: 0.75rem; line-height: 1.45; padding: 0.65rem 0.85rem; color: var(--accent-green);">[Activity Embedding 앱: 대화면 분할]
-Task (최상위 호스트 - 분할을 TaskFragment에 위임)
- ├── TaskFragment 1 (Primary)   ──▶ ActivityRecord
- └── TaskFragment 2 (Secondary) ──▶ ActivityRecord</div>
+Task (최상위 호스트 - 서브스택 및 분할을 TaskFragment에 위임)
+ ├── TaskFragment 1 (Primary ActivityStack)   ──▶ ActivityRecord
+ └── TaskFragment 2 (Secondary ActivityStack) ──▶ ActivityRecord</div>
               </div>
 
               <div class="grid-2" style="margin-top: 0.6rem;">
@@ -959,8 +959,8 @@ Task (최상위 호스트 - 분할을 TaskFragment에 위임)
                     역할 분담과 전담 위임 (Delegation)
                   </div>
                   <ul style="margin: 0 0 0 1.1rem; font-size: 0.78rem; line-height: 1.6; color: var(--text-muted);">
-                    <li><strong>Task (OS 작업 단위)</strong>: Recents 카드 1개 유지, TaskId, taskAffinity, PIP</li>
-                    <li><strong>TaskFragment (화면 구획)</strong>: 창 분할(Split), 상대적 Bounds, Multi-Resume 가시성 제어</li>
+                    <li><strong>Task (OS 작업 단위)</strong>: Recents 카드 1개 유지, TaskId, taskAffinity, PIP 총괄</li>
+                    <li><strong>TaskFragment (서브스택 &amp; 구획)</strong>: <strong>ActivityStack 관리 (최우선: 액티비티 수납 및 독립 백스택)</strong>, 창 분할(Split), 상대적 Bounds, Multi-Resume 제어</li>
                   </ul>
                 </div>
 
