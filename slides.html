@@ -657,7 +657,7 @@
     <aside>
       <div class="toc-header">
         <span class="toc-title">Slide Index</span>
-        <span class="toc-count" id="toc-slide-count">01 / 15</span>
+        <span class="toc-count" id="toc-slide-count">01 / 14</span>
       </div>
       <div class="toc-scroll" id="toc-scroll-list">
         <!-- Part 1 -->
@@ -684,25 +684,24 @@
 
         <!-- Part 4 -->
         <div class="part-group">
-          <div class="part-title">Part 4. 하위 호환성 설계: 계층 구조 및 SplitRule</div>
+          <div class="part-title">Part 4. 하위 호환성 설계: 계층 구조 및 다형성</div>
           <div class="slide-item" data-slide="7"><span class="slide-num">08</span><span>4. 기능 위임과 다형성: Task extends TaskFragment</span></div>
-          <div class="slide-item" data-slide="8"><span class="slide-num">09</span><span>선언적 SplitRule 기반 아키텍처</span></div>
         </div>
 
         <!-- Part 5 -->
         <div class="part-group">
           <div class="part-title">Part 5. 보안 및 신뢰 경계</div>
-          <div class="slide-item" data-slide="9"><span class="slide-num">10</span><span>5. 보안 및 신뢰 경계</span></div>
+          <div class="slide-item" data-slide="8"><span class="slide-num">09</span><span>5. 보안 및 신뢰 경계</span></div>
         </div>
 
         <!-- Part 6 -->
         <div class="part-group">
           <div class="part-title">Part 6. 부록 심층 분석 (Appendices)</div>
-          <div class="slide-item" data-slide="10"><span class="slide-num">11</span><span>부록 A. Multi-Window vs Activity Embedding</span></div>
-          <div class="slide-item" data-slide="11"><span class="slide-num">12</span><span>부록 B. Z-Order 판정과 Top Activity 역순 탐색</span></div>
-          <div class="slide-item" data-slide="12"><span class="slide-num">13</span><span>부록 C. Activity Finish와 3대 FinishBehavior</span></div>
-          <div class="slide-item" data-slide="13"><span class="slide-num">14</span><span>부록 D. Frameworks &amp; ATMS 4대 핵심 패턴</span></div>
-          <div class="slide-item" data-slide="14"><span class="slide-num">15</span><span>부록 E. AOSP 소스 탐색 가이드 &amp; 최신 진화</span></div>
+          <div class="slide-item" data-slide="9"><span class="slide-num">10</span><span>부록 A. Multi-Window vs Activity Embedding</span></div>
+          <div class="slide-item" data-slide="10"><span class="slide-num">11</span><span>부록 B. Z-Order 판정과 Top Activity 역순 탐색</span></div>
+          <div class="slide-item" data-slide="11"><span class="slide-num">12</span><span>부록 C. Activity Finish와 3대 FinishBehavior</span></div>
+          <div class="slide-item" data-slide="12"><span class="slide-num">13</span><span>부록 D. Frameworks &amp; ATMS 4대 핵심 패턴</span></div>
+          <div class="slide-item" data-slide="13"><span class="slide-num">14</span><span>부록 E. AOSP 소스 탐색 가이드 &amp; 최신 진화</span></div>
         </div>
       </div>
 
@@ -1069,37 +1068,8 @@ class Task extends TaskFragment { ... }</code></pre>
             </div>
           </div>
 
-          <!-- SLIDE 09: Section 4 SplitRule-Based Architecture -->
+          <!-- SLIDE 09: Section 5 Security -->
           <div class="slide-card" data-index="8">
-            <div class="slide-meta">
-              <span class="pill pill-orange">Section 4</span>
-              <span class="pill pill-blue">선언적 SplitRule 모델</span>
-            </div>
-            <h2 class="slide-title">선언적 SplitRule 기반 아키텍처</h2>
-            <div class="slide-body">
-              <div class="grid-2">
-                <div class="card-box">
-                  <div class="card-box-header">1. 무간섭성 (Zero-touch Modularity)</div>
-                  <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.65;">
-                    임베딩되는 피호출 액티비티는 자신이 분할 화면으로 뜨는지 전체화면으로 뜨는지 알 필요가 없습니다. 기존의 표준 <code>startActivity()</code> 호출 방식을 그대로 유지하면서 외부 <code>SplitRule</code> 선언만으로 뷰를 재구성합니다.
-                  </p>
-                </div>
-                <div class="card-box">
-                  <div class="card-box-header">2. 환경 적응형 분할 (Adaptive Layout)</div>
-                  <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.65;">
-                    폴더블 기기를 펼치거나(Unfold), 화면을 회전하거나, 멀티윈도우 크기를 조절할 때 시스템이 <code>minWidthDp</code>를 실시간으로 재평가하여 분할 모드와 일반 스택 모드를 동적으로 자동 전환합니다.
-                  </p>
-                </div>
-              </div>
-
-              <div class="callout callout-orange">
-                <strong>아키텍처적 가치:</strong> UI 분할 정책(<code>SplitRule</code>)을 개별 Activity 코드에서 분리하여 화면 크기 변화에 따라 레이아웃을 동적으로 전환합니다.
-              </div>
-            </div>
-          </div>
-
-          <!-- SLIDE 10: Section 5 Security -->
-          <div class="slide-card" data-index="9">
             <div class="slide-meta">
               <span class="pill pill-red">Section 5</span>
               <span class="pill pill-blue">보안 및 신뢰 경계</span>
@@ -1129,8 +1099,8 @@ class Task extends TaskFragment { ... }</code></pre>
             </div>
           </div>
 
-          <!-- SLIDE 11: Appendix A Comparison -->
-          <div class="slide-card" data-index="10">
+          <!-- SLIDE 10: Appendix A Comparison -->
+          <div class="slide-card" data-index="9">
             <div class="slide-meta">
               <span class="pill pill-purple">부록 A</span>
               <span class="pill pill-blue">기술 비교</span>
@@ -1177,8 +1147,8 @@ class Task extends TaskFragment { ... }</code></pre>
             </div>
           </div>
 
-          <!-- SLIDE 12: Appendix B Z-Order -->
-          <div class="slide-card" data-index="11">
+          <!-- SLIDE 11: Appendix B Z-Order -->
+          <div class="slide-card" data-index="10">
             <div class="slide-meta">
               <span class="pill pill-purple">부록 B</span>
               <span class="pill pill-blue">Z-Order &amp; Top Activity</span>
@@ -1205,8 +1175,8 @@ ATMS 최상위 탐색 알고리즘:
             </div>
           </div>
 
-          <!-- SLIDE 13: Appendix C Finish -->
-          <div class="slide-card" data-index="12">
+          <!-- SLIDE 12: Appendix C Finish -->
+          <div class="slide-card" data-index="11">
             <div class="slide-meta">
               <span class="pill pill-purple">부록 C</span>
               <span class="pill pill-orange">생명주기 및 연쇄 종료</span>
@@ -1251,8 +1221,8 @@ ATMS 최상위 탐색 알고리즘:
             </div>
           </div>
 
-          <!-- SLIDE 14: Appendix D Platform Patterns -->
-          <div class="slide-card" data-index="13">
+          <!-- SLIDE 13: Appendix D Platform Patterns -->
+          <div class="slide-card" data-index="12">
             <div class="slide-meta">
               <span class="pill pill-purple">부록 D</span>
               <span class="pill pill-blue">플랫폼 엔지니어링 패턴</span>
@@ -1288,8 +1258,8 @@ ATMS 최상위 탐색 알고리즘:
             </div>
           </div>
 
-          <!-- SLIDE 15: Appendix E Sources & Extensions Evolution -->
-          <div class="slide-card" data-index="14">
+          <!-- SLIDE 14: Appendix E Sources & Extensions Evolution -->
+          <div class="slide-card" data-index="13">
             <div class="slide-meta">
               <span class="pill pill-purple">부록 E</span>
               <span class="pill pill-green">소스 코드 &amp; 최신 진화</span>
@@ -1337,7 +1307,7 @@ ATMS 최상위 탐색 알고리즘:
         </div>
 
         <div class="slide-indicator" id="slide-indicator">
-          01 / 15
+          01 / 14
         </div>
 
         <div class="shortcut-hint">
