@@ -669,9 +669,9 @@
 
         <!-- Part 2 -->
         <div class="part-group">
-          <div class="part-title">Part 2. [1단계: 준비] 규칙 등록과 플랫폼 바인딩</div>
-          <div class="slide-item" data-slide="2"><span class="slide-num">03</span><span>2. AndroidX &amp; Extensions 계층 바인딩</span></div>
-          <div class="slide-item" data-slide="3"><span class="slide-num">04</span><span>RuleController와 인메모리 캐싱 (Zero IPC)</span></div>
+          <div class="part-title">Part 2. [1단계: 준비] SplitRule 등록과 플랫폼 바인딩</div>
+          <div class="slide-item" data-slide="2"><span class="slide-num">03</span><span>2. SplitRule 등록과 인메모리 캐싱 (Zero IPC)</span></div>
+          <div class="slide-item" data-slide="3"><span class="slide-num">04</span><span>AndroidX &amp; Extensions 계층 바인딩</span></div>
         </div>
 
         <!-- Part 3 -->
@@ -685,9 +685,9 @@
 
         <!-- Part 4 -->
         <div class="part-group">
-          <div class="part-title">Part 4. 하위 호환성 설계: 계층 구조 및 규칙</div>
+          <div class="part-title">Part 4. 하위 호환성 설계: 계층 구조 및 SplitRule</div>
           <div class="slide-item" data-slide="8"><span class="slide-num">09</span><span>4. 기능 위임과 다형성: Task extends TaskFragment</span></div>
-          <div class="slide-item" data-slide="9"><span class="slide-num">10</span><span>선언적 규칙 기반(Rule-Based) 아키텍처</span></div>
+          <div class="slide-item" data-slide="9"><span class="slide-num">10</span><span>선언적 SplitRule 기반 아키텍처</span></div>
         </div>
 
         <!-- Part 5 -->
@@ -740,7 +740,7 @@
                   <div class="card-box-header" style="color: var(--accent);">🎯 본 기술 분석의 핵심 탐구 축</div>
                   <ul style="margin-left: 1.2rem; font-size: 0.9rem; line-height: 1.8;">
                     <li><strong>관심사 분리(SoC)</strong>: AAOS 차량 설정과 헤드리스 서비스 간 멀티 APK 분할</li>
-                    <li><strong>준비 ➔ 실행 파이프라인</strong>: 규칙 캐싱, 가로채기(Intercept), 원자적 WCT 패키징</li>
+                    <li><strong>준비 ➔ 실행 파이프라인</strong>: SplitRule 캐싱, 가로채기(Intercept), 원자적 WCT 패키징</li>
                     <li><strong>1.4 런타임 직접 제어</strong>: 타깃 스택 지정 &amp; Overlay TaskFragment (Ext 8)</li>
                     <li><strong>하위 호환성</strong>: <code>Task extends TaskFragment</code> (기능 위임 &amp; 다형성)</li>
                   </ul>
@@ -841,59 +841,14 @@
             </div>
           </div>
 
-          <!-- SLIDE 03: Section 2 3-Tier Binding -->
+          <!-- SLIDE 03: Section 2 SplitRule Code & IPC Caching -->
           <div class="slide-card" data-index="2">
             <div class="slide-meta">
               <span class="pill pill-purple">Section 2</span>
               <span class="pill pill-blue">1단계: 준비</span>
-              <span class="pill pill-green">플랫폼 바인딩</span>
+              <span class="pill pill-green">Zero IPC 인메모리 캐싱</span>
             </div>
-            <h2 class="slide-title">2. AndroidX &amp; Extensions 계층 바인딩</h2>
-            <div class="slide-body">
-              <div class="grid-2" style="margin-bottom: 0.75rem;">
-                <div class="card-box" style="border-left: 4px solid var(--accent); padding: 0.75rem 0.95rem;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-                    <strong style="color: var(--accent); font-size: 0.88rem;">AndroidX 계층 (앱 프로세스)</strong>
-                    <code style="font-size: 0.75rem;">androidx.window.embedding</code>
-                  </div>
-                  <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; margin: 0;">
-                    개발자가 사용하는 <code>RuleController</code> 등 공개 API 제공. <code>EmbeddingAdapter</code>가 고수준 규칙을 하위 Extensions 계약 규격으로 자동 번역합니다.
-                  </p>
-                </div>
-
-                <div class="card-box" style="border-left: 4px solid var(--accent-purple); padding: 0.75rem 0.95rem;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-                    <strong style="color: var(--accent-purple); font-size: 0.88rem;">Extensions 계층 (시스템 공유 라이브러리)</strong>
-                    <code style="font-size: 0.75rem;">androidx.window.extensions.embedding</code>
-                  </div>
-                  <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; margin: 0;">
-                    기기 제조사(OEM)가 시스템 파티션에 탑재하며, <code>SplitController</code>가 규칙 캐싱과 런타임 분할 판정을 담당합니다.
-                  </p>
-                </div>
-              </div>
-
-              <!-- compileOnly Stub & <uses-library> Deep Dive Box -->
-              <div class="card-box" style="border-top: 3px solid var(--accent-purple); padding: 0.8rem 1rem;">
-                <div style="font-weight: 600; color: var(--accent-purple); font-size: 0.86rem; margin-bottom: 0.35rem;">
-                  🔬 빌드 타임 Stub (compileOnly) &amp; 런타임 동적 마운트 (&lt;uses-library&gt;) 구조
-                </div>
-                <ul style="margin-left: 1.15rem; font-size: 0.8rem; line-height: 1.6; color: var(--text-muted); margin-bottom: 0;">
-                  <li><strong>빌드 타임 (compileOnly):</strong> AndroidX는 로직 없는 <strong>인터페이스/Stub JAR</strong>만 참조하여 컴파일되므로, AAR/APK 내부에 OEM 클래스가 번들링되지 않습니다.</li>
-                  <li><strong>패키징 (Manifest Merger):</strong> <code>androidx.window:window</code> AAR의 <code>&lt;uses-library android:name="androidx.window.extensions" android:required="false" /&gt;</code>가 앱 Manifest로 자동 합성됩니다.</li>
-                  <li><strong>런타임 (PathClassLoader):</strong> 지원 기기에서는 OS가 앱 프로세스 기동 시 <code>/system_ext/framework/androidx.window.extensions.jar</code>(실제 OEM 구현체)를 앱 클래스로더에 동적 마운트하여 <strong>OEM <code>SplitController</code> 구현체</strong>에 바인딩됩니다.</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          <!-- SLIDE 04: Section 2 Code & IPC Caching -->
-          <div class="slide-card" data-index="3">
-            <div class="slide-meta">
-              <span class="pill pill-purple">Section 2</span>
-              <span class="pill pill-green">Zero IPC</span>
-              <span class="pill pill-blue">인메모리 캐싱</span>
-            </div>
-            <h2 class="slide-title">RuleController와 인메모리 캐싱 (Zero IPC)</h2>
+            <h2 class="slide-title">2. SplitRule 등록과 인메모리 캐싱 (Zero IPC)</h2>
             <div class="slide-body">
               <pre><code>val splitPairRule = SplitPairRule.Builder(filterSet)
     .setMinWidthDp(600)
@@ -910,7 +865,52 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
 
               <div class="callout callout-purple">
                 <strong>⚡ 시스템 서버 무통신 (Zero IPC 인메모리 캐싱):</strong><br>
-                규칙 등록 시 시스템 서버(ATMS)와의 IPC 통신이 발생하지 않습니다. 앱 초기화 시점에 <code>EmbeddingBackend</code>를 통해 동일 프로세스 내 Extensions 계층의 <strong>메모리(mSplitRules)에 캐싱</strong>됩니다. 이후 액티비티가 시작될 때도 인프로세스 메모리 탐색으로 분할 여부를 판단합니다.
+                <code>SplitRule</code> 등록 시 시스템 서버(ATMS)와의 IPC 통신이 발생하지 않습니다. 앱 초기화 시점에 <code>EmbeddingBackend</code>를 통해 동일 프로세스 내 Extensions 계층의 <strong>메모리(mSplitRules)에 캐싱</strong>됩니다. 이후 액티비티가 시작될 때도 인프로세스 메모리 탐색으로 분할 여부를 판단합니다.
+              </div>
+            </div>
+          </div>
+
+          <!-- SLIDE 04: Section 2 3-Tier Binding -->
+          <div class="slide-card" data-index="3">
+            <div class="slide-meta">
+              <span class="pill pill-purple">Section 2</span>
+              <span class="pill pill-blue">1단계: 준비</span>
+              <span class="pill pill-green">플랫폼 바인딩</span>
+            </div>
+            <h2 class="slide-title">AndroidX &amp; Extensions 계층 바인딩</h2>
+            <div class="slide-body">
+              <div class="grid-2" style="margin-bottom: 0.75rem;">
+                <div class="card-box" style="border-left: 4px solid var(--accent); padding: 0.75rem 0.95rem;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                    <strong style="color: var(--accent); font-size: 0.88rem;">AndroidX 계층 (앱 프로세스)</strong>
+                    <code style="font-size: 0.75rem;">androidx.window.embedding</code>
+                  </div>
+                  <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; margin: 0;">
+                    개발자가 사용하는 <code>RuleController</code> 등 공개 API 제공. <code>EmbeddingAdapter</code>가 <code>SplitRule</code>을 하위 Extensions 계약 규격으로 자동 번역합니다.
+                  </p>
+                </div>
+
+                <div class="card-box" style="border-left: 4px solid var(--accent-purple); padding: 0.75rem 0.95rem;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                    <strong style="color: var(--accent-purple); font-size: 0.88rem;">Extensions 계층 (시스템 공유 라이브러리)</strong>
+                    <code style="font-size: 0.75rem;">androidx.window.extensions.embedding</code>
+                  </div>
+                  <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; margin: 0;">
+                    기기 제조사(OEM)가 시스템 파티션에 탑재하며, <code>SplitController</code>가 <code>SplitRule</code> 캐싱과 런타임 분할 판정을 담당합니다.
+                  </p>
+                </div>
+              </div>
+
+              <!-- compileOnly Stub & <uses-library> Deep Dive Box -->
+              <div class="card-box" style="border-top: 3px solid var(--accent-purple); padding: 0.8rem 1rem;">
+                <div style="font-weight: 600; color: var(--accent-purple); font-size: 0.86rem; margin-bottom: 0.35rem;">
+                  🔬 빌드 타임 Stub (compileOnly) &amp; 런타임 동적 마운트 (&lt;uses-library&gt;) 구조
+                </div>
+                <ul style="margin-left: 1.15rem; font-size: 0.8rem; line-height: 1.6; color: var(--text-muted); margin-bottom: 0;">
+                  <li><strong>빌드 타임 (compileOnly):</strong> AndroidX는 로직 없는 <strong>인터페이스/Stub JAR</strong>만 참조하여 컴파일되므로, AAR/APK 내부에 OEM 클래스가 번들링되지 않습니다.</li>
+                  <li><strong>패키징 (Manifest Merger):</strong> <code>androidx.window:window</code> AAR의 <code>&lt;uses-library android:name="androidx.window.extensions" android:required="false" /&gt;</code>가 앱 Manifest로 자동 합성됩니다.</li>
+                  <li><strong>런타임 (PathClassLoader):</strong> 지원 기기에서는 OS가 앱 프로세스 기동 시 <code>/system_ext/framework/androidx.window.extensions.jar</code>(실제 OEM 구현체)를 앱 클래스로더에 동적 마운트하여 <strong>OEM <code>SplitController</code> 구현체</strong>에 바인딩됩니다.</li>
+                </ul>
               </div>
             </div>
           </div>
@@ -959,10 +959,10 @@ DisplayContent
               <p>개발자는 평소대로 표준 <code>startActivity(intent)</code>를 호출할 뿐이며, 이 실행 과정에서 AndroidX 계층은 개입하지 않고 Extensions 계층이 런타임에 호출을 가로챕니다.</p>
 
               <div class="card-box" style="margin-bottom: 0.6rem;">
-                <strong>1단계 (규칙 캐싱):</strong> 앱 시작 시 <code>mSplitRules</code>에 등록 완료 (IPC 없음)
+                <strong>1단계 (SplitRule 캐싱):</strong> 앱 시작 시 <code>mSplitRules</code>에 등록 완료 (IPC 없음)
               </div>
               <div class="card-box" style="margin-bottom: 0.6rem; border-left: 3px solid var(--accent-purple);">
-                <strong>2단계 (가로채기 &amp; 조건 평가):</strong> <code>Instrumentation.execStartActivity()</code> 직전, Extensions의 <code>ActivityStartMonitor.onStartActivity()</code>가 가로챔 ➔ <code>SplitController</code>가 규칙 대조 ➔ <code>SplitPresenter</code>가 윈도우 크기(<code>minWidthDp</code>) 실시간 평가 ➔ 타깃 컨테이너 토큰(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>) 주입
+                <strong>2단계 (가로채기 &amp; 조건 평가):</strong> <code>Instrumentation.execStartActivity()</code> 직전, Extensions의 <code>ActivityStartMonitor.onStartActivity()</code>가 가로챔 ➔ <code>SplitController</code>가 <code>SplitRule</code> 대조 ➔ <code>SplitPresenter</code>가 윈도우 크기(<code>minWidthDp</code>) 실시간 평가 ➔ 타깃 컨테이너 토큰(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>) 주입
               </div>
               <div class="card-box" style="margin-bottom: 0.6rem; border-left: 3px solid var(--accent-orange);">
                 <strong>3단계 (원자적 WCT 패키징):</strong> <code>TaskFragmentOrganizer</code>가 컨테이너 생성/바운드 설정을 <code>WindowContainerTransaction (WCT)</code>으로 일괄 패키징
@@ -982,7 +982,7 @@ DisplayContent
             </div>
             <h2 class="slide-title">1.4+ 런타임 직접 제어: 스택 &amp; Overlay</h2>
             <div class="slide-body">
-              <p>미리 등록된 규칙에 맡기지 않고 런타임에 직접 분기 결정을 내릴 수 있도록, <code>startActivity</code> 옵션에 타깃 스택이나 오버레이를 주입하여 <strong>등록된 SplitRule 평가를 건너뛰는(Bypass)</strong> 메커니즘이 추가되었습니다.</p>
+              <p>미리 등록된 <code>SplitRule</code>에 맡기지 않고 런타임에 직접 분기 결정을 내릴 수 있도록, <code>startActivity</code> 옵션에 타깃 스택이나 오버레이를 주입하여 <strong>등록된 SplitRule 평가를 건너뛰는(Bypass)</strong> 메커니즘이 추가되었습니다.</p>
 
               <div class="grid-2">
                 <div class="card-box">
@@ -992,7 +992,7 @@ DisplayContent
     .toBundle()
 startActivity(intent, options)</code></pre>
                   <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;">
-                    👉 <code>ActivityStartMonitor</code>가 번들 내 <code>KEY_ACTIVITY_STACK_TOKEN</code>을 확인하여 플랫폼 키로 변환한 뒤, 규칙 평가 없이 <strong>조기 반환(Early Return)</strong>하여 시스템 서버로 넘깁니다.
+                    👉 <code>ActivityStartMonitor</code>가 번들 내 <code>KEY_ACTIVITY_STACK_TOKEN</code>을 확인하여 플랫폼 키로 변환한 뒤, <code>SplitRule</code> 평가 없이 <strong>조기 반환(Early Return)</strong>하여 시스템 서버로 넘깁니다.
                   </p>
                 </div>
 
@@ -1103,19 +1103,19 @@ class Task extends TaskFragment { ... }</code></pre>
             </div>
           </div>
 
-          <!-- SLIDE 10: Section 4 Rule-Based Architecture -->
+          <!-- SLIDE 10: Section 4 SplitRule-Based Architecture -->
           <div class="slide-card" data-index="9">
             <div class="slide-meta">
               <span class="pill pill-orange">Section 4</span>
-              <span class="pill pill-blue">선언적 규칙 모델</span>
+              <span class="pill pill-blue">선언적 SplitRule 모델</span>
             </div>
-            <h2 class="slide-title">선언적 규칙 기반(Rule-Based) 아키텍처</h2>
+            <h2 class="slide-title">선언적 SplitRule 기반 아키텍처</h2>
             <div class="slide-body">
               <div class="grid-2">
                 <div class="card-box">
                   <div class="card-box-header">1. 무간섭성 (Zero-touch Modularity)</div>
                   <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.65;">
-                    임베딩되는 피호출 액티비티는 자신이 분할 화면으로 뜨는지 전체화면으로 뜨는지 알 필요가 없습니다. 기존의 표준 <code>startActivity()</code> 호출 방식을 그대로 유지하면서 외부 선언 규칙만으로 뷰를 재구성합니다.
+                    임베딩되는 피호출 액티비티는 자신이 분할 화면으로 뜨는지 전체화면으로 뜨는지 알 필요가 없습니다. 기존의 표준 <code>startActivity()</code> 호출 방식을 그대로 유지하면서 외부 <code>SplitRule</code> 선언만으로 뷰를 재구성합니다.
                   </p>
                 </div>
                 <div class="card-box">
@@ -1127,7 +1127,7 @@ class Task extends TaskFragment { ... }</code></pre>
               </div>
 
               <div class="callout callout-orange">
-                <strong>아키텍처적 가치:</strong> UI 분할 정책을 개별 Activity 코드에서 분리하여 화면 크기 변화에 따라 레이아웃을 동적으로 전환합니다.
+                <strong>아키텍처적 가치:</strong> UI 분할 정책(<code>SplitRule</code>)을 개별 Activity 코드에서 분리하여 화면 크기 변화에 따라 레이아웃을 동적으로 전환합니다.
               </div>
             </div>
           </div>
