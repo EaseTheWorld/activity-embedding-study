@@ -180,6 +180,7 @@
       border-left: 2px solid transparent;
       user-select: none;
       line-height: 1.35;
+      margin-bottom: 0.2rem;
     }
 
     .slide-item:hover {
@@ -657,52 +658,22 @@
     <aside>
       <div class="toc-header">
         <span class="toc-title">Slide Index</span>
-        <span class="toc-count" id="toc-slide-count">01 / 14</span>
+        <span class="toc-count" id="toc-slide-count">01 / 13</span>
       </div>
       <div class="toc-scroll" id="toc-scroll-list">
-        <!-- Part 1 -->
-        <div class="part-group">
-          <div class="part-title">Part 1. 개요 및 도입 배경: 관심사 분리(SoC)</div>
-          <div class="slide-item active" data-slide="0"><span class="slide-num">01</span><span>Android Activity Embedding 아키텍처</span></div>
-          <div class="slide-item" data-slide="1"><span class="slide-num">02</span><span>1. 도입 배경: 관심사 분리(SoC)</span></div>
-        </div>
-
-        <!-- Part 2 -->
-        <div class="part-group">
-          <div class="part-title">Part 2. [1단계: 준비] SplitRule 등록과 플랫폼 바인딩</div>
-          <div class="slide-item" data-slide="2"><span class="slide-num">03</span><span>2. SplitRule 등록</span></div>
-          <div class="slide-item" data-slide="3"><span class="slide-num">04</span><span>AndroidX &amp; Extensions 계층 바인딩</span></div>
-        </div>
-
-        <!-- Part 3 -->
-        <div class="part-group">
-          <div class="part-title">Part 3. [2단계: 실행] startActivity와 윈도우 분할</div>
-          <div class="slide-item" data-slide="4"><span class="slide-num">05</span><span>3. 핵심 컨테이너 구조: TaskFragment</span></div>
-          <div class="slide-item" data-slide="5"><span class="slide-num">06</span><span>startActivity 가로채기와 4단계 파이프라인</span></div>
-          <div class="slide-item" data-slide="6"><span class="slide-num">07</span><span>1.4+ 런타임 직접 제어: 스택 &amp; Overlay</span></div>
-        </div>
-
-        <!-- Part 4 -->
-        <div class="part-group">
-          <div class="part-title">Part 4. 하위 호환성 설계: 계층 구조 및 다형성</div>
-          <div class="slide-item" data-slide="7"><span class="slide-num">08</span><span>4. 기능 위임과 다형성: Task extends TaskFragment</span></div>
-        </div>
-
-        <!-- Part 5 -->
-        <div class="part-group">
-          <div class="part-title">Part 5. 보안 및 신뢰 경계</div>
-          <div class="slide-item" data-slide="8"><span class="slide-num">09</span><span>5. 보안 및 신뢰 경계</span></div>
-        </div>
-
-        <!-- Part 6 -->
-        <div class="part-group">
-          <div class="part-title">Part 6. 부록 심층 분석 (Appendices)</div>
-          <div class="slide-item" data-slide="9"><span class="slide-num">10</span><span>부록 A. Multi-Window vs Activity Embedding</span></div>
-          <div class="slide-item" data-slide="10"><span class="slide-num">11</span><span>부록 B. Z-Order 판정과 Top Activity 역순 탐색</span></div>
-          <div class="slide-item" data-slide="11"><span class="slide-num">12</span><span>부록 C. Activity Finish와 3대 FinishBehavior</span></div>
-          <div class="slide-item" data-slide="12"><span class="slide-num">13</span><span>부록 D. Frameworks &amp; ATMS 4대 핵심 패턴</span></div>
-          <div class="slide-item" data-slide="13"><span class="slide-num">14</span><span>부록 E. AOSP 소스 탐색 가이드 &amp; 최신 진화</span></div>
-        </div>
+        <div class="slide-item active" data-slide="0"><span class="slide-num">01</span><span>Android Activity Embedding 아키텍처</span></div>
+        <div class="slide-item" data-slide="1"><span class="slide-num">02</span><span>도입 배경: 관심사 분리(SoC)</span></div>
+        <div class="slide-item" data-slide="2"><span class="slide-num">03</span><span>SplitRule 등록</span></div>
+        <div class="slide-item" data-slide="3"><span class="slide-num">04</span><span>AndroidX &amp; Extensions 계층 바인딩</span></div>
+        <div class="slide-item" data-slide="4"><span class="slide-num">05</span><span>핵심 컨테이너 구조: TaskFragment</span></div>
+        <div class="slide-item" data-slide="5"><span class="slide-num">06</span><span>기능 위임과 다형성: Task extends TaskFragment</span></div>
+        <div class="slide-item" data-slide="6"><span class="slide-num">07</span><span>startActivity 가로채기와 4단계 파이프라인</span></div>
+        <div class="slide-item" data-slide="7"><span class="slide-num">08</span><span>1.4+ 런타임 직접 제어: 스택 &amp; Overlay</span></div>
+        <div class="slide-item" data-slide="8"><span class="slide-num">09</span><span>보안 및 신뢰 경계</span></div>
+        <div class="slide-item" data-slide="9"><span class="slide-num">10</span><span>Z-Order 판정과 Top Activity 역순 탐색</span></div>
+        <div class="slide-item" data-slide="10"><span class="slide-num">11</span><span>Activity Finish와 3대 FinishBehavior</span></div>
+        <div class="slide-item" data-slide="11"><span class="slide-num">12</span><span>Frameworks &amp; ATMS 4대 핵심 패턴</span></div>
+        <div class="slide-item" data-slide="12"><span class="slide-num">13</span><span>AOSP 소스 탐색 가이드 &amp; 최신 진화</span></div>
       </div>
 
       <div class="toc-footer">
@@ -756,14 +727,13 @@
             </div>
           </div>
 
-          <!-- SLIDE 02: Section 1 Intro & Comparison -->
+          <!-- SLIDE 02: Intro & Comparison -->
           <div class="slide-card" data-index="1">
             <div class="slide-meta">
-              <span class="pill pill-blue">Section 1</span>
-              <span class="pill pill-orange">SoC 도입 배경</span>
+              <span class="pill pill-blue">SoC 도입 배경</span>
               <span class="pill pill-purple">AAOS 환경</span>
             </div>
-            <h2 class="slide-title">1. 도입 배경: 관심사 분리(SoC)</h2>
+            <h2 class="slide-title">도입 배경: 관심사 분리(SoC)</h2>
             <div class="slide-body">
               <p style="font-size: 0.95rem; margin-bottom: 0.75rem;">
                 <strong>AAOS</strong> 대화면에서는 메인 <strong>차량 설정 앱</strong>이 <strong>음성 인식</strong> 등 여러 서비스의 설정 화면 진입점 역할을 합니다. 기존 단일 액티비티 구조의 결합 문제를 <strong>Activity 분리 임베딩</strong>으로 해결합니다.
@@ -839,14 +809,13 @@
             </div>
           </div>
 
-          <!-- SLIDE 03: Section 2 SplitRule Code & IPC Caching -->
+          <!-- SLIDE 03: SplitRule Code & IPC Caching -->
           <div class="slide-card" data-index="2">
             <div class="slide-meta">
-              <span class="pill pill-purple">Section 2</span>
               <span class="pill pill-blue">1단계: 준비</span>
               <span class="pill pill-green">Zero IPC 인메모리 캐싱</span>
             </div>
-            <h2 class="slide-title">2. SplitRule 등록</h2>
+            <h2 class="slide-title">SplitRule 등록</h2>
             <div class="slide-body">
               <pre><code>val splitPairRule = SplitPairRule.Builder(filterSet)
     .setMinWidthDp(600)
@@ -868,10 +837,9 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             </div>
           </div>
 
-          <!-- SLIDE 04: Section 2 3-Tier Binding -->
+          <!-- SLIDE 04: 3-Tier Binding -->
           <div class="slide-card" data-index="3">
             <div class="slide-meta">
-              <span class="pill pill-purple">Section 2</span>
               <span class="pill pill-blue">1단계: 준비</span>
               <span class="pill pill-green">플랫폼 바인딩</span>
             </div>
@@ -913,13 +881,13 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
             </div>
           </div>
 
-          <!-- SLIDE 05: Section 3 Conceptual Bridge -->
+          <!-- SLIDE 05: TaskFragment & Multi-Window Comparison -->
           <div class="slide-card" data-index="4">
             <div class="slide-meta">
-              <span class="pill pill-green">Section 3</span>
-              <span class="pill pill-blue">핵심 컨테이너 구조</span>
+              <span class="pill pill-green">핵심 컨테이너 구조</span>
+              <span class="pill pill-blue">단일 Task vs 다중 Task</span>
             </div>
-            <h2 class="slide-title">3. 핵심 컨테이너 구조: TaskFragment</h2>
+            <h2 class="slide-title">핵심 컨테이너 구조: TaskFragment</h2>
             <div class="slide-body">
               <p>Activity Embedding은 하나의 Task 안에서 화면을 쪼개어 배치하기 위해, Task와 Activity 사이에 <strong><code>TaskFragment</code>라는 분할 구획(서브 스택) 컨테이너</strong>를 동적으로 생성합니다.</p>
 
@@ -939,18 +907,104 @@ DisplayContent
            └── ActivityRecord (Activity B)</div>
               </div>
 
-              <div class="callout callout-green">
-                <strong>전통적 Multi-Window와의 차이점:</strong><br>
-                전통적 멀티윈도우는 OS가 서로 다른 2개의 Task를 나란히 타일링하는 반면, Activity Embedding은 <strong>단 1개의 Task 내부를 TaskFragment로 분할하므로 최근 앱(Recents)에서도 1개의 통합 카드로 유지</strong>되며 동일한 TaskId와 TaskAffinity를 공유합니다.
+              <div class="table-container" style="margin-top: 0.75rem;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>비교 항목</th>
+                      <th>전통적 Multi-Window (Split-Screen)</th>
+                      <th>Activity Embedding</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>태스크(Task) 경계</strong></td>
+                      <td>2개의 독립된 Task (서로 다른 최근 앱 카드)</td>
+                      <td><strong style="color: var(--accent-green);">단일 Task 내부 분할 (단일 앱 카드 유지)</strong></td>
+                    </tr>
+                    <tr>
+                      <td><strong>주요 목적</strong></td>
+                      <td>서로 다른 두 앱 간의 멀티태스킹 (e.g. 유튜브 + 카톡)</td>
+                      <td><strong style="color: var(--accent-green);">단일 앱 내부의 대화면 레이아웃 최적화 (List-Detail)</strong></td>
+                    </tr>
+                    <tr>
+                      <td><strong>제어권 주체</strong></td>
+                      <td>사용자 및 시스템 SystemUI (OS 주도)</td>
+                      <td><strong style="color: var(--accent-green);">앱 프로세스 및 개발자 (SplitRule 기반 App 주도)</strong></td>
+                    </tr>
+                    <tr>
+                      <td><strong>내비게이션</strong></td>
+                      <td>각 창마다 독립 백스택, 개별 뒤로가기</td>
+                      <td><strong style="color: var(--accent-green);">통합 백스택 및 FinishBehavior 연계</strong></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="callout callout-green" style="margin-top: 0.75rem;">
+                <strong>핵심 결론:</strong> Activity Embedding은 다중 앱 멀티태스킹이 아니라, <strong>"단일 앱의 모듈식 대화면 UX 구현 도구"</strong>입니다.
               </div>
             </div>
           </div>
 
-          <!-- SLIDE 06: Section 3 Execution Pipeline -->
+          <!-- SLIDE 06: TaskFragment Delegation & Polymorphism -->
           <div class="slide-card" data-index="5">
             <div class="slide-meta">
-              <span class="pill pill-green">Section 3</span>
-              <span class="pill pill-blue">2단계: 실행</span>
+              <span class="pill pill-purple">하위 호환성 설계</span>
+              <span class="pill pill-blue">임베딩 기능 위임 &amp; 다형성</span>
+            </div>
+            <h2 class="slide-title">기능 위임과 다형성: Task extends TaskFragment</h2>
+            <div class="slide-body">
+              <p style="margin-bottom: 0.6rem;">
+                Android 12L부터 화면 분할 및 윈도우 제어 책임을 분할 컨테이너인 <code>TaskFragment</code>에 위임하여 하위 호환성과 유연성을 동시에 확보했습니다.
+              </p>
+
+              <div class="grid-2" style="margin: 0.4rem 0 0.75rem;">
+                <div class="ascii-diagram" style="margin: 0; font-size: 0.75rem; line-height: 1.45; padding: 0.65rem 0.85rem; color: var(--text-muted);">[레거시 일반 앱: 분할 미사용]
+Task (스스로 하나의 TaskFragment로 동작)
+ └── ActivityRecord (직접 호스팅)</div>
+                <div class="ascii-diagram" style="margin: 0; font-size: 0.75rem; line-height: 1.45; padding: 0.65rem 0.85rem; color: var(--accent-green);">[Activity Embedding 앱: 대화면 분할]
+Task (최상위 호스트 - 분할을 TaskFragment에 위임)
+ ├── TaskFragment 1 (Primary)   ──▶ ActivityRecord
+ └── TaskFragment 2 (Secondary) ──▶ ActivityRecord</div>
+              </div>
+
+              <div class="grid-2" style="margin-top: 0.6rem;">
+                <!-- 1. 임베딩 기능의 전담 위임 -->
+                <div class="card-box" style="border-left: 3px solid var(--accent); padding: 0.75rem 0.95rem;">
+                  <div style="font-weight: 600; color: var(--accent); font-size: 0.88rem; margin-bottom: 0.45rem;">
+                    역할 분담과 전담 위임 (Delegation)
+                  </div>
+                  <ul style="margin: 0 0 0 1.1rem; font-size: 0.78rem; line-height: 1.6; color: var(--text-muted);">
+                    <li><strong>Task (OS 작업 단위)</strong>: Recents 카드 1개 유지, TaskId, taskAffinity, PIP</li>
+                    <li><strong>TaskFragment (화면 구획)</strong>: 창 분할(Split), 상대적 Bounds, Multi-Resume 가시성 제어</li>
+                  </ul>
+                </div>
+
+                <!-- 2. Task도 TaskFragment이다 -->
+                <div class="card-box" style="border-left: 3px solid var(--accent-green); padding: 0.75rem 0.95rem;">
+                  <div style="font-weight: 600; color: var(--accent-green); font-size: 0.88rem; margin-bottom: 0.35rem;">
+                    Task도 TaskFragment이다 (다형성 &amp; 하위 호환)
+                  </div>
+                  <pre style="margin: 0.35rem 0 0.45rem; font-size: 0.71rem; line-height: 1.35; padding: 0.45rem 0.65rem; background: rgba(0,0,0,0.45);"><code>// Android 11 ~ 12: Task가 직접 수납
+class Task extends WindowContainer&lt;WindowContainer&gt; { ... }
+
+// Android 12L+: TaskFragment 신설 &amp; Task가 상속
+class TaskFragment extends WindowContainer&lt;WindowContainer&gt; { ... }
+class Task extends TaskFragment { ... }</code></pre>
+                  <p style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.45; margin: 0;">
+                    <code>Task extends TaskFragment</code> 덕분에, 일반 앱에서도 별도의 래퍼 없이 <code>Task</code> 스스로 단일 <code>TaskFragment</code>로 동작합니다 (ATMS 내부에서 <code>activity.getTaskFragment()</code> 호출 시 직속 부모인 <code>Task</code> 반환).
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SLIDE 07: Execution Pipeline -->
+          <div class="slide-card" data-index="6">
+            <div class="slide-meta">
+              <span class="pill pill-green">2단계: 실행</span>
+              <span class="pill pill-blue">가로채기 &amp; 원자적 트랜잭션</span>
             </div>
             <h2 class="slide-title">startActivity 가로채기와 4단계 파이프라인</h2>
             <div class="slide-body">
@@ -971,10 +1025,9 @@ DisplayContent
             </div>
           </div>
 
-          <!-- SLIDE 07: Section 3 Window 1.4 Runtime Direct Control -->
-          <div class="slide-card" data-index="6">
+          <!-- SLIDE 08: Window 1.4 Runtime Direct Control -->
+          <div class="slide-card" data-index="7">
             <div class="slide-meta">
-              <span class="pill pill-green">Section 3</span>
               <span class="pill pill-purple">Window 1.4+ / Ext 8</span>
               <span class="pill pill-orange">런타임 직접 제어</span>
             </div>
@@ -1014,67 +1067,13 @@ startActivity(intent, options)</code></pre>
             </div>
           </div>
 
-          <!-- SLIDE 08: Section 4 TaskFragment Delegation & Polymorphism -->
-          <div class="slide-card" data-index="7">
-            <div class="slide-meta">
-              <span class="pill pill-orange">Section 4</span>
-              <span class="pill pill-purple">하위 호환성 설계</span>
-              <span class="pill pill-blue">임베딩 기능 위임 &amp; 다형성</span>
-            </div>
-            <h2 class="slide-title">4. 기능 위임과 다형성: Task extends TaskFragment</h2>
-            <div class="slide-body">
-              <p style="margin-bottom: 0.6rem;">
-                Android 12L부터 화면 분할 및 윈도우 제어 책임을 분할 컨테이너인 <code>TaskFragment</code>에 위임하여 하위 호환성과 유연성을 동시에 확보했습니다.
-              </p>
-
-              <div class="grid-2" style="margin: 0.4rem 0 0.75rem;">
-                <div class="ascii-diagram" style="margin: 0; font-size: 0.75rem; line-height: 1.45; padding: 0.65rem 0.85rem; color: var(--text-muted);">[레거시 일반 앱: 분할 미사용]
-Task (스스로 하나의 TaskFragment로 동작)
- └── ActivityRecord (직접 호스팅)</div>
-                <div class="ascii-diagram" style="margin: 0; font-size: 0.75rem; line-height: 1.45; padding: 0.65rem 0.85rem; color: var(--accent-green);">[Activity Embedding 앱: 대화면 분할]
-Task (최상위 호스트 - 분할을 TaskFragment에 위임)
- ├── TaskFragment 1 (Primary)   ──▶ ActivityRecord
- └── TaskFragment 2 (Secondary) ──▶ ActivityRecord</div>
-              </div>
-
-              <div class="grid-2" style="margin-top: 0.6rem;">
-                <!-- 1. 임베딩 기능의 전담 위임 -->
-                <div class="card-box" style="border-left: 3px solid var(--accent); padding: 0.75rem 0.95rem;">
-                  <div style="font-weight: 600; color: var(--accent); font-size: 0.88rem; margin-bottom: 0.45rem;">
-                    1. 역할 분담과 전담 위임 (Delegation)
-                  </div>
-                  <ul style="margin: 0 0 0 1.1rem; font-size: 0.78rem; line-height: 1.6; color: var(--text-muted);">
-                    <li><strong>Task (OS 작업 단위)</strong>: Recents 카드 1개 유지, TaskId, taskAffinity, PIP</li>
-                    <li><strong>TaskFragment (화면 구획)</strong>: 창 분할(Split), 상대적 Bounds, Multi-Resume 가시성 제어</li>
-                  </ul>
-                </div>
-
-                <!-- 2. Task도 TaskFragment이다 -->
-                <div class="card-box" style="border-left: 3px solid var(--accent-green); padding: 0.75rem 0.95rem;">
-                  <div style="font-weight: 600; color: var(--accent-green); font-size: 0.88rem; margin-bottom: 0.35rem;">
-                    2. Task도 TaskFragment이다 (다형성 &amp; 하위 호환)
-                  </div>
-                  <pre style="margin: 0.35rem 0 0.45rem; font-size: 0.71rem; line-height: 1.35; padding: 0.45rem 0.65rem; background: rgba(0,0,0,0.45);"><code>// Android 11 ~ 12: Task가 직접 수납
-class Task extends WindowContainer&lt;WindowContainer&gt; { ... }
-
-// Android 12L+: TaskFragment 신설 &amp; Task가 상속
-class TaskFragment extends WindowContainer&lt;WindowContainer&gt; { ... }
-class Task extends TaskFragment { ... }</code></pre>
-                  <p style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.45; margin: 0;">
-                    <code>Task extends TaskFragment</code> 덕분에, 일반 앱에서도 별도의 래퍼 없이 <code>Task</code> 스스로 단일 <code>TaskFragment</code>로 동작합니다 (ATMS 내부에서 <code>activity.getTaskFragment()</code> 호출 시 직속 부모인 <code>Task</code> 반환).
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- SLIDE 09: Section 5 Security -->
+          <!-- SLIDE 09: Security -->
           <div class="slide-card" data-index="8">
             <div class="slide-meta">
-              <span class="pill pill-red">Section 5</span>
-              <span class="pill pill-blue">보안 및 신뢰 경계</span>
+              <span class="pill pill-red">보안 및 신뢰 경계</span>
+              <span class="pill pill-blue">Same-UID &amp; Cross-UID</span>
             </div>
-            <h2 class="slide-title">5. 보안 및 신뢰 경계</h2>
+            <h2 class="slide-title">보안 및 신뢰 경계</h2>
             <div class="slide-body">
               <p>임의의 악의적 앱이 다른 은행 앱이나 로그인 화면을 자신의 창 안에 임베딩할 수 있다면 클릭재킹(Clickjacking), 탭재킹 및 피싱 공격이 가능해집니다.</p>
 
@@ -1099,61 +1098,13 @@ class Task extends TaskFragment { ... }</code></pre>
             </div>
           </div>
 
-          <!-- SLIDE 10: Appendix A Comparison -->
+          <!-- SLIDE 10: Z-Order -->
           <div class="slide-card" data-index="9">
             <div class="slide-meta">
-              <span class="pill pill-purple">부록 A</span>
-              <span class="pill pill-blue">기술 비교</span>
+              <span class="pill pill-purple">Z-Order &amp; Top Activity</span>
+              <span class="pill pill-blue">Multi-Resume</span>
             </div>
-            <h2 class="slide-title">부록 A. Multi-Window vs Activity Embedding</h2>
-            <div class="slide-body">
-              <div class="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>비교 항목</th>
-                      <th>전통적 Multi-Window (Split-Screen)</th>
-                      <th>Activity Embedding</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td><strong>태스크(Task) 경계</strong></td>
-                      <td>2개의 독립된 Task (서로 다른 최근 앱 카드)</td>
-                      <td><strong style="color: var(--accent-green);">단일 Task 내부 분할 (단일 앱 카드)</strong></td>
-                    </tr>
-                    <tr>
-                      <td><strong>주요 목적</strong></td>
-                      <td>서로 다른 두 앱 간의 멀티태스킹 (e.g. 유튜브 + 카톡)</td>
-                      <td><strong style="color: var(--accent-green);">단일 앱 내부의 대화면 레이아웃 최적화 (List-Detail)</strong></td>
-                    </tr>
-                    <tr>
-                      <td><strong>제어권 주체</strong></td>
-                      <td>사용자 및 시스템 SystemUI (OS 주도)</td>
-                      <td><strong style="color: var(--accent-green);">앱 프로세스 및 개발자 (App 주도)</strong></td>
-                    </tr>
-                    <tr>
-                      <td><strong>내비게이션</strong></td>
-                      <td>각 창마다 독립 백스택, 개별 뒤로가기</td>
-                      <td><strong style="color: var(--accent-green);">통합 백스택 및 FinishBehavior 연계</strong></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <div class="callout callout-green">
-                <strong>결론:</strong> Activity Embedding은 다중 앱 멀티태스킹이 아니라, <strong>"단일 앱의 모듈식 대화면 UX 구현 도구"</strong>입니다.
-              </div>
-            </div>
-          </div>
-
-          <!-- SLIDE 11: Appendix B Z-Order -->
-          <div class="slide-card" data-index="10">
-            <div class="slide-meta">
-              <span class="pill pill-purple">부록 B</span>
-              <span class="pill pill-blue">Z-Order &amp; Top Activity</span>
-            </div>
-            <h2 class="slide-title">부록 B. Z-Order 판정과 Top Activity 역순 탐색</h2>
+            <h2 class="slide-title">Z-Order 판정과 Top Activity 역순 탐색</h2>
             <div class="slide-body">
               <p>분할 화면에서는 좌우 두 액티비티가 <strong>모두 RESUMED 상태(Multi-Resume)</strong>입니다. 시스템은 어느 액티비티를 최상위(Top)로 판정할까요?</p>
 
@@ -1175,13 +1126,13 @@ ATMS 최상위 탐색 알고리즘:
             </div>
           </div>
 
-          <!-- SLIDE 12: Appendix C Finish -->
-          <div class="slide-card" data-index="11">
+          <!-- SLIDE 11: Finish -->
+          <div class="slide-card" data-index="10">
             <div class="slide-meta">
-              <span class="pill pill-purple">부록 C</span>
-              <span class="pill pill-orange">생명주기 및 연쇄 종료</span>
+              <span class="pill pill-purple">생명주기 및 연쇄 종료</span>
+              <span class="pill pill-orange">3대 FinishBehavior</span>
             </div>
-            <h2 class="slide-title">부록 C. Activity Finish와 3대 FinishBehavior</h2>
+            <h2 class="slide-title">Activity Finish와 3대 FinishBehavior</h2>
             <div class="slide-body">
               <p>한쪽 액티비티가 <code>finish()</code>될 때 반대편 액티비티를 어떻게 처리할지는 <code>SplitRule.FinishBehavior</code>로 제어합니다.</p>
 
@@ -1221,13 +1172,13 @@ ATMS 최상위 탐색 알고리즘:
             </div>
           </div>
 
-          <!-- SLIDE 13: Appendix D Platform Patterns -->
-          <div class="slide-card" data-index="12">
+          <!-- SLIDE 12: Platform Patterns -->
+          <div class="slide-card" data-index="11">
             <div class="slide-meta">
-              <span class="pill pill-purple">부록 D</span>
-              <span class="pill pill-blue">플랫폼 엔지니어링 패턴</span>
+              <span class="pill pill-purple">플랫폼 엔지니어링 패턴</span>
+              <span class="pill pill-blue">ATMS &amp; WCT</span>
             </div>
-            <h2 class="slide-title">부록 D. Frameworks &amp; ATMS 4대 핵심 패턴</h2>
+            <h2 class="slide-title">Frameworks &amp; ATMS 4대 핵심 패턴</h2>
             <div class="slide-body">
               <div class="grid-2">
                 <div class="card-box">
@@ -1258,13 +1209,13 @@ ATMS 최상위 탐색 알고리즘:
             </div>
           </div>
 
-          <!-- SLIDE 14: Appendix E Sources & Extensions Evolution -->
-          <div class="slide-card" data-index="13">
+          <!-- SLIDE 13: Sources & Extensions Evolution -->
+          <div class="slide-card" data-index="12">
             <div class="slide-meta">
-              <span class="pill pill-purple">부록 E</span>
-              <span class="pill pill-green">소스 코드 &amp; 최신 진화</span>
+              <span class="pill pill-purple">소스 코드 맵</span>
+              <span class="pill pill-green">최신 Window SDK 확장</span>
             </div>
-            <h2 class="slide-title">부록 E. AOSP 소스 탐색 가이드 &amp; 최신 진화</h2>
+            <h2 class="slide-title">AOSP 소스 탐색 가이드 &amp; 최신 진화</h2>
             <div class="slide-body">
               <div class="grid-2">
                 <div class="card-box">
@@ -1307,7 +1258,7 @@ ATMS 최상위 탐색 알고리즘:
         </div>
 
         <div class="slide-indicator" id="slide-indicator">
-          01 / 14
+          01 / 13
         </div>
 
         <div class="shortcut-hint">
