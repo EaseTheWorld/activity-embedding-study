@@ -657,7 +657,7 @@
     <aside>
       <div class="toc-header">
         <span class="toc-title">Slide Index</span>
-        <span class="toc-count" id="toc-slide-count">01 / 16</span>
+        <span class="toc-count" id="toc-slide-count">01 / 15</span>
       </div>
       <div class="toc-scroll" id="toc-scroll-list">
         <!-- Part 1 -->
@@ -680,30 +680,29 @@
           <div class="slide-item" data-slide="4"><span class="slide-num">05</span><span>3. 핵심 컨테이너 구조: TaskFragment</span></div>
           <div class="slide-item" data-slide="5"><span class="slide-num">06</span><span>startActivity 가로채기와 4단계 파이프라인</span></div>
           <div class="slide-item" data-slide="6"><span class="slide-num">07</span><span>1.4+ 런타임 직접 제어: 스택 &amp; Overlay</span></div>
-          <div class="slide-item" data-slide="7"><span class="slide-num">08</span><span>원자적 WCT 패키징 &amp; ATMS 계층 트리</span></div>
         </div>
 
         <!-- Part 4 -->
         <div class="part-group">
           <div class="part-title">Part 4. 하위 호환성 설계: 계층 구조 및 SplitRule</div>
-          <div class="slide-item" data-slide="8"><span class="slide-num">09</span><span>4. 기능 위임과 다형성: Task extends TaskFragment</span></div>
-          <div class="slide-item" data-slide="9"><span class="slide-num">10</span><span>선언적 SplitRule 기반 아키텍처</span></div>
+          <div class="slide-item" data-slide="7"><span class="slide-num">08</span><span>4. 기능 위임과 다형성: Task extends TaskFragment</span></div>
+          <div class="slide-item" data-slide="8"><span class="slide-num">09</span><span>선언적 SplitRule 기반 아키텍처</span></div>
         </div>
 
         <!-- Part 5 -->
         <div class="part-group">
           <div class="part-title">Part 5. 보안 및 신뢰 경계</div>
-          <div class="slide-item" data-slide="10"><span class="slide-num">11</span><span>5. 보안 및 신뢰 경계</span></div>
+          <div class="slide-item" data-slide="9"><span class="slide-num">10</span><span>5. 보안 및 신뢰 경계</span></div>
         </div>
 
         <!-- Part 6 -->
         <div class="part-group">
           <div class="part-title">Part 6. 부록 심층 분석 (Appendices)</div>
-          <div class="slide-item" data-slide="11"><span class="slide-num">12</span><span>부록 A. Multi-Window vs Activity Embedding</span></div>
-          <div class="slide-item" data-slide="12"><span class="slide-num">13</span><span>부록 B. Z-Order 판정과 Top Activity 역순 탐색</span></div>
-          <div class="slide-item" data-slide="13"><span class="slide-num">14</span><span>부록 C. Activity Finish와 3대 FinishBehavior</span></div>
-          <div class="slide-item" data-slide="14"><span class="slide-num">15</span><span>부록 D. Frameworks &amp; ATMS 4대 핵심 패턴</span></div>
-          <div class="slide-item" data-slide="15"><span class="slide-num">16</span><span>부록 E. AOSP 소스 탐색 가이드 &amp; 최신 진화</span></div>
+          <div class="slide-item" data-slide="10"><span class="slide-num">11</span><span>부록 A. Multi-Window vs Activity Embedding</span></div>
+          <div class="slide-item" data-slide="11"><span class="slide-num">12</span><span>부록 B. Z-Order 판정과 Top Activity 역순 탐색</span></div>
+          <div class="slide-item" data-slide="12"><span class="slide-num">13</span><span>부록 C. Activity Finish와 3대 FinishBehavior</span></div>
+          <div class="slide-item" data-slide="13"><span class="slide-num">14</span><span>부록 D. Frameworks &amp; ATMS 4대 핵심 패턴</span></div>
+          <div class="slide-item" data-slide="14"><span class="slide-num">15</span><span>부록 E. AOSP 소스 탐색 가이드 &amp; 최신 진화</span></div>
         </div>
       </div>
 
@@ -965,10 +964,10 @@ DisplayContent
                 <strong>2단계 (가로채기 &amp; 조건 평가):</strong> <code>Instrumentation.execStartActivity()</code> 직전, Extensions의 <code>ActivityStartMonitor.onStartActivity()</code>가 가로챔 ➔ <code>SplitController</code>가 <code>SplitRule</code> 대조 ➔ <code>SplitPresenter</code>가 윈도우 크기(<code>minWidthDp</code>) 실시간 평가 ➔ 타깃 컨테이너 토큰(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>) 주입
               </div>
               <div class="card-box" style="margin-bottom: 0.6rem;">
-                <strong>3단계 (원자적 WCT 패키징):</strong> <code>TaskFragmentOrganizer</code>가 컨테이너 생성/바운드 설정을 <code>WindowContainerTransaction (WCT)</code>으로 일괄 패키징
+                <strong>3단계 (원자적 WCT 패키징):</strong> <code>TaskFragmentOrganizer</code>가 컨테이너 생성·Bounds·인접 관계를 <code>WindowContainerTransaction (WCT)</code>으로 일괄 묶어 <strong>단 1회의 바인더 IPC</strong>로 전송 (화면 깜빡임·찢어짐 방지)
               </div>
               <div class="card-box">
-                <strong>4단계 (트랜잭션 실행 &amp; 라우팅):</strong> System Server (ATMS)의 <code>TaskFragmentOrganizerController</code>가 WCT 실행 ➔ <code>ActivityStarter</code>가 새 액티비티를 해당 <code>TaskFragment</code> 안으로 직접 라우팅
+                <strong>4단계 (트랜잭션 실행 &amp; 라우팅):</strong> System Server (ATMS)의 <code>TaskFragmentOrganizerController</code>가 WCT를 원자적으로 실행해 계층 트리를 구성 ➔ <code>ActivityStarter</code>가 새 액티비티를 해당 <code>TaskFragment</code> 안으로 직접 라우팅
               </div>
             </div>
           </div>
@@ -1016,38 +1015,8 @@ startActivity(intent, options)</code></pre>
             </div>
           </div>
 
-          <!-- SLIDE 08: Section 3 WCT & ATMS Hierarchy -->
+          <!-- SLIDE 08: Section 4 TaskFragment Delegation & Polymorphism -->
           <div class="slide-card" data-index="7">
-            <div class="slide-meta">
-              <span class="pill pill-green">Section 3</span>
-              <span class="pill pill-blue">플랫폼 내부 트리</span>
-              <span class="pill pill-purple">원자적 트랜잭션</span>
-            </div>
-            <h2 class="slide-title">원자적 WCT 패키징 &amp; ATMS 계층 트리</h2>
-            <div class="slide-body">
-              <p style="font-size: 0.92rem; margin-bottom: 0.65rem;">
-                <strong>WCT (WindowContainerTransaction)</strong>는 창 컨테이너(Task, TaskFragment 등)의 생성·크기 지정·인접 설정을 <strong>단일 바인더 IPC로 묶어 전송하는 Frameworks 계층의 일괄 트랜잭션 객체</strong>(<code>android.window</code>)입니다. 시스템 서버(ATMS)는 전달받은 WCT를 원자적으로 처리하여 계층 트리를 구성합니다.
-              </p>
-
-              <div class="ascii-diagram">
-DisplayContent (물리 디스플레이)
- └── TaskDisplayArea
-      └── Task (단일 최근 앱 엔트리)
-           ├── TaskFragment 1 (Primary)   [Bounds: (0,0) - (800,1600)]
-           │    └── ActivityRecord (Activity A)
-           └── TaskFragment 2 (Secondary) [Bounds: (800,0) - (2000,1600)]
-                └── ActivityRecord (Activity B)
-              </div>
-
-              <div class="callout callout-green">
-                <strong>⚡ 원자적 트랜잭션(WCT) 적용 목적:</strong><br>
-                컨테이너 생성, 상대적 Bounds 설정, 인접 관계(adjacent) 설정이 <strong>단 1회의 바인더 IPC</strong>로 일괄 처리됩니다. 따라서 좌우 화면이 어긋나게 렌더링되거나 중간 상태가 노출되는 <strong>화면 깜빡임(Flickering)과 찢어짐(Tearing)을 방지</strong>합니다.
-              </div>
-            </div>
-          </div>
-
-          <!-- SLIDE 09: Section 4 TaskFragment Delegation & Polymorphism -->
-          <div class="slide-card" data-index="8">
             <div class="slide-meta">
               <span class="pill pill-orange">Section 4</span>
               <span class="pill pill-purple">하위 호환성 설계</span>
@@ -1103,8 +1072,8 @@ class Task extends TaskFragment { ... }</code></pre>
             </div>
           </div>
 
-          <!-- SLIDE 10: Section 4 SplitRule-Based Architecture -->
-          <div class="slide-card" data-index="9">
+          <!-- SLIDE 09: Section 4 SplitRule-Based Architecture -->
+          <div class="slide-card" data-index="8">
             <div class="slide-meta">
               <span class="pill pill-orange">Section 4</span>
               <span class="pill pill-blue">선언적 SplitRule 모델</span>
@@ -1132,8 +1101,8 @@ class Task extends TaskFragment { ... }</code></pre>
             </div>
           </div>
 
-          <!-- SLIDE 11: Section 5 Security -->
-          <div class="slide-card" data-index="10">
+          <!-- SLIDE 10: Section 5 Security -->
+          <div class="slide-card" data-index="9">
             <div class="slide-meta">
               <span class="pill pill-red">Section 5</span>
               <span class="pill pill-blue">보안 및 신뢰 경계</span>
@@ -1163,8 +1132,8 @@ class Task extends TaskFragment { ... }</code></pre>
             </div>
           </div>
 
-          <!-- SLIDE 12: Appendix A Comparison -->
-          <div class="slide-card" data-index="11">
+          <!-- SLIDE 11: Appendix A Comparison -->
+          <div class="slide-card" data-index="10">
             <div class="slide-meta">
               <span class="pill pill-purple">부록 A</span>
               <span class="pill pill-blue">기술 비교</span>
@@ -1211,8 +1180,8 @@ class Task extends TaskFragment { ... }</code></pre>
             </div>
           </div>
 
-          <!-- SLIDE 13: Appendix B Z-Order -->
-          <div class="slide-card" data-index="12">
+          <!-- SLIDE 12: Appendix B Z-Order -->
+          <div class="slide-card" data-index="11">
             <div class="slide-meta">
               <span class="pill pill-purple">부록 B</span>
               <span class="pill pill-blue">Z-Order &amp; Top Activity</span>
@@ -1239,8 +1208,8 @@ ATMS 최상위 탐색 알고리즘:
             </div>
           </div>
 
-          <!-- SLIDE 14: Appendix C Finish -->
-          <div class="slide-card" data-index="13">
+          <!-- SLIDE 13: Appendix C Finish -->
+          <div class="slide-card" data-index="12">
             <div class="slide-meta">
               <span class="pill pill-purple">부록 C</span>
               <span class="pill pill-orange">생명주기 및 연쇄 종료</span>
@@ -1285,8 +1254,8 @@ ATMS 최상위 탐색 알고리즘:
             </div>
           </div>
 
-          <!-- SLIDE 15: Appendix D Platform Patterns -->
-          <div class="slide-card" data-index="14">
+          <!-- SLIDE 14: Appendix D Platform Patterns -->
+          <div class="slide-card" data-index="13">
             <div class="slide-meta">
               <span class="pill pill-purple">부록 D</span>
               <span class="pill pill-blue">플랫폼 엔지니어링 패턴</span>
@@ -1322,8 +1291,8 @@ ATMS 최상위 탐색 알고리즘:
             </div>
           </div>
 
-          <!-- SLIDE 16: Appendix E Sources & Extensions Evolution -->
-          <div class="slide-card" data-index="15">
+          <!-- SLIDE 15: Appendix E Sources & Extensions Evolution -->
+          <div class="slide-card" data-index="14">
             <div class="slide-meta">
               <span class="pill pill-purple">부록 E</span>
               <span class="pill pill-green">소스 코드 &amp; 최신 진화</span>
@@ -1371,7 +1340,7 @@ ATMS 최상위 탐색 알고리즘:
         </div>
 
         <div class="slide-indicator" id="slide-indicator">
-          01 / 16
+          01 / 15
         </div>
 
         <div class="shortcut-hint">
@@ -1387,13 +1356,11 @@ ATMS 최상위 탐색 알고리즘:
   </div>
 
   <script>
-    // State
-    const totalSlides = 16;
-    let currentSlide = 0;
-
     // Elements
     const slideCards = document.querySelectorAll('.slide-card');
     const tocItems = document.querySelectorAll('.slide-item');
+    const totalSlides = slideCards.length;
+    let currentSlide = 0;
     const btnPrev = document.getElementById('btn-prev');
     const btnNext = document.getElementById('btn-next');
     const slideIndicator = document.getElementById('slide-indicator');
