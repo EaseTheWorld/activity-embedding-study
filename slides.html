@@ -801,7 +801,7 @@ val splitPairRule = SplitPairRule.Builder(filterSet)
             .setLayoutDirection(SplitAttributes.LayoutDirection.LEFT_TO_RIGHT)
             .build()
     )
-    .setFinishPrimaryWithSecondary(SplitRule.FinishBehavior.NEVER)
+    .setFinishPrimaryWithSecondary(SplitRule.FinishBehavior.NEVER) // 우측(상세)이 닫혀도 좌측(목록)은 종료되지 않고 유지
     .build()
 
 // 3. 중앙 RuleController에 등록 (Zero IPC 인메모리 캐싱)
