@@ -424,24 +424,24 @@
       margin: 1rem 0;
     }
 
-    /* Mock Screen Diagram (Slide 02 As-Is vs To-Be) */
+    /* Mock Screen Diagram (Slide 02 As-Is vs To-Be: Color by Activity) */
     .mock-stage {
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       gap: 0.55rem;
-      margin: 0.6rem 0 0.75rem;
+      margin: 0.6rem 0 0.2rem;
     }
     .mock-single-activity {
-      border: 2px solid var(--accent-orange);
-      background: rgba(210, 153, 34, 0.06);
+      border: 2px solid var(--accent);
+      background: rgba(88, 166, 255, 0.08);
       border-radius: 8px;
       padding: 0.65rem;
     }
     .mock-activity-header {
       font-size: 0.78rem;
       font-weight: 700;
-      color: var(--accent-orange);
+      color: var(--accent);
       margin-bottom: 0.5rem;
       display: flex;
       align-items: center;
@@ -465,23 +465,18 @@
       min-height: 82px;
     }
     .mock-pane-subview {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px dashed rgba(139, 148, 158, 0.5);
-      color: var(--text-heading);
-    }
-    .mock-pane-violation {
-      background: rgba(210, 153, 34, 0.12);
-      border: 1px dashed var(--accent-orange);
+      background: rgba(88, 166, 255, 0.06);
+      border: 1px dashed rgba(88, 166, 255, 0.45);
       color: var(--text-heading);
     }
     .mock-pane-activity-primary {
-      background: rgba(88, 166, 255, 0.1);
+      background: rgba(88, 166, 255, 0.08);
       border: 2px solid var(--accent);
       color: var(--text-heading);
       min-height: 124px;
     }
     .mock-pane-activity-secondary {
-      background: rgba(63, 185, 80, 0.12);
+      background: rgba(63, 185, 80, 0.1);
       border: 2px solid var(--accent-green);
       color: var(--text-heading);
       min-height: 124px;
@@ -498,22 +493,16 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.76rem;
-      font-weight: 600;
+      font-size: 0.75rem;
+      font-weight: 500;
       padding: 0.45rem 0.65rem;
       border-radius: 6px;
       text-align: center;
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-muted);
+      border: 1px solid var(--border-subtle);
     }
-    .mock-status-warning {
-      background: rgba(210, 153, 34, 0.1);
-      color: var(--accent-orange);
-      border: 1px solid rgba(210, 153, 34, 0.35);
-    }
-    .mock-status-success {
-      background: rgba(63, 185, 80, 0.1);
-      color: var(--accent-green);
-      border: 1px solid rgba(63, 185, 80, 0.35);
-    }
+
 
     .chip-list {
       display: flex;
@@ -784,14 +773,14 @@
 
               <div class="grid-2" style="margin: 0.5rem 0;">
                 <!-- As-Is -->
-                <div class="card-box" style="border-top: 3px solid var(--accent-orange); padding: 1rem 1.15rem;">
-                  <div class="card-box-header" style="color: var(--accent-orange); font-size: 0.92rem; justify-content: space-between; margin-bottom: 0.6rem;">
+                <div class="card-box" style="padding: 1rem 1.15rem;">
+                  <div class="card-box-header" style="color: var(--text-heading); font-size: 0.92rem; justify-content: space-between; margin-bottom: 0.6rem;">
                     <span>As-Is: 단일 Activity 통합 (강결합)</span>
-                    <span class="pill pill-orange" style="font-size: 0.68rem;">1개 Activity</span>
+                    <span class="chip" style="margin: 0; font-size: 0.68rem;">1개 Activity</span>
                   </div>
 
                   <div class="mock-stage">
-                    <!-- 1 Single Activity wrapping the entire screen -->
+                    <!-- 1 Single Activity (Blue: SettingsActivity) wrapping the entire screen -->
                     <div class="mock-single-activity">
                       <div class="mock-activity-header">
                         <span>SettingsActivity</span>
@@ -802,28 +791,28 @@
                           <strong>카테고리 목록</strong>
                           <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">내부 Composable</span>
                         </div>
-                        <div class="mock-pane mock-pane-violation">
-                          <strong style="color: var(--accent-orange);">음성 설정 UI</strong>
+                        <div class="mock-pane mock-pane-subview">
+                          <strong>음성 설정 UI</strong>
                           <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">내부 Composable로 종속</span>
                         </div>
                       </div>
                     </div>
 
-                    <div class="mock-status-bar mock-status-warning">
-                      ❌ 외부 VoiceService.apk와 ContentProvider 결합 · 음성 기능 수정 시 설정 앱도 재배포
+                    <div class="mock-status-bar">
+                      외부 VoiceService.apk와 ContentProvider 결합 · 음성 기능 수정 시 설정 앱도 재배포
                     </div>
                   </div>
                 </div>
 
                 <!-- To-Be -->
-                <div class="card-box" style="border-top: 3px solid var(--accent-green); padding: 1rem 1.15rem;">
-                  <div class="card-box-header" style="color: var(--accent-green); font-size: 0.92rem; justify-content: space-between; margin-bottom: 0.6rem;">
+                <div class="card-box" style="padding: 1rem 1.15rem;">
+                  <div class="card-box-header" style="color: var(--text-heading); font-size: 0.92rem; justify-content: space-between; margin-bottom: 0.6rem;">
                     <span>To-Be: 2개 Activity 분할 임베딩 (SoC 분리)</span>
-                    <span class="pill pill-green" style="font-size: 0.68rem;">2개 Activity</span>
+                    <span class="chip" style="margin: 0; font-size: 0.68rem;">2개 Activity</span>
                   </div>
 
                   <div class="mock-stage">
-                    <!-- Split into 2 Separate Activities side by side -->
+                    <!-- Split into 2 Separate Activities side by side (Blue: SettingsActivity, Green: VoiceSettingsActivity) -->
                     <div class="mock-screen-layout">
                       <div class="mock-pane mock-pane-activity-primary">
                         <span class="mock-activity-badge" style="background: rgba(88, 166, 255, 0.2); color: var(--accent);">Activity 1</span>
@@ -839,8 +828,8 @@
                       </div>
                     </div>
 
-                    <div class="mock-status-bar mock-status-success">
-                      ✅ 각 APK가 자체 Activity 소유 · 외부 ContentProvider 불필요 및 독립 배포 가능
+                    <div class="mock-status-bar">
+                      각 APK가 자체 Activity 소유 · 외부 ContentProvider 불필요 및 독립 배포 가능
                     </div>
                   </div>
                 </div>
