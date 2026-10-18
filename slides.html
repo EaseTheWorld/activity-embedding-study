@@ -663,7 +663,7 @@
       </div>
       <div class="toc-scroll" id="toc-scroll-list">
         <div class="slide-item active" data-slide="0"><span class="slide-num">01</span><span>Activity Embedding 도입 배경</span></div>
-        <div class="slide-item" data-slide="1"><span class="slide-num">02</span><span>SplitRule 등록</span></div>
+        <div class="slide-item" data-slide="1"><span class="slide-num">02</span><span>SplitRule 예제</span></div>
         <div class="slide-item" data-slide="2"><span class="slide-num">03</span><span>AndroidX &amp; Extensions 계층 바인딩</span></div>
         <div class="slide-item" data-slide="3"><span class="slide-num">04</span><span>핵심 컨테이너 구조: TaskFragment</span></div>
         <div class="slide-item" data-slide="4"><span class="slide-num">05</span><span>기능 위임과 다형성: Task extends TaskFragment</span></div>
@@ -771,7 +771,7 @@
 
               <div class="callout callout-green" style="margin-top: 0.75rem; padding: 0.65rem 1rem; text-align: center; font-size: 0.92rem;">
                 💡 <strong>Activity Embedding은 결국 화면 쪼개기(Split)입니다.</strong><br>
-                두 Activity를 어떻게 쪼갤지 선언하는 <strong>SplitRule 등록</strong>부터 기술적 내부 원리를 살펴보겠습니다.
+                두 Activity를 어떻게 쪼갤지 선언하는 <strong>SplitRule 예제</strong>부터 기술적 내부 원리를 살펴보겠습니다.
               </div>
             </div>
           </div>
@@ -782,7 +782,7 @@
               <span class="pill pill-blue">1단계: 준비</span>
               <span class="pill pill-green">Zero IPC 인메모리 캐싱</span>
             </div>
-            <h2 class="slide-title">SplitRule 등록</h2>
+            <h2 class="slide-title">SplitRule 예제</h2>
             <div class="slide-body">
               <pre style="font-size: 0.81rem; line-height: 1.5; padding: 0.75rem 0.95rem; margin: 0.6rem 0;"><code>// 1. 대상 액티비티 쌍 매칭 필터 정의 (Primary ➔ Secondary)
 val filterSet = setOf(
