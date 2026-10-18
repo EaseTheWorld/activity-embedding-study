@@ -1035,15 +1035,14 @@ class Task extends TaskFragment { ... }</code></pre>
                 </div>
               </div>
 
-              <!-- Extensions vs Frameworks & Token/WCT Callout -->
+              <!-- Extensions vs Frameworks Callout -->
               <div style="margin-top: 0.55rem; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--border-subtle); border-left: 3px solid var(--accent-orange); border-radius: 6px; padding: 0.45rem 0.75rem; font-size: 0.73rem; color: var(--text-muted); line-height: 1.5;">
-                <div style="margin-bottom: 0.25rem;">
-                  <strong style="color: var(--accent-orange);">💡 토큰(2단계)과 WCT(3단계)의 관계:</strong> 
-                  <code>fragmentToken</code>은 <strong>"새 창의 예약 번호표(ID)"</strong>이고, <code>WCT</code>는 그 번호표로 <strong>"방을 만들라는 작업지시서"</strong>입니다. 4단계에서 시스템 서버가 WCT로 방을 만든 뒤(<code>token ➔ TaskFragment</code> 맵 등록), <code>ActivityStarter</code>가 옵션의 <code>token</code> 번호표를 대조하여 액티비티를 그 방으로 안내합니다.
+                <strong style="color: var(--accent-orange);">💡 Extensions vs Frameworks (모두 앱 프로세스 내 동작 — 정책 vs 메커니즘의 분리):</strong>
+                <div style="margin-top: 0.15rem;">
+                  • <strong>Extensions (OEM · 두뇌/정책)</strong>: <code>/system_ext/.../androidx.window.extensions.jar</code> (PathClassLoader 동적 마운트). 힌지/폴딩·화면 크기 평가 등 <strong>분할 정책(Policy)</strong> 결정
                 </div>
-                <div style="border-top: 1px dashed var(--border-subtle); padding-top: 0.25rem; font-size: 0.71rem;">
-                  • <strong>Extensions(OEM/정책)</strong>: <code>androidx.window.extensions.jar</code> (PathClassLoader). 분할 정책 결정 | 
-                  • <strong>Frameworks(AOSP/메커니즘)</strong>: <code>framework.jar</code> (BootClassLoader). WCT 패키징 및 IPC 수행
+                <div>
+                  • <strong>Frameworks (AOSP 코어 · 인프라/메커니즘)</strong>: <code>/system/.../framework.jar</code> (BootClassLoader 기본 탑재). WCT 패키징 및 Binder IPC 등 <strong>순수 메커니즘(Mechanism)</strong> 수행
                 </div>
               </div>
             </div>
