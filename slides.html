@@ -721,12 +721,12 @@
                       </div>
                       <div class="mock-screen-layout">
                         <div class="mock-pane mock-pane-subview">
-                          <strong>카테고리 목록</strong>
-                          <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">내부 Composable</span>
+                          <strong style="font-size: 0.84rem;">ListComposable</strong>
+                          <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">카테고리 목록</span>
                         </div>
                         <div class="mock-pane mock-pane-subview">
-                          <strong>음성 설정 UI</strong>
-                          <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">내부 Composable로 종속</span>
+                          <strong style="font-size: 0.84rem;">VoiceDetailComposable</strong>
+                          <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">음성 설정 UI (종속)</span>
                         </div>
                       </div>
                     </div>
@@ -745,17 +745,17 @@
                   </div>
 
                   <div class="mock-stage">
-                    <!-- Split into 2 Separate Activities side by side (Blue: SettingsActivity, Green: VoiceSettingsActivity) -->
+                    <!-- Split into 2 Separate Activities side by side (Blue: ListActivity, Green: VoiceDetailActivity) -->
                     <div class="mock-screen-layout">
                       <div class="mock-pane mock-pane-activity-primary">
                         <span class="mock-activity-badge" style="background: rgba(88, 166, 255, 0.2); color: var(--accent);">Activity 1</span>
-                        <strong style="font-size: 0.86rem; color: var(--accent);">SettingsActivity</strong>
+                        <strong style="font-size: 0.86rem; color: var(--accent);">ListActivity</strong>
                         <span style="font-size: 0.72rem; color: var(--text-heading); margin-top: 0.2rem;">카테고리 목록</span>
                         <span style="font-size: 0.66rem; color: var(--text-muted); font-family: var(--font-mono); margin-top: 0.15rem;">VehicleSettings.apk</span>
                       </div>
                       <div class="mock-pane mock-pane-activity-secondary">
                         <span class="mock-activity-badge" style="background: rgba(63, 185, 80, 0.2); color: var(--accent-green);">Activity 2</span>
-                        <strong style="font-size: 0.86rem; color: var(--accent-green);">VoiceSettingsActivity</strong>
+                        <strong style="font-size: 0.86rem; color: var(--accent-green);">VoiceDetailActivity</strong>
                         <span style="font-size: 0.72rem; color: var(--text-heading); margin-top: 0.2rem;">음성 설정 UI</span>
                         <span style="font-size: 0.66rem; color: var(--text-muted); font-family: var(--font-mono); margin-top: 0.15rem;">VoiceService.apk</span>
                       </div>
