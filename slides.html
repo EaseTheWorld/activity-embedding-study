@@ -1025,7 +1025,7 @@ startActivity(intent, options)</code></pre>
             <h2 class="slide-title">4. 기능 위임과 다형성: Task extends TaskFragment</h2>
             <div class="slide-body">
               <p style="margin-bottom: 0.6rem;">
-                <code>Task</code>의 역할 중 <strong>화면 분할(Embedding), 윈도우 Bounds, 액티비티 가시성/생명주기 제어 책임을 분할 컨테이너인 <code>TaskFragment</code>에 위임</strong>했습니다.
+                Android 12L부터 화면 분할 및 윈도우 제어 책임을 분할 컨테이너인 <code>TaskFragment</code>에 위임하여 하위 호환성과 유연성을 동시에 확보했습니다.
               </p>
 
               <div class="grid-2" style="margin: 0.4rem 0 0.75rem;">
@@ -1041,15 +1041,12 @@ Task (최상위 호스트 - 분할을 TaskFragment에 위임)
               <div class="grid-2" style="margin-top: 0.6rem;">
                 <!-- 1. 임베딩 기능의 전담 위임 -->
                 <div class="card-box" style="border-left: 3px solid var(--accent); padding: 0.75rem 0.95rem;">
-                  <div style="font-weight: 600; color: var(--accent); font-size: 0.88rem; margin-bottom: 0.35rem;">
-                    1. 임베딩 기능의 전담 위임 (Delegation)
+                  <div style="font-weight: 600; color: var(--accent); font-size: 0.88rem; margin-bottom: 0.45rem;">
+                    1. 역할 분담과 전담 위임 (Delegation)
                   </div>
-                  <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 0.45rem;">
-                    창 분할(Split), 상대적 Bounds, Multi-Resume 가시성 제어는 <code>TaskFragment</code>가 전담합니다.
-                  </p>
-                  <ul style="margin: 0 0 0 1.1rem; font-size: 0.78rem; line-height: 1.55; color: var(--text-muted);">
-                    <li><strong>Task</strong>: Recents 카드, TaskId, taskAffinity, PIP (OS 작업 관리)</li>
-                    <li><strong>TaskFragment</strong>: 화면 분할, Bounds 비율, 윈도우 렌더링 (뷰포트 구획)</li>
+                  <ul style="margin: 0 0 0 1.1rem; font-size: 0.78rem; line-height: 1.6; color: var(--text-muted);">
+                    <li><strong>Task (OS 작업 단위)</strong>: Recents 카드 1개 유지, TaskId, taskAffinity, PIP</li>
+                    <li><strong>TaskFragment (화면 구획)</strong>: 창 분할(Split), 상대적 Bounds, Multi-Resume 가시성 제어</li>
                   </ul>
                 </div>
 
