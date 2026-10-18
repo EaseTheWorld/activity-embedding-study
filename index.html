@@ -997,6 +997,67 @@ startActivity(intent, options)</code></pre>
           </div>
         </div>
 
+        <!-- Deep Dive: Extensions vs Frameworks Comparison -->
+        <div class="card" style="margin-top: 1.5rem; border-left: 4px solid var(--accent-orange);">
+          <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: var(--accent-orange);">🔬 계층 심층 비교: Extensions 계층 vs Frameworks 계층 — 단순한 패키지명 차이인가?</span>
+            <span class="pill pill-orange">정책과 메커니즘의 분리</span>
+          </div>
+          <p style="font-size: 0.9rem; line-height: 1.65; color: var(--text-main); margin-top: 0.5rem;">
+            두 계층 모두 앱 프로세스 내부에서 동작하지만, 단순한 패키지명 차이가 아닙니다.
+            <strong>공급 주체(OEM vs 구글), 바이너리 배포 위치, 클래스로더 마운트 방식, 그리고 역할과 책임(정책 vs 메커니즘)</strong>까지 운영체제 아키텍처 관점에서 엄격히 분리되어 있습니다.
+          </p>
+
+          <div class="table-container" style="margin: 0.85rem 0;">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 18%;">구분</th>
+                  <th style="width: 41%;">Extensions 계층 (androidx.window.extensions)</th>
+                  <th style="width: 41%;">Frameworks 계층 (android.window)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>공급 주체</strong></td>
+                  <td><strong>기기 제조사(OEM: 삼성, 구글 등)</strong></td>
+                  <td><strong>Android OS 표준 코어 (Google AOSP)</strong></td>
+                </tr>
+                <tr>
+                  <td><strong>바이너리 위치</strong></td>
+                  <td><code>/system_ext/framework/androidx.window.extensions.jar</code></td>
+                  <td><code>/system/framework/framework.jar</code></td>
+                </tr>
+                <tr>
+                  <td><strong>로딩 방식</strong></td>
+                  <td><code>&lt;uses-library&gt;</code> 기반 <code>PathClassLoader</code> 동적 마운트</td>
+                  <td><code>BootClassLoader</code>에 의해 OS 기동 시 무조건 기본 적재</td>
+                </tr>
+                <tr>
+                  <td><strong>역할 성격</strong></td>
+                  <td><strong>정책 &amp; 두뇌 (Policy / Brain)</strong></td>
+                  <td><strong>메커니즘 &amp; 파이프라인 (Mechanism / Plumbing)</strong></td>
+                </tr>
+                <tr>
+                  <td><strong>구체적 책임</strong></td>
+                  <td>분할 규칙 대조, 힌지/폴딩 상태 감지, <code>minWidthDp</code> 평가</td>
+                  <td><code>WindowContainerTransaction(WCT)</code> 패키징, 단 1회 Binder IPC 전송</td>
+                </tr>
+                <tr>
+                  <td><strong>버전 관리</strong></td>
+                  <td><strong><code>Extension Level</code> (Level 1 ~ 8+)</strong> (OS와 독립적 진화)</td>
+                  <td><strong><code>Android API Level</code> (API 32, 33, 34)</strong> (연 1회 OS 판올림)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; background: rgba(210, 153, 34, 0.08); border-left: 3px solid var(--accent-orange); padding: 0.65rem 0.9rem; border-radius: 0 6px 6px 0;">
+            👉 <strong>왜 분리했는가? (정책과 메커니즘의 분리 철학):</strong><br>
+            <code>android.window</code>는 화면을 쪼개고 크기를 변경하는 <strong>OS 토목 인프라(메커니즘)</strong>만 제공하며, "언제 어떻게 쪼갤 것인가"라는 <strong>비즈니스 판단(정책)</strong>은 제조사가 폴더블/태블릿 하드웨어 특성에 맞춰 <code>androidx.window.extensions</code>로 유연하게 구현하고 독자적으로 업데이트할 수 있도록 분리한 것입니다. 만약 이 로직이 OS 코어에 박혀 있었다면, 구글이 1년에 한 번 OS 메이저 판올림을 할 때까지 버그 수정이나 새 기능 추가가 불가능했을 것입니다.
+          </div>
+        </div>
+
         <!-- Dynamic Screen Resize Callout -->
         <div class="callout" style="margin-top: 1.25rem; border-color: rgba(188, 140, 255, 0.4); background: rgba(188, 140, 255, 0.05);">
           <div class="callout-title" style="color: var(--accent-purple); display: flex; align-items: center; justify-content: space-between;">

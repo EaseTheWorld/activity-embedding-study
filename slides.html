@@ -1039,6 +1039,17 @@ class Task extends TaskFragment { ... }</code></pre>
                   ATMS의 <code>TaskFragmentOrganizerController</code>가 WCT를 원자적으로 실행해 실제 <code>TaskFragment</code> 노드를 생성 ➔ <code>ActivityStarter</code>가 새 액티비티를 해당 <code>TaskFragment</code> 안으로 직접 라우팅
                 </div>
               </div>
+
+              <!-- Extensions vs Frameworks Callout -->
+              <div style="margin-top: 0.55rem; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--border-subtle); border-left: 3px solid var(--accent-orange); border-radius: 6px; padding: 0.45rem 0.75rem; font-size: 0.73rem; color: var(--text-muted); line-height: 1.5;">
+                <strong style="color: var(--accent-orange);">💡 Extensions vs Frameworks (모두 앱 프로세스 내 동작 — 정책 vs 메커니즘의 분리):</strong>
+                <div style="margin-top: 0.15rem;">
+                  • <strong>Extensions (OEM · 두뇌/정책)</strong>: <code>/system_ext/.../androidx.window.extensions.jar</code> (PathClassLoader 동적 마운트). 힌지/폴딩·화면 크기 평가 등 <strong>분할 정책(Policy)</strong> 결정
+                </div>
+                <div>
+                  • <strong>Frameworks (AOSP 코어 · 인프라/메커니즘)</strong>: <code>/system/.../framework.jar</code> (BootClassLoader 기본 탑재). WCT 패키징 및 Binder IPC 등 <strong>순수 메커니즘(Mechanism)</strong> 수행
+                </div>
+              </div>
             </div>
           </div>
 
