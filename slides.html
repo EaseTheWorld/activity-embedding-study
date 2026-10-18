@@ -809,7 +809,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
 
               <div class="callout callout-purple">
                 <strong>⚡ 시스템 서버 무통신 (Zero IPC 인메모리 캐싱):</strong><br>
-                <code>SplitRule</code> 등록 시 시스템 서버(ATMS)와의 IPC 통신이 발생하지 않습니다. 앱 초기화 시점에 <code>EmbeddingBackend</code>를 통해 동일 프로세스 내 Extensions 계층의 <strong>메모리(mSplitRules)에 캐싱</strong>됩니다. 이후 액티비티가 시작될 때도 인프로세스 메모리 탐색으로 분할 여부를 판단합니다.
+                <code>setRules()</code> 호출 시 시스템 서버(ATMS)와의 IPC 통신이 발생하지 않습니다. <code>EmbeddingBackend</code>를 통해 동일 프로세스 내 Extensions 계층의 <strong>메모리(mSplitRules)에 즉시 캐싱</strong>됩니다(통상 앱 초기화 시점에 1회 호출). 이후 액티비티가 시작될 때도 인프로세스 메모리 탐색으로 분할 여부를 빠르게 판단합니다.
               </div>
             </div>
           </div>
