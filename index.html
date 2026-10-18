@@ -568,6 +568,7 @@
         <li><a href="#appendix-finish">부록 C. Activity Finish 및 연쇄 종료 플로우</a></li>
         <li><a href="#appendix-platform-internals">부록 D. Frameworks &amp; System Server 심층 분석</a></li>
         <li><a href="#appendix-sources">부록 E. 업스트림 소스 코드 레퍼런스 &amp; 최신 진화</a></li>
+        <li><a href="#appendix-calculator">부록 F. 동적 레이아웃 제어: SplitAttributesCalculator 심층 분석</a></li>
       </ul>
     </aside>
 
@@ -1803,6 +1804,142 @@ public static final String KEY_LAUNCH_TASK_FRAGMENT_TOKEN =
               <li><strong>Ext 10 (Window 1.6):</strong> Window Area(후면 화면 디스플레이) 세션 고도화 및 PiP-Split 상호 전환 최적화</li>
             </ul>
           </div>
+        </div>
+      </section>
+
+      <!-- Appendix F: SplitAttributesCalculator Deep Dive -->
+      <section id="appendix-calculator">
+        <h2>부록 F. 동적 레이아웃 제어: SplitAttributesCalculator 및 호출 파이프라인 심층 분석</h2>
+        <p>
+          Android 12L의 초기 Activity Embedding은 고정된 너비 기준(<code>minWidthDp</code>)과 고정 비율(<code>ratio</code>)을 선언하는 정적 <code>SplitRule</code> 중심이었습니다.
+          그러나 폴더블 기기의 테이블탑(Tabletop) 모드, 힌지(Hinge) 회피 레이아웃, 다단계 반응형 비율 등 실시간 디바이스 상태에 따른 유연한 대응 요구가 커짐에 따라,
+          <strong>WindowManager 1.2+ (Window SDK Extensions Level 2+)</strong>에서 <strong><code>SplitController.setSplitAttributesCalculator</code></strong>가 도입되었습니다.
+        </p>
+
+        <h3>1. 선언적 SplitRule vs 동적 SplitAttributesCalculator 비교</h3>
+        <div class="table-container" style="margin: 1rem 0;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 22%;">비교 항목</th>
+                <th style="width: 39%;">정적 SplitRule (기본형)</th>
+                <th style="width: 39%;">setSplitAttributesCalculator (동적 제어형)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>동작 방식</strong></td>
+                <td>선언적(Declarative) 고정 속성 선언</td>
+                <td>명령형 람다 콜백(Imperative Lambda Callback)</td>
+              </tr>
+              <tr>
+                <td><strong>분할 비율</strong></td>
+                <td>고정값 (예: <code>ratio(0.4f)</code>)</td>
+                <td>윈도우 치수(너비·높이)에 따라 3~4단계 가변 계산</td>
+              </tr>
+              <tr>
+                <td><strong>분할 방향</strong></td>
+                <td>고정 방향 (좌우 <code>LEFT_TO_RIGHT</code> 등)</td>
+                <td>가로 모드(좌우 분할) ↔ 세로/접힘 모드(상하 분할) 동적 전환</td>
+              </tr>
+              <tr>
+                <td><strong>폴더블 힌지 대응</strong></td>
+                <td>대응 불가 (단순 Task 전체 너비만 측정)</td>
+                <td>힌지 위치 및 각도(FoldingFeature) 감지 후 힌지 회피 배치 가능</td>
+              </tr>
+              <tr>
+                <td><strong>지원 버전</strong></td>
+                <td>WindowManager 1.0+ / Extension Level 1</td>
+                <td>WindowManager 1.2+ / Extension Level 2+</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="margin-top: 2rem;">2. SplitAttributesCalculatorParams와 코드 구현 패턴</h3>
+        <p>
+          계산기 람다는 시스템으로부터 <a href="https://developer.android.com/reference/androidx/window/embedding/SplitAttributesCalculatorParams" target="_blank" style="color: var(--accent);"><code>SplitAttributesCalculatorParams</code></a>를 전달받아,
+          현재 부모 컨테이너 상태를 기반으로 최적화된 <code>SplitAttributes</code> 객체를 계산하여 반환합니다:
+        </p>
+
+        <pre><code>import androidx.window.embedding.SplitController
+import androidx.window.embedding.SplitAttributes
+import androidx.window.core.WindowSdkExtensions
+
+// 1. 기기의 Extensions 지원 레벨 확인 (Level 2 이상)
+if (WindowSdkExtensions.getInstance().extensionVersion >= 2 &&
+    SplitController.getInstance(context).isSplitAttributesCalculatorSupported()
+) {
+    // 2. 동적 분할 계산기(Calculator) 등록
+    SplitController.getInstance(context).setSplitAttributesCalculator { params ->
+        val parentConfig = params.parentConfiguration
+        val windowMetrics = params.parentWindowMetrics
+        val bounds = windowMetrics.bounds
+
+        // 기본 제약 조건(minWidthDp 등) 미충족 시 단일 전체화면(EXPAND)으로 확장
+        if (!params.areDefaultConstraintsSatisfied) {
+            return@setSplitAttributesCalculator SplitAttributes.Builder()
+                .setSplitType(SplitAttributes.SplitType.SPLIT_TYPE_EXPAND)
+                .build()
+        }
+
+        val builder = SplitAttributes.Builder()
+
+        // 분기 1: 폴더블 기기가 가로로 반 접힌 상태 (상하 분할: TOP_TO_BOTTOM)
+        if (isTabletopPosture(parentConfig)) {
+            builder.setLayoutDirection(SplitAttributes.LayoutDirection.TOP_TO_BOTTOM)
+                   .setSplitType(SplitAttributes.SplitType.ratio(0.5f))
+        } 
+        // 분기 2: 가로 840dp 이상 초대형 화면 (5:5 균등 분할)
+        else if (parentConfig.screenWidthDp >= 840) {
+            builder.setLayoutDirection(SplitAttributes.LayoutDirection.LEFT_TO_RIGHT)
+                   .setSplitType(SplitAttributes.SplitType.ratio(0.5f))
+        } 
+        // 분기 3: 일반 태블릿 화면 (기존 규칙에 선언된 기본값 유지)
+        else {
+            return@setSplitAttributesCalculator params.defaultSplitAttributes
+        }
+
+        builder.build()
+    }
+}</code></pre>
+
+        <h3 style="margin-top: 2rem;">3. AOSP 내부 호출 파이프라인: onConfigurationChanged와의 관계 및 호출부</h3>
+        <p>
+          흔히 앱의 <code>Activity.onConfigurationChanged()</code> 콜백 내부에서 계산기가 호출된다고 오해하기 쉽지만,
+          <strong>실제로는 안드로이드 프레임워크가 액티비티에게 화면 변경을 통보하기 훨씬 이전 단계</strong>에서 시스템 서버의 IPC 트랜잭션을 수신한 Extensions 계층이 직접 호출합니다.
+        </p>
+
+        <div class="card" style="margin: 1.25rem 0;">
+          <div class="card-title">
+            <span>AOSP 내부 5단계 호출 체인 (Call Flow)</span>
+            <span class="pill pill-green">인프로세스 동기 실행</span>
+          </div>
+          <ol style="margin-left: 1.3rem; font-size: 0.88rem; line-height: 1.7; color: var(--text-main); margin-top: 0.6rem;">
+            <li>
+              <strong>물리적 감지 (System Server):</strong> 폴더블 접힘이나 회전 발생 시, <code>com.android.server.wm.TaskFragment</code>가 <code>sendTaskFragmentParentInfoChanged()</code>를 실행하여 <code>TYPE_TASK_FRAGMENT_PARENT_INFO_CHANGED</code> 트랜잭션을 앱 프로세스로 발송합니다.
+            </li>
+            <li>
+              <strong>이벤트 수신 (Extensions: SplitController.java):</strong> <code>onTaskFragmentParentInfoChanged(IBinder fragmentToken, Configuration parentConfig)</code>가 호출되어 대상 컨테이너를 찾고 <code>mPresenter.updateContainer(container)</code>를 트리거합니다.
+            </li>
+            <li>
+              <strong>계산기 람다 직접 호출 (Extensions: SplitPresenter.java):</strong> <code>SplitPresenter.computeSplitAttributes()</code> 내부에서 개발자가 등록해 둔 <code>mSplitAttributesCalculator.computeSplitAttributes(params)</code>가 <strong>동기(Synchronous) 실행</strong>되어 실시간 <code>SplitAttributes</code>를 획득합니다.
+            </li>
+            <li>
+              <strong>원자적 트랜잭션 전송:</strong> 계산된 속성을 바탕으로 <code>SplitPresenter</code>가 새 윈도우 바운드를 확정하고, <code>WindowContainerTransaction (WCT)</code>을 묶어 시스템 서버로 회신합니다.
+            </li>
+            <li>
+              <strong>액티비티 생명주기 반영:</strong> 시스템 서버(ATMS)와 SurfaceFlinger가 새 크기대로 창을 합성한 이후에야, 개별 액티비티에 최종 <code>Configuration</code>이 전달되어 <code>Activity.onConfigurationChanged()</code>가 호출되거나 재생성(Recreation)이 수행됩니다.
+            </li>
+          </ol>
+        </div>
+
+        <div class="callout callout-purple" style="margin-top: 1rem;">
+          <strong>💡 추가적인 Calculator 호출 시점:</strong><br>
+          디바이스 회전이나 폴딩 시(<code>onTaskFragmentParentInfoChanged</code>)뿐만 아니라,
+          ① <code>startActivity()</code> 가로채기 파이프라인에서 분할 형태를 결정할 때,
+          ② <code>setSplitAttributesCalculator()</code>를 호출하여 계산기를 등록/교체하는 바로 그 순간(기존 열려 있는 창 일괄 재평가),
+          ③ <code>RuleController.setRules()</code>로 새로운 분할 규칙이 등록되었을 때도 동일한 <code>computeSplitAttributes()</code>가 즉시 실행됩니다.
         </div>
       </section>
     </main>

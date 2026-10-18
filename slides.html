@@ -383,6 +383,7 @@
       font-size: 0.92rem;
     }
 
+    .callout-blue { border-left-color: var(--accent); background: rgba(88, 166, 255, 0.08); }
     .callout-purple { border-left-color: var(--accent-purple); background: rgba(188, 140, 255, 0.08); }
     .callout-green { border-left-color: var(--accent-green); background: rgba(63, 185, 80, 0.08); }
     .callout-orange { border-left-color: var(--accent-orange); background: rgba(210, 153, 34, 0.08); }
@@ -810,6 +811,11 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
               <div class="callout callout-purple">
                 <strong>⚡ 시스템 서버 무통신 (Zero IPC 인메모리 캐싱):</strong><br>
                 <code>setRules()</code> 호출 시 시스템 서버(ATMS)와의 IPC 통신이 발생하지 않습니다. <code>EmbeddingBackend</code>를 통해 동일 프로세스 내 Extensions 계층의 <strong>메모리(mSplitRules)에 즉시 캐싱</strong>됩니다(통상 앱 초기화 시점에 1회 호출). 이후 액티비티가 시작될 때도 인프로세스 메모리 탐색으로 분할 여부를 빠르게 판단합니다.
+              </div>
+
+              <div class="callout callout-blue" style="margin-top: 0.65rem; padding: 0.55rem 0.85rem; font-size: 0.81rem; line-height: 1.55;">
+                <strong>💡 더 유연한 동적 분할 제어: setSplitAttributesCalculator (Window 1.2+ / Ext 2+)</strong><br>
+                정적 <code>SplitRule</code>의 고정 비율 한계를 넘어, 람다 콜백을 통해 <strong>창 크기나 폴더블 자세(테이블탑 ➔ 상하 분할)에 따라 분할 속성을 런타임에 동적 계산</strong>합니다. 화면 변화 시 시스템 서버의 <code>onTaskFragmentParentInfoChanged</code>를 수신한 Extensions의 <code>SplitPresenter.computeSplitAttributes()</code>에서 인프로세스로 동기 실행됩니다.
               </div>
 
               <div style="margin-top: 0.65rem; font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem;">
