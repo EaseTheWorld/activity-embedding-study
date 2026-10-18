@@ -786,9 +786,9 @@
               <pre style="font-size: 0.81rem; line-height: 1.5; padding: 0.75rem 0.95rem; margin: 0.6rem 0;"><code>// 1. 대상 액티비티 쌍 매칭 필터 정의 (Primary ➔ Secondary)
 val filterSet = setOf(
     SplitPairFilter(
-        ComponentName(context, ListActivity::class.java),
-        ComponentName(context, DetailActivity::class.java),
-        null // secondaryActivityIntentAction
+        ComponentName(context, ListActivity::class.java),   // 1번째 인자: Primary Activity (호출자 / 좌측 분할 창)
+        ComponentName(context, DetailActivity::class.java), // 2번째 인자: Secondary Activity (새로 열릴 대상 / 우측 분할 창)
+        null // 3번째 인자: Intent Action 필터링 (null = 모든 액션 허용)
     )
 )
 
