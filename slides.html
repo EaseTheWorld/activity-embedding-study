@@ -792,12 +792,12 @@ val filterSet = setOf(
     )
 )
 
-// 2. 분할 규칙 정의 (너비 기준, 분할 비율, 종료 정책)
+// 2. 분할 규칙 정의
 val splitPairRule = SplitPairRule.Builder(filterSet)
-    .setMinWidthDp(600)
+    .setMinWidthDp(600) // 너비 기준 (600dp 이상 시 분할)
     .setDefaultSplitAttributes(
         SplitAttributes.Builder()
-            .setSplitType(SplitAttributes.SplitType.ratio(0.4f))
+            .setSplitType(SplitAttributes.SplitType.ratio(0.4f)) // 분할 비율 (Primary 40%)
             .setLayoutDirection(SplitAttributes.LayoutDirection.LEFT_TO_RIGHT)
             .build()
     )
