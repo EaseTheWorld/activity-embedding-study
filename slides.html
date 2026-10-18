@@ -1004,7 +1004,7 @@ class Task extends TaskFragment { ... }</code></pre>
                   <span class="pill pill-purple" style="font-size: 0.68rem; padding: 0.1rem 0.45rem;">Extensions 계층 · 앱 프로세스</span>
                 </div>
                 <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.45;">
-                  <code>Instrumentation.execStartActivity()</code> 직전 <code>ActivityStartMonitor</code>가 가로챔 ➔ <code>SplitController</code>가 규칙 대조 ➔ <code>SplitPresenter</code>가 창 크기(<code>minWidthDp</code>) 실시간 평가 ➔ 타깃 컨테이너 토큰(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>) 생성 및 주입
+                  <code>Instrumentation.execStartActivity()</code> 직전 <code>ActivityStartMonitor</code>가 가로챔 ➔ <code>SplitController</code>/<code>SplitPresenter</code>가 규칙 및 크기 평가 ➔ 고유 <strong>토큰(<code>fragmentToken</code>)</strong>을 선발급하여 <strong>① <code>ActivityOptions</code>에 주입(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>)</strong> &amp; <strong>② 3단계 WCT 작성용으로 전달</strong>
                 </div>
               </div>
 
@@ -1014,7 +1014,7 @@ class Task extends TaskFragment { ... }</code></pre>
                   <span class="pill pill-orange" style="font-size: 0.68rem; padding: 0.1rem 0.45rem;">Frameworks 계층 · 앱 프로세스</span>
                 </div>
                 <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.45;">
-                  <code>TaskFragmentOrganizer</code>(<code>android.window</code>)가 컨테이너 생성·Bounds·인접 관계를 <code>WindowContainerTransaction (WCT)</code>으로 일괄 묶어 <strong>단 1회의 Binder IPC</strong>로 시스템 서버에 전송 (화면 깜빡임·찢어짐 방지)
+                  <code>TaskFragmentOrganizer</code>가 2단계의 <strong>동일한 <code>fragmentToken</code>을 식별 키</strong>로 삼아 창 생성(<code>createTaskFragment</code>)·크기(<code>setRelativeBounds</code>)·인접 관계를 <code>WindowContainerTransaction (WCT)</code> 지시서로 묶어 <strong>단 1회의 Binder IPC</strong>로 시스템 서버에 전송 (화면 깜빡임·찢어짐 방지)
                 </div>
               </div>
 
@@ -1031,18 +1031,19 @@ class Task extends TaskFragment { ... }</code></pre>
                   <span class="pill pill-green" style="font-size: 0.68rem; padding: 0.1rem 0.45rem;">System Server 계층 · system_server</span>
                 </div>
                 <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.45;">
-                  ATMS의 <code>TaskFragmentOrganizerController</code>가 WCT를 원자적으로 실행해 실제 <code>TaskFragment</code> 노드를 생성 ➔ <code>ActivityStarter</code>가 새 액티비티를 해당 <code>TaskFragment</code> 안으로 직접 라우팅
+                  <code>TaskFragmentOrganizerController</code>가 WCT를 실행해 <code>TaskFragment</code> 노드를 생성하고 <code>mTaskFragmentMap(token ➔ TaskFragment)</code> 등록 ➔ <code>ActivityStarter</code>가 옵션의 <code>token</code>과 일치하는 <code>TaskFragment</code>를 조회하여 새 액티비티를 그 안으로 직접 라우팅
                 </div>
               </div>
 
-              <!-- Extensions vs Frameworks Callout -->
+              <!-- Extensions vs Frameworks & Token/WCT Callout -->
               <div style="margin-top: 0.55rem; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--border-subtle); border-left: 3px solid var(--accent-orange); border-radius: 6px; padding: 0.45rem 0.75rem; font-size: 0.73rem; color: var(--text-muted); line-height: 1.5;">
-                <strong style="color: var(--accent-orange);">💡 Extensions vs Frameworks (모두 앱 프로세스 내 동작 — 정책 vs 메커니즘의 분리):</strong>
-                <div style="margin-top: 0.15rem;">
-                  • <strong>Extensions (OEM · 두뇌/정책)</strong>: <code>/system_ext/.../androidx.window.extensions.jar</code> (PathClassLoader 동적 마운트). 힌지/폴딩·화면 크기 평가 등 <strong>분할 정책(Policy)</strong> 결정
+                <div style="margin-bottom: 0.25rem;">
+                  <strong style="color: var(--accent-orange);">💡 토큰(2단계)과 WCT(3단계)의 관계:</strong> 
+                  <code>fragmentToken</code>은 <strong>"새 창의 예약 번호표(ID)"</strong>이고, <code>WCT</code>는 그 번호표로 <strong>"방을 만들라는 작업지시서"</strong>입니다. 4단계에서 시스템 서버가 WCT로 방을 만든 뒤(<code>token ➔ TaskFragment</code> 맵 등록), <code>ActivityStarter</code>가 옵션의 <code>token</code> 번호표를 대조하여 액티비티를 그 방으로 안내합니다.
                 </div>
-                <div>
-                  • <strong>Frameworks (AOSP 코어 · 인프라/메커니즘)</strong>: <code>/system/.../framework.jar</code> (BootClassLoader 기본 탑재). WCT 패키징 및 Binder IPC 등 <strong>순수 메커니즘(Mechanism)</strong> 수행
+                <div style="border-top: 1px dashed var(--border-subtle); padding-top: 0.25rem; font-size: 0.71rem;">
+                  • <strong>Extensions(OEM/정책)</strong>: <code>androidx.window.extensions.jar</code> (PathClassLoader). 분할 정책 결정 | 
+                  • <strong>Frameworks(AOSP/메커니즘)</strong>: <code>framework.jar</code> (BootClassLoader). WCT 패키징 및 IPC 수행
                 </div>
               </div>
             </div>

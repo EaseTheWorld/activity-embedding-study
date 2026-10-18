@@ -878,7 +878,7 @@ RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
                 <li><code>Instrumentation.execStartActivity()</code> 직전, Extensions의 <code>ActivityStartMonitor.onStartActivity()</code>가 호출을 가로챕니다.</li>
                 <li><code>SplitController</code>가 호출 Intent를 1단계에서 캐싱해 둔 <code>mSplitRules</code>와 대조합니다.</li>
                 <li><code>SplitPresenter</code>가 현재 윈도우 바운드(너비 &ge; <code>minWidthDp</code>) 및 디바이스 폴딩 상태를 실시간 평가합니다.</li>
-                <li>분할 조건이 충족되면 타깃 <code>TaskFragment</code> 컨테이너를 생성하고, 고유 바인더 토큰(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>)을 <code>ActivityOptions</code>에 주입합니다.</li>
+                <li>분할 조건이 충족되면 고유 바인더 토큰(<code>fragmentToken</code>)을 선발급하여, ① <code>ActivityOptions</code>에 주입(<code>KEY_LAUNCH_TASK_FRAGMENT_TOKEN</code>)하고 ② 3단계 WCT 작성용으로 <code>TaskFragmentOrganizer</code>에 전달합니다.</li>
               </ol>
             </div>
 
@@ -957,7 +957,7 @@ startActivity(intent, options)</code></pre>
             </div>
             <p><strong>원자적 트랜잭션 패키징:</strong> Extensions 계층이 결정한 컨테이너 조작 명령들을 바인더 IPC로 전송 가능한 원자적 단위로 묶어냅니다.</p>
             <div style="margin-top: 0.65rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); background: rgba(210, 153, 34, 0.06); border-left: 3px solid var(--accent-orange); padding: 0.55rem 0.85rem; border-radius: 0 6px 6px 0;">
-              <code>TaskFragmentOrganizer</code>가 Extensions 계층의 <code>TaskFragment</code> 생성(<code>createTaskFragment</code>), 상대적 바운드 설정(<code>setRelativeBounds</code>) 등의 작업들을 원자적 <code>WindowContainerTransaction (WCT)</code> 및 <code>TaskFragmentTransaction</code>으로 패키징하여 시스템 서버로 전송할 준비를 합니다. (Android 11 WCT 인프라를 계승하고 TaskFragment 전용 오퍼레이션을 확장하여 단 1회의 IPC로 일괄 전송)
+              <code>TaskFragmentOrganizer</code>가 2단계에서 발급된 동일한 <code>fragmentToken</code>을 식별 키(ID)로 삼아 <code>TaskFragment</code> 생성(<code>createTaskFragment</code>), 상대적 바운드 설정(<code>setRelativeBounds</code>), 인접 관계 설정 등의 작업들을 원자적 <code>WindowContainerTransaction (WCT)</code> 및 <code>TaskFragmentTransaction</code> 작업 지시서로 패키징하여 시스템 서버로 전송합니다. (Android 11 WCT 인프라를 계승하고 TaskFragment 전용 오퍼레이션을 확장하여 단 1회의 IPC로 일괄 전송)
             </div>
             <div class="arch-chips" style="margin-top: 0.75rem;">
               <span class="chip">TaskFragmentOrganizer.java</span>
@@ -983,8 +983,8 @@ startActivity(intent, options)</code></pre>
             <p><strong>트랜잭션 실행 및 액티비티 라우팅:</strong> 전달된 WCT를 창 계층 트리에 반영하고, 액티비티를 생성된 <code>TaskFragment</code> 구획 안으로 정확히 라우팅합니다.</p>
             <div style="margin-top: 0.65rem; font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); background: rgba(63, 185, 80, 0.06); border-left: 3px solid var(--accent-green); padding: 0.55rem 0.85rem; border-radius: 0 6px 6px 0;">
               <ol style="margin-left: 1.2rem;">
-                <li><code>TaskFragmentOrganizerController</code>가 수신된 WCT를 실행하여 시스템 창 트리에 실제 <code>TaskFragment</code> 노드를 생성하고 바운드를 적용합니다.</li>
-                <li><code>ActivityStarter</code>가 <code>options.getLaunchTaskFragmentToken()</code>을 확인하고 UID 임베딩 보안을 검증한 후, 새 <code>ActivityRecord</code>를 해당 <code>TaskFragment</code> 내부로 직접 라우팅합니다.</li>
+                <li><code>TaskFragmentOrganizerController</code>가 수신된 WCT를 실행하여 시스템 창 트리에 실제 <code>TaskFragment</code> 노드를 생성하고, 서버 측 레지스트리에 <code>mTaskFragmentMap.put(fragmentToken, TaskFragment)</code> 매핑을 등록합니다.</li>
+                <li><code>ActivityStarter</code>가 <code>options.getLaunchTaskFragmentToken()</code>을 확인하여 서버 맵(<code>mTaskFragmentMap</code>)에서 일치하는 <code>TaskFragment</code>를 조회하고, UID 보안 검증 후 새 <code>ActivityRecord</code>를 해당 컨테이너 내부로 직접 라우팅합니다.</li>
                 <li>SurfaceFlinger가 두 액티비티의 서피스를 깜빡임 없이 나란히 합성(Compositing)하여 화면에 렌더링합니다. (<a href="#appendix-zorder" style="color: var(--accent); text-decoration: underline;">부록 B. Z-Order 판정</a> 참조)</li>
               </ol>
             </div>
