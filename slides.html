@@ -783,7 +783,17 @@
             </div>
             <h2 class="slide-title">SplitRule 등록</h2>
             <div class="slide-body">
-              <pre><code>val splitPairRule = SplitPairRule.Builder(filterSet)
+              <pre style="font-size: 0.81rem; line-height: 1.5; padding: 0.75rem 0.95rem; margin: 0.6rem 0;"><code>// 1. 대상 액티비티 쌍 매칭 필터 정의 (Primary ➔ Secondary)
+val filterSet = setOf(
+    SplitPairFilter(
+        ComponentName(context, ListActivity::class.java),
+        ComponentName(context, DetailActivity::class.java),
+        null // secondaryActivityIntentAction
+    )
+)
+
+// 2. 분할 규칙 정의 (너비 기준, 분할 비율, 종료 정책)
+val splitPairRule = SplitPairRule.Builder(filterSet)
     .setMinWidthDp(600)
     .setDefaultSplitAttributes(
         SplitAttributes.Builder()
@@ -794,6 +804,7 @@
     .setFinishPrimaryWithSecondary(SplitRule.FinishBehavior.NEVER)
     .build()
 
+// 3. 중앙 RuleController에 등록 (Zero IPC 인메모리 캐싱)
 RuleController.getInstance(context).setRules(setOf(splitPairRule))</code></pre>
 
               <div class="callout callout-purple">
